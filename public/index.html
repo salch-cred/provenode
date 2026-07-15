@@ -1,3 +1,193 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Provenode deploys verified AI models to cameras, drones, robots and edge fleets through Shelby."><title>Provenode — Verified AI model delivery</title><link rel="stylesheet" href="https://cdn.hugeicons.com/font/hgi-stroke-rounded.css"><style>
-:root{--paper:#f5f3ee;--white:#fff;--ink:#171714;--muted:#6d6a64;--line:#d8d4cc;--orange:#ff6b3d;--orange2:#ff875f;--peach:#ffe1d5;--yellow:#f7dc72;--green:#bce3c5;--blue:#c9dcff;--purple:#ded2ff;--radius:13px}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);background:var(--paper);font:15px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}a{text-decoration:none;color:inherit}button{font:inherit}.shell{width:min(1180px,calc(100% - 42px));margin:auto}.nav{height:76px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:800;letter-spacing:-.03em}.brandmark{width:32px;height:32px;border:1.5px solid var(--ink);border-radius:9px;background:var(--orange);display:grid;place-items:center}.brandmark i{font-size:18px}.brandmark img{width:32px;height:32px;display:block}.links{display:flex;align-items:center;gap:28px;font-weight:600;font-size:13px}.links>a:not(.btn){color:#55524d}.btn{min-height:43px;padding:0 17px;border:1.5px solid var(--ink);border-radius:9px;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--white);font-weight:750;box-shadow:2px 2px 0 var(--ink);transition:.18s}.btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}.btn.orange{background:var(--orange);color:#111}.btn.dark{background:var(--ink);color:white;box-shadow:none}.hero{text-align:center;padding:78px 0 32px}.eyebrow{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:99px;padding:7px 12px;background:rgba(255,255,255,.65);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.eyebrow b{width:8px;height:8px;border-radius:50%;background:#32a866}.hero h1{font-size:72px;line-height:.98;letter-spacing:-.065em;max-width:930px;margin:22px auto 20px;animation:fadeUp .8s cubic-bezier(.22,1,.36,1) both}.scribble{position:relative;display:inline-block}.scribble:after{content:"";position:absolute;height:8px;left:2%;width:98%;bottom:-5px;background:var(--orange);border-radius:50%;clip-path:polygon(0 35%,100% 0,98% 100%,3% 74%);transform-origin:left center;animation:drawScribble .7s cubic-bezier(.22,1,.36,1) .6s both;filter:drop-shadow(0 0 10px var(--orange))}.hero>p{font-size:19px;color:var(--muted);max-width:690px;margin:0 auto 27px;animation:fadeUp .8s cubic-bezier(.22,1,.36,1) .2s both}.hero-actions{display:flex;justify-content:center;gap:12px;animation:fadeUp .8s cubic-bezier(.22,1,.36,1) .35s both}@keyframes fadeUp{0%{opacity:0;transform:translateY(24px)}100%{opacity:1;transform:translateY(0)}}@keyframes drawScribble{0%{transform:rotate(-1deg) scaleX(0)}100%{transform:rotate(-1deg) scaleX(1)}}.animate-on-scroll{opacity:0;transform:translateY(30px);transition:all .8s cubic-bezier(.22,1,.36,1)}.animate-on-scroll.show-anim{opacity:1;transform:translateY(0)}.delay-1{transition-delay:.1s}.delay-2{transition-delay:.2s}.delay-3{transition-delay:.3s}.subnote{margin-top:16px;color:#77736d;font-size:12px}.product{margin:58px auto 0;position:relative}.board{background:var(--white);border:1.5px solid var(--ink);border-radius:16px;overflow:hidden;box-shadow:8px 8px 0 #222}.windowbar{height:55px;padding:0 17px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.dots{display:flex;gap:6px}.dots i{width:9px;height:9px;border:1px solid #222;border-radius:50%;background:#ff8d76}.dots i:nth-child(2){background:var(--yellow)}.dots i:nth-child(3){background:#8ed29f}.window-title{font-size:12px;font-weight:750}.live{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700}.live:before{content:"";width:7px;height:7px;border-radius:50%;background:#27aa68}.sheet{display:grid;grid-template-columns:56px 1.3fr 1fr .8fr 1fr .8fr}.cell{min-height:61px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:11px 13px;display:flex;align-items:center;gap:9px;font-size:12px}.cell.head{min-height:42px;background:#f1efe9;color:#68655f;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:800}.rownum{justify-content:center;color:#8a867f;background:#faf9f6}.model-icon{width:29px;height:29px;border:1px solid var(--line);border-radius:7px;background:var(--purple);display:grid;place-items:center}.tag{display:inline-flex;padding:4px 7px;border-radius:6px;background:#e7f5ea;color:#237246;font-size:10px;font-weight:800}.tag.warn{background:#fff0d0;color:#8c5b00}.progress{height:7px;flex:1;border-radius:99px;background:#ece9e2;overflow:hidden}.progress i{display:block;height:100%;background:var(--orange);width:64%}.float{position:absolute;z-index:10;border:1.5px solid var(--ink);border-radius:11px;background:white;padding:12px 14px;box-shadow:4px 4px 0 #222;font-size:11px;text-align:left}.float strong{display:block;font-size:12px;margin-bottom:3px}.float.one{left:-28px;top:89px;background:var(--yellow);transform:rotate(-3deg)}.float.two{right:-26px;bottom:60px;background:var(--green);transform:rotate(2deg)}.logo-strip{padding:72px 0 35px;text-align:center}.logo-strip p{font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:800;color:#77736c}.fleet-logos{display:flex;justify-content:center;gap:42px;flex-wrap:wrap;margin-top:24px;font-weight:800;color:#4f4c47}.fleet-logos span{display:flex;align-items:center;gap:8px}.section{padding:92px 0}.section.white{background:white;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.section-head{display:grid;grid-template-columns:.85fr 1.15fr;gap:70px;align-items:end;margin-bottom:44px}.kicker{font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:850;color:#746f67}.section h2{font-size:49px;line-height:1.04;letter-spacing:-.05em;margin:9px 0}.section-head p{color:var(--muted);font-size:17px;margin:0;max-width:580px}.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.feature{border:1px solid var(--line);border-radius:14px;background:var(--paper);padding:24px;min-height:270px;position:relative;overflow:hidden}.feature:nth-child(2){background:#fff3ca}.feature:nth-child(3){background:#e8e0ff}.feature-icon{width:44px;height:44px;border:1.5px solid var(--ink);border-radius:10px;background:white;display:grid;place-items:center;box-shadow:2px 2px 0 var(--ink)}.feature-icon i{font-size:21px}.feature h3{font-size:21px;letter-spacing:-.03em;margin:25px 0 8px}.feature p{color:#625f59;margin:0}.mini-grid{position:absolute;left:24px;right:24px;bottom:20px;border:1px solid rgba(20,20,18,.25);border-radius:8px;display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden}.mini-grid span{padding:8px;border-right:1px solid rgba(20,20,18,.18);font-size:10px;background:rgba(255,255,255,.5)}.mini-grid span:last-child{border:0}.split{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center}.bigcopy h2{font-size:50px;line-height:1.03;letter-spacing:-.05em;margin:10px 0 17px}.bigcopy>p{font-size:17px;color:var(--muted)}.checklist{display:grid;gap:12px;margin:27px 0}.check{display:flex;align-items:flex-start;gap:11px;font-weight:650}.check i{width:25px;height:25px;border:1px solid #24231f;border-radius:50%;display:grid;place-items:center;background:var(--green);flex:0 0 auto}.proof-card{border:1.5px solid var(--ink);background:white;border-radius:15px;box-shadow:7px 7px 0 var(--ink);overflow:hidden}.proof-card .top{background:var(--peach);border-bottom:1px solid var(--line);padding:19px 21px;display:flex;justify-content:space-between;align-items:center}.proof-card .body{padding:10px 21px 18px}.proof-row{display:grid;grid-template-columns:125px 1fr;gap:16px;padding:12px 0;border-bottom:1px solid var(--line);font-size:12px}.proof-row:last-child{border:0}.proof-row span:first-child{color:#79756f}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow:hidden;text-overflow:ellipsis}.workflow{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-top:42px}.step{border:1px solid var(--line);border-radius:12px;background:white;padding:20px;min-height:180px}.step .n{font-size:11px;color:#77736c}.step i{font-size:26px;display:block;margin:22px 0 13px}.step h3{font-size:16px;margin:0 0 5px}.step p{font-size:12px;color:var(--muted);margin:0}.cta{padding:90px 0}.cta-card{border:1.5px solid var(--ink);border-radius:18px;background:var(--orange);padding:58px;text-align:center;box-shadow:8px 8px 0 var(--ink);position:relative;overflow:hidden}.cta-card:before,.cta-card:after{content:"✦";position:absolute;font-size:80px;opacity:.18}.cta-card:before{left:38px;top:20px}.cta-card:after{right:38px;bottom:0}.cta h2{font-size:48px;line-height:1;letter-spacing:-.05em;margin:0 auto 15px;max-width:690px}.cta p{margin:0 0 25px}.footer{padding:30px 0 44px;border-top:1px solid var(--line);display:flex;justify-content:space-between;color:#6f6b64;font-size:12px}.footer b{color:var(--ink)}@media(max-width:900px){.hero h1{font-size:56px}.sheet{grid-template-columns:48px 1.2fr 1fr .8fr}.sheet .cell:nth-child(6n),.sheet .cell:nth-child(6n-1){display:none}.section-head,.split{grid-template-columns:1fr;gap:28px}.feature-grid{grid-template-columns:1fr 1fr}.feature:last-child{grid-column:1/-1}.workflow{grid-template-columns:1fr 1fr}.float{display:none}}@media(max-width:620px){.shell{width:min(100% - 28px,1180px)}.links>a:not(.btn.orange):not(.social){display:none}.nav{height:66px}.links{gap:8px}.hero{padding-top:52px}.hero h1{font-size:43px}.hero>p{font-size:16px}.hero-actions{display:grid}.product{margin-top:38px}.board{box-shadow:4px 4px 0 #222}.sheet{grid-template-columns:40px 1.35fr 1fr}.sheet .cell:nth-child(4n){display:none}.cell{padding:8px;min-height:58px}.logo-strip{padding-top:55px}.section{padding:68px 0}.section h2,.bigcopy h2{font-size:37px}.feature-grid,.workflow{grid-template-columns:1fr}.feature:last-child{grid-column:auto}.proof-row{grid-template-columns:95px 1fr}.cta-card{padding:40px 22px}.cta h2{font-size:37px}.footer{display:block}.footer span{display:block;margin-top:8px}}
- </style></head><body><header class="shell nav"><a class="brand" href="./"><span class="brandmark"><img src="provenode-logo.svg" alt=""></span>Provenode</a><nav class="links"><a href="#product">Product</a><a href="#shelby">Why Shelby</a><a href="#workflow">How it works</a><a class="social" href="https://twitter.com/provenode" target="_blank" aria-label="Twitter" style="font-size: 18px; color: var(--ink);"><i class="hgi-stroke hgi-twitter"></i></a><a class="btn" href="app.html">Open console</a><a class="btn orange" href="app.html"><i class="hgi-stroke hgi-arrow-up-right-01"></i>Deploy</a></nav></header><main><section class="shell hero"><span class="eyebrow"><b></b>Verified delivery for physical AI</span><h1>Deploy edge AI models with <span class="scribble">proof, not hope.</span></h1><p>Provenode gives cameras, drones, and robots the exact model you approved—with Shelby-backed artifacts, progressive rollouts, and automatic rollback.</p><div class="hero-actions"><a class="btn orange" href="app.html"><i class="hgi-stroke hgi-play"></i>Open operations console</a><a class="btn" href="#shelby">See the trust layer <i class="hgi-stroke hgi-arrow-down-01"></i></a></div><div class="subnote">No credit card · Zero-cost production deployment · Built for Shelby testnet</div><div class="product animate-on-scroll" id="product"><div class="float one"><strong>Canary paused</strong>1 unsafe activation blocked</div><div class="float two"><strong>248 devices</strong>Verified across 4 regions</div><div class="board"><div class="windowbar"><div class="dots"><i></i><i></i><i></i></div><span class="window-title">Production rollout · Vision Edge v2.4.1</span><span class="live">Shelby ready</span></div><div class="sheet"><div class="cell head rownum">#</div><div class="cell head">Model artifact</div><div class="cell head">Shelby object</div><div class="cell head">Region</div><div class="cell head">Verification</div><div class="cell head">Rollout</div><div class="cell rownum">1</div><div class="cell"><span class="model-icon"><i class="hgi-stroke hgi-ai-brain-01"></i></span><b>Vision Edge v2.4.1</b></div><div class="cell mono">0x73ab…20f1</div><div class="cell">Singapore</div><div class="cell"><span class="tag">✓ Verified</span></div><div class="cell"><div class="progress"><i></i></div>64%</div><div class="cell rownum">2</div><div class="cell"><span class="model-icon" style="background:var(--blue)"><i class="hgi-stroke hgi-drone"></i></span><b>Drone Nav v3.2</b></div><div class="cell mono">0xe871…b019</div><div class="cell">Bengaluru</div><div class="cell"><span class="tag">✓ Verified</span></div><div class="cell">Complete</div><div class="cell rownum">3</div><div class="cell"><span class="model-icon" style="background:var(--yellow)"><i class="hgi-stroke hgi-machine-robot"></i></span><b>Safety Adapter v0.9</b></div><div class="cell mono">Pending</div><div class="cell">Frankfurt</div><div class="cell"><span class="tag warn">Staged</span></div><div class="cell">—</div></div></div></div></section><section class="shell logo-strip animate-on-scroll"><p>One control plane for every kind of edge fleet</p><div class="fleet-logos"><span class="animate-on-scroll delay-1"><i class="hgi-stroke hgi-camera-01"></i>Smart cameras</span><span class="animate-on-scroll delay-2"><i class="hgi-stroke hgi-drone"></i>Autonomous drones</span><span class="animate-on-scroll delay-3"><i class="hgi-stroke hgi-machine-robot"></i>Warehouse robots</span><span class="animate-on-scroll delay-3"><i class="hgi-stroke hgi-car-01"></i>Vehicle systems</span></div></section><section class="section white"><div class="shell"><div class="section-head animate-on-scroll"><div><span class="kicker">Model delivery, rebuilt</span><h2>Every release is observable and reversible.</h2></div><p>Stop treating model files like ordinary downloads. Provenode controls identity, distribution, verification, health, and recovery in one workflow.</p></div><div class="feature-grid"><article class="feature animate-on-scroll"><span class="feature-icon"><i class="hgi-stroke hgi-fingerprint-scan"></i></span><h3>Content-address every model</h3><p>Generate a SHA-256 identity before an artifact can enter your fleet.</p><div class="mini-grid"><span>SHA-256</span><span>Manifest</span><span>Runtime</span></div></article><article class="feature animate-on-scroll delay-1"><span class="feature-icon"><i class="hgi-stroke hgi-route-01"></i></span><h3>Roll out progressively</h3><p>Move from 10% canary to 50% and 100% only after devices report healthy.</p><div class="mini-grid"><span>10%</span><span>50%</span><span>100%</span></div></article><article class="feature animate-on-scroll delay-2"><span class="feature-icon"><i class="hgi-stroke hgi-shield-energy"></i></span><h3>Block unsafe activation</h3><p>Keep the previous model loaded whenever the downloaded digest is wrong.</p><div class="mini-grid"><span>Compare</span><span>Block</span><span>Rollback</span></div></article></div></div></section><section class="section" id="shelby"><div class="shell split"><div class="bigcopy animate-on-scroll"><span class="kicker">Shelby-native trust layer</span><h2>Store once. Read globally. Verify before activation.</h2><p>Provenode binds every signed deployment manifest to one immutable Shelby object, then verifies the model again on the device.</p><div class="checklist"><div class="check"><i class="hgi-stroke hgi-tick-01"></i><span>One global object namespace for every region</span></div><div class="check"><i class="hgi-stroke hgi-tick-01"></i><span>Immutable artifact identity and commitment</span></div><div class="check"><i class="hgi-stroke hgi-tick-01"></i><span>Device-side digest verification before load</span></div></div><a class="btn orange" href="app.html">Inspect Shelby objects <i class="hgi-stroke hgi-arrow-right-01"></i></a></div><div class="proof-card animate-on-scroll delay-1"><div class="top"><b>Artifact proof</b><span class="tag">✓ VERIFIED</span></div><div class="body"><div class="proof-row"><span>Model</span><b>vision-edge-v2.4.1.onnx</b></div><div class="proof-row"><span>Shelby object</span><span class="mono">shelby://testnet/models/vision/2.4.1</span></div><div class="proof-row"><span>Commitment</span><span class="mono">0x73ab91c4…20f1</span></div><div class="proof-row"><span>SHA-256</span><span class="mono">9e4a7c81d2bf…b82f</span></div><div class="proof-row"><span>Activation rule</span><b>Digest must match manifest</b></div></div></div></div></section><section class="section white" id="workflow"><div class="shell"><div class="animate-on-scroll"><span class="kicker">A safer release loop</span><h2 style="max-width:680px">From approved model to healthy fleet in four steps.</h2></div><div class="workflow"><article class="step animate-on-scroll"><span class="n">STEP 01</span><i class="hgi-stroke hgi-cloud-upload"></i><h3>Publish</h3><p>Hash the model and publish its immutable object.</p></article><article class="step animate-on-scroll delay-1"><span class="n">STEP 02</span><i class="hgi-stroke hgi-file-security"></i><h3>Sign</h3><p>Create a deployment manifest with runtime and policy.</p></article><article class="step animate-on-scroll delay-2"><span class="n">STEP 03</span><i class="hgi-stroke hgi-global"></i><h3>Distribute</h3><p>Serve the approved artifact to targeted devices.</p></article><article class="step animate-on-scroll delay-3"><span class="n">STEP 04</span><i class="hgi-stroke hgi-shield-01"></i><h3>Verify</h3><p>Activate only after digest and health checks pass.</p></article></div></div></section><section class="shell cta"><div class="cta-card animate-on-scroll"><h2>See a bad model get stopped before it reaches production.</h2><p>Run the complete canary, integrity-failure, and rollback story.</p><a class="btn dark" href="app.html"><i class="hgi-stroke hgi-dashboard-square-01"></i>Open Provenode console</a></div></section></main><footer class="shell footer animate-on-scroll"><b>Provenode</b><span>Verified edge AI delivery · Designed for Shelby · Hugeicons interface</span><a href="https://twitter.com/provenode" target="_blank" style="color: inherit; text-decoration: none; display: flex; align-items: center; gap: 6px;"><i class="hgi-stroke hgi-twitter"></i>Twitter</a></footer><script>const observer=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('show-anim');observer.unobserve(e.target);}})},{threshold:0.1});document.querySelectorAll('.animate-on-scroll').forEach(el=>observer.observe(el));</script></body></html></a></footer></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ModelRelay — Vision Edge verified</title>
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --white: #fff;
+      --ink: #111111;
+      --muted: #666;
+      --line: #e2e2e2;
+      --green: #cbebc4;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+      background-image: 
+        linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    
+    .card {
+      background: var(--white);
+      border: 2px solid var(--ink);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 800px;
+      padding: 40px;
+      box-shadow: 10px 10px 0 var(--ink);
+      position: relative;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 18px;
+      margin-bottom: 40px;
+    }
+    .brand img {
+      width: 24px;
+      height: 24px;
+    }
+
+    h1 {
+      font-size: 42px;
+      margin: 0 0 10px 0;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--ink);
+      margin: 0 0 24px 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--green);
+      border: 1px solid var(--ink);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 40px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .data-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .data-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .data-value {
+      font-size: 15px;
+      font-weight: 700;
+      word-break: break-all;
+    }
+
+    .data-value.mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .footer-note {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+      border-top: 1px solid var(--line);
+      padding-top: 24px;
+    }
+
+    .subnote {
+      margin-top: 30px;
+      color: #667085;
+      font-size: 14px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="card">
+    <div class="brand">
+      <img src="provenode-logo.svg" alt="Logo">
+      ModelRelay
+    </div>
+
+    <h1>Vision Edge · verified</h1>
+    <p class="subtitle">This artifact passed the ModelRelay integrity path before activation.</p>
+
+    <div class="badge">
+      ✓ Cryptographically verified
+    </div>
+
+    <div class="grid">
+      <div class="data-box">
+        <div class="data-label">Model</div>
+        <div class="data-value">Vision Edge</div>
+      </div>
+      <div class="data-box">
+        <div class="data-label">Version</div>
+        <div class="data-value">Not provided</div>
+      </div>
+      
+      <div class="data-box">
+        <div class="data-label">Shelby Object</div>
+        <div class="data-value mono">sh1b_73ab20f1d9c2</div>
+      </div>
+      <div class="data-box">
+        <div class="data-label">SHA-256</div>
+        <div class="data-value mono">73ab6fb170e0f4fc9e93a31bd70d6f89e80ec5b68235200c934228f760c120f1</div>
+      </div>
+
+      <div class="data-box">
+        <div class="data-label">Network</div>
+        <div class="data-value">Shelby testnet</div>
+      </div>
+      <div class="data-box">
+        <div class="data-label">Verified At</div>
+        <div class="data-value">15/7/2026, 7:50:55 am</div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      The edge device resolves the Shelby object, resumes verified chunks, calculates SHA-256 and compares it with the approved deployment manifest before atomic activation.
+    </div>
+  </div>
+
+  <div class="subnote">
+    No credit card · Zero-cost production deployment · Built for Shelby testnet
+  </div>
+
+</body>
+</html>
