@@ -25,10 +25,44 @@ export async function onRequestPost(context) {
 
     const id = crypto.randomUUID();
     const slug = modelName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'model';
-    const configured = Boolean(env.SHELBY_API_KEY);
-    const objectId = configured
-      ? `shelby://${env.SHELBY_NETWORK || 'shelbynet'}/models/${slug}-${id.slice(0, 8)}`
-      : `demo://provenode/models/${slug}-${id.slice(0, 8)}`;
+    const blobName = `models/${slug}-${id.slice(0, 8)}`;
+
+    let objectId = `demo://provenode/${blobName}`;
+    let mode = 'demo';
+    let warning;
+
+    if (env.SHELBY_API_KEY) {
+      try {
+        const nodeBuffer = await import('node:buffer');
+        globalThis.Buffer = nodeBuffer.Buffer;
+        globalThis.process = { env: {} };
+
+        const { ShelbyClient } = await import('@shelby-protocol/sdk/browser');
+        const { Account, Network } = await import('@aptos-labs/ts-sdk');
+
+        const client = new ShelbyClient({ network: Network.SHELBYNET, apiKey: env.SHELBY_API_KEY });
+        const account = Account.generate();
+        const expirationMicros = Date.now() * 1000 + 86400_000_000; // 24 hours
+
+        // Fund APT for gas and ShelbyUSD for storage fees via the SDK's own
+        // faucet helpers before attempting the real upload.
+        await client.fundAccountWithAPT({ address: account.accountAddress, amount: 100_00000000 });
+        await client.fundAccountWithShelbyUSD({ address: account.accountAddress, amount: 10000_00000000 });
+
+        await client.upload({
+          blobData: new Uint8Array(bytes),
+          signer: account,
+          blobName,
+          expirationMicros
+        });
+
+        objectId = `shelby://shelbynet/${account.accountAddress.toString()}/${blobName}`;
+        mode = 'shelby';
+      } catch (err) {
+        console.error('Shelby upload failed, falling back to demo registration:', err.message);
+        warning = `Shelby upload failed (${err.message}); registered in demo mode instead.`;
+      }
+    }
 
     const record = {
       id,
@@ -36,7 +70,7 @@ export async function onRequestPost(context) {
       objectId,
       sha256,
       size: bytes.byteLength,
-      mode: configured ? 'shelby' : 'demo',
+      mode,
       createdAt: new Date().toISOString()
     };
 
@@ -44,7 +78,7 @@ export async function onRequestPost(context) {
       await env.PROVENODE_DB.put(`model:${id}`, JSON.stringify(record));
     }
 
-    return Response.json({ success: true, id, objectId, hash: sha256, size: bytes.byteLength, mode: record.mode });
+    return Response.json({ success: true, id, objectId, hash: sha256, size: bytes.byteLength, mode, warning });
   } catch (err) {
     return Response.json({ error: err.message || 'Upload failed.' }, { status: 500 });
   }

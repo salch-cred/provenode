@@ -64,21 +64,24 @@ npm run dev
 - `/console` — friendly redirect to the console
 - `/api/health` — Cloudflare Pages health function
 - `/api/config` — safe public configuration; never returns credentials
-- `/api/upload` — hashes an uploaded model (SHA-256) and registers it in the KV-backed model registry (demo mode by default; uses Shelby object naming automatically once `SHELBY_API_KEY` is configured)
+- `/api/upload` — hashes an uploaded model (SHA-256) and registers it in the KV-backed model registry; performs a real Shelby testnet upload once `SHELBY_API_KEY` is configured, falling back to demo mode if the Shelby call fails
+- `/api/deploy` — same real-vs-demo behavior as `/api/upload`, for the rollout/deployment flow
 - `/api/models` — lists previously registered models so the console survives page reloads
 - `/verify.html` — public proof page for a registered model, e.g. `/verify.html?id=...&name=...&hash=...`
 
-## Shelby limitation
+## Shelby integration
 
-This zero-cost package runs the complete interactive demo and hashes uploaded files in the browser. It does **not** perform real Shelby uploads yet because a Shelby Early Access key and a tested server-side SDK adapter are required.
+Without `SHELBY_API_KEY` configured, `/api/upload` and `/api/deploy` run in demo mode: files are hashed with real SHA-256 in the Worker and registered in Cloudflare KV, but no on-chain object is created.
 
-When credentials are available, store them as a Cloudflare secret—not as a public environment variable and never in `app.html`:
+With `SHELBY_API_KEY` configured, both endpoints perform a real upload to Shelby's `shelbynet` testnet using `@shelby-protocol/sdk` and `@aptos-labs/ts-sdk` (Cloudflare Pages Functions, `nodejs_compat` enabled): they generate an ephemeral Aptos signer, fund it with APT and ShelbyUSD via the SDK's own faucet helpers, then call `client.upload()`. If the real upload fails for any reason (bad key, faucet outage, network issue), the request degrades gracefully to a demo-mode registration instead of failing outright, and the response includes a `warning` field explaining what happened.
+
+Store the key as a Cloudflare secret — not as a public environment variable and never in `app.html`:
 
 ```bash
 npx wrangler pages secret put SHELBY_API_KEY --project-name provenode-app
 ```
 
-Before real model uploads, verify that the current Shelby Node SDK and its required Aptos dependencies run in Cloudflare's Workers runtime with Node compatibility. If they do not, real uploads will need a separate trusted Node backend, which may not remain zero-cost. The deployed demo itself remains zero-cost.
+The Shelby SDK's peer dependency requires `@aptos-labs/ts-sdk@^5.2.1 || ^6.0.0` — do not bump it to `^7.x`, `npm install` will fail with a peer dependency conflict.
 
 ## Resource requirements
 
