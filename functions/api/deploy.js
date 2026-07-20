@@ -1,90 +1,109 @@
 export async function onRequestPost(context) {
-  const nodeBuffer = await import('node:buffer');
-  globalThis.Buffer = nodeBuffer.Buffer;
-  globalThis.process = { env: {} };
-
-  const { ShelbyClient } = await import('@shelby-protocol/sdk/browser');
-  const { Account, Network } = await import('@aptos-labs/ts-sdk');
-
   const { request, env } = context;
 
-  if (!env.SHELBY_API_KEY) {
-    return Response.json({ error: "SHELBY_API_KEY is not configured in Cloudflare Pages." }, { status: 401 });
+  let data;
+  try {
+    data = await request.json();
+  } catch {
+    return Response.json({ error: 'Invalid JSON body.' }, { status: 400 });
   }
 
-  try {
-    const data = await request.json();
-    const { modelName, version, region } = data;
+  const { modelId, modelName, version, region } = data;
 
-    if (!modelName || !version) {
-      return Response.json({ error: "modelName and version are required." }, { status: 400 });
+  // If modelId is given, deploy the real artifact already registered via
+  // /api/upload (its sha256/objectId are reused as-is instead of being
+  // regenerated), so a deployment always traces back to a real uploaded file.
+  let model = null;
+  if (modelId) {
+    if (!env.PROVENODE_DB) {
+      return Response.json({ error: 'No database binding configured.' }, { status: 500 });
     }
+    const raw = await env.PROVENODE_DB.get(`model:${modelId}`);
+    if (!raw) {
+      return Response.json({ error: 'Unknown modelId.' }, { status: 404 });
+    }
+    model = JSON.parse(raw);
+  }
 
-    // Create a dummy payload buffer for the "model"
-    const randomData = modelName + version + Date.now().toString();
-    const blobData = new TextEncoder().encode(randomData);
+  const resolvedName = model?.model || modelName;
+  const resolvedVersion = version || model?.version || 'latest';
 
-    // 1. Generate real SHA-256
+  if (!resolvedName) {
+    return Response.json({ error: 'modelName or modelId is required.' }, { status: 400 });
+  }
+
+  let sha256 = model?.sha256;
+  let shelbyObjectId = model?.objectId;
+  let mode = model?.mode || 'demo';
+  let warning;
+
+  // No pre-registered model to reuse (e.g. the built-in dashboard rollout
+  // demo) — synthesize a manifest the same way /api/upload does, including a
+  // real Shelby upload attempt when credentials are configured.
+  if (!sha256) {
+    const seed = resolvedName + resolvedVersion + Date.now().toString();
+    const blobData = new TextEncoder().encode(seed);
     const hashBuffer = await crypto.subtle.digest('SHA-256', blobData);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const sha256 = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    sha256 = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // 2. Configure the Shelby client for shelbynet. Network.SHELBYNET alone is
-    // enough — the SDK resolves the correct RPC, Aptos fullnode and indexer
-    // URLs for that network internally, so we don't hand-transcribe them here.
-    const client = new ShelbyClient({
-      network: Network.SHELBYNET,
-      apiKey: env.SHELBY_API_KEY
-    });
+    const slug = resolvedName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'model';
+    const blobName = `models/${slug}-${resolvedVersion}-${Date.now()}`;
+    shelbyObjectId = `demo://provenode/${blobName}`;
 
-    // Generate an ephemeral signer for the upload
-    const account = Account.generate();
-    const blobName = `models/${modelName.toLowerCase().replace(/\s+/g, '-')}-${version}-${Date.now()}`;
-    const expirationMicros = Date.now() * 1000 + 86400_000_000; // 24 hours
+    if (env.SHELBY_API_KEY) {
+      try {
+        const nodeBuffer = await import('node:buffer');
+        globalThis.Buffer = nodeBuffer.Buffer;
+        globalThis.process = { env: {} };
 
-    try {
-      // Fund APT for gas (100 APT) and ShelbyUSD for storage fees (10000 ShelbyUSD)
-      // via the SDK's own faucet helpers, which know the real faucet endpoints
-      // and already wait for the funding transactions to land.
-      await client.fundAccountWithAPT({ address: account.accountAddress, amount: 100_00000000 });
-      await client.fundAccountWithShelbyUSD({ address: account.accountAddress, amount: 10000_00000000 });
-    } catch (err) {
-      console.log("Faucet funding failed, proceeding anyway...", err.message);
+        const { ShelbyClient } = await import('@shelby-protocol/sdk/browser');
+        const { Account, Network } = await import('@aptos-labs/ts-sdk');
+
+        // Network.SHELBYNET alone is enough — the SDK resolves the correct
+        // RPC, Aptos fullnode and indexer URLs for that network internally.
+        const client = new ShelbyClient({ network: Network.SHELBYNET, apiKey: env.SHELBY_API_KEY });
+        const account = Account.generate();
+        const expirationMicros = Date.now() * 1000 + 86400_000_000; // 24 hours
+
+        // Fund APT for gas and ShelbyUSD for storage fees via the SDK's own
+        // faucet helpers, which know the real faucet endpoints and already
+        // wait for the funding transactions to land.
+        await client.fundAccountWithAPT({ address: account.accountAddress, amount: 100_00000000 });
+        await client.fundAccountWithShelbyUSD({ address: account.accountAddress, amount: 10000_00000000 });
+
+        await client.upload({ blobData, signer: account, blobName, expirationMicros });
+
+        shelbyObjectId = `shelby://shelbynet/${account.accountAddress.toString()}/${blobName}`;
+        mode = 'shelby';
+      } catch (err) {
+        console.error('Shelby deploy-time upload failed, falling back to demo manifest:', err.message);
+        warning = `Shelby upload failed (${err.message}); deploying in demo mode instead.`;
+      }
     }
+  }
 
-    // 3. Perform the real Shelby upload
-    console.log("Uploading blob to Shelby testnet...");
-    await client.upload({
-      blobData,
-      signer: account,
-      blobName: blobName,
-      expirationMicros
-    });
+  const manifest = {
+    id: crypto.randomUUID(),
+    model: resolvedName,
+    version: resolvedVersion,
+    region: region || 'Global',
+    sha256,
+    shelbyObjectId,
+    commitment: '0x' + sha256.substring(0, 12),
+    mode,
+    status: 'deploying',
+    progress: 0,
+    createdAt: new Date().toISOString()
+  };
 
-    const shelbyObjectId = `shelby://shelbynet/${account.accountAddress.toString()}/${blobName}`;
-    const commitment = sha256.substring(0, 12); // Shortened for demo display
-
-    // 4. Create deployment manifest
-    const manifest = {
-      id: crypto.randomUUID(),
-      model: modelName,
-      version: version,
-      region: region || "Global",
-      sha256: sha256,
-      shelbyObjectId: shelbyObjectId,
-      commitment: "0x" + commitment,
-      status: "deploying",
-      progress: 0,
-      createdAt: new Date().toISOString()
-    };
-
-    // 5. Store in KV Database
-    await env.PROVENODE_DB.put(`deployment:${manifest.id}`, JSON.stringify(manifest));
-    await env.PROVENODE_DB.put(`devices:${manifest.id}`, JSON.stringify({ verified: 0, target: 100 }));
-
-    return Response.json({ success: true, manifest });
+  try {
+    if (env.PROVENODE_DB) {
+      await env.PROVENODE_DB.put(`deployment:${manifest.id}`, JSON.stringify(manifest));
+      await env.PROVENODE_DB.put(`devices:${manifest.id}`, JSON.stringify({ verified: 0, target: 248 }));
+    }
+    return Response.json({ success: true, manifest, warning });
   } catch (err) {
-    console.error("Deploy error:", err.stack);
+    console.error('Deploy error:', err.stack);
     return Response.json({ success: false, error: err.message }, { status: 500 });
   }
 }

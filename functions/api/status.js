@@ -25,7 +25,7 @@ export async function onRequestGet(context) {
   }
   
   const manifest = JSON.parse(manifestData);
-  const devices = devicesData ? JSON.parse(devicesData) : { verified: 0, target: 100 };
+  const devices = devicesData ? JSON.parse(devicesData) : { verified: 0, target: 248 };
   
   // Calculate progress based on verified devices
   manifest.progress = Math.min(100, Math.round((devices.verified / devices.target) * 100));
@@ -41,17 +41,18 @@ export async function onRequestPost(context) {
   
   try {
     const data = await request.json();
-    const { id, status } = data; // e.g., { id: "manifest-id", status: "verified" }
-    
+    const { id, status, count } = data; // e.g., { id: "manifest-id", status: "verified", count: 24 }
+
     if (status === "verified") {
       const devicesData = await env.PROVENODE_DB.get(`devices:${id}`);
       if (devicesData) {
         const devices = JSON.parse(devicesData);
-        devices.verified += 1; // Increment verified device count
+        const delta = Number.isFinite(count) && count > 0 ? count : 1;
+        devices.verified = Math.min(devices.target, devices.verified + delta);
         await env.PROVENODE_DB.put(`devices:${id}`, JSON.stringify(devices));
       }
     }
-    
+
     return Response.json({ success: true });
   } catch (err) {
     return Response.json({ success: false, error: err.message }, { status: 400 });
