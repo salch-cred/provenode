@@ -1,4 +1,4 @@
-# ModelRelay — zero-cost Intel Core i3 deployment
+# Provenode — zero-cost Intel Core i3 deployment
 
 This edition uses **Cloudflare Pages only**. It requires no Docker, VM, database, or paid server. The Intel Core i3 computer only uploads small static files; Cloudflare performs the hosting.
 
@@ -8,7 +8,7 @@ This edition uses **Cloudflare Pages only**. It requires no Docker, VM, database
 - Warm paper canvas, black keylines, offset shadows, coral actions, spreadsheet-style product visuals
 - Matching operations console, model registry, fleet screens, and Shelby proof screens
 - Official Hugeicons free stroke-rounded icon font loaded from `cdn.hugeicons.com`
-- Original ModelRelay layout and content; no Clay logos, copy, or proprietary assets are included
+- Original Provenode layout and content; no Clay logos, copy, or proprietary assets are included
 
 ## Why this method
 
@@ -60,10 +60,13 @@ npm run dev
 ## Routes
 
 - `/` — landing page
-- `/app.html` — ModelRelay console
+- `/app.html` — Provenode console
 - `/console` — friendly redirect to the console
 - `/api/health` — Cloudflare Pages health function
 - `/api/config` — safe public configuration; never returns credentials
+- `/api/upload` — hashes an uploaded model (SHA-256) and registers it in the KV-backed model registry (demo mode by default; uses Shelby object naming automatically once `SHELBY_API_KEY` is configured)
+- `/api/models` — lists previously registered models so the console survives page reloads
+- `/verify.html` — public proof page for a registered model, e.g. `/verify.html?id=...&name=...&hash=...`
 
 ## Shelby limitation
 
@@ -72,7 +75,7 @@ This zero-cost package runs the complete interactive demo and hashes uploaded fi
 When credentials are available, store them as a Cloudflare secret—not as a public environment variable and never in `app.html`:
 
 ```bash
-npx wrangler pages secret put SHELBY_API_KEY --project-name modelrelay
+npx wrangler pages secret put SHELBY_API_KEY --project-name provenode-app
 ```
 
 Before real model uploads, verify that the current Shelby Node SDK and its required Aptos dependencies run in Cloudflare's Workers runtime with Node compatibility. If they do not, real uploads will need a separate trusted Node backend, which may not remain zero-cost. The deployed demo itself remains zero-cost.

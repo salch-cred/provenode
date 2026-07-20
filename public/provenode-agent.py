@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ModelRelay zero-cost edge agent: resumable download, SHA-256 verification, atomic activation."""
+"""Provenode zero-cost edge agent: resumable download, SHA-256 verification, atomic activation."""
 import argparse, hashlib, json, os, pathlib, shutil, sys, urllib.request
 CHUNK=1024*1024
 
