@@ -1,462 +1,306 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Provenode Console — Verified edge AI deployments</title>
-  <meta name="description" content="One control plane for verified models, healthy fleets, and safe Shelby-backed recovery.">
-  <link rel="icon" href="/provenode-logo.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/app.css">
-</head>
-<body>
-
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Provenode Console — Production</title>
+<link rel="icon" href="/provenode-logo.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app.css">
+</head><body>
 <div class="shell">
 
-  <!-- ── Sidebar ─────────────────────────────────────────────── -->
-  <nav class="sidebar">
-    <div class="sidebar-logo">
-      <div class="dot"></div>
-      Provenode
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo"><div class="dot"></div>Provenode</div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Operations</div>
+    <a class="nav-item active" data-page="dashboard"><span class="icon">◈</span>Dashboard</a>
+    <a class="nav-item" data-page="deploy"><span class="icon">↑</span>Deploy Model</a>
+    <a class="nav-item" data-page="import"><span class="icon">⬇</span>HF Import</a>
+    <a class="nav-item" data-page="registry"><span class="icon">☰</span>Registry</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Intelligence</div>
+    <a class="nav-item" data-page="lineage"><span class="icon">↕</span>Lineage</a>
+    <a class="nav-item" data-page="abtest"><span class="icon">⚖</span>A/B Tests</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Fleet</div>
+    <a class="nav-item" data-page="devices"><span class="icon">□</span>Devices</a>
+    <a class="nav-item" data-page="fleet"><span class="icon">◎</span>OTA + Canary</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Blockchain</div>
+    <a class="nav-item" data-page="objects"><span class="icon">◆</span>Shelby Objects</a>
+    <a class="nav-item" data-page="shelby"><span class="icon">S</span>Shelby Layer</a>
+    <a class="nav-item" data-page="compliance"><span class="icon">✓</span>Compliance</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Config</div>
+    <a class="nav-item" data-page="webhooks"><span class="icon">◉</span>Webhooks</a>
+  </div>
+  <div class="sidebar-bottom">
+    <div class="shelby-badge"><div class="dot-live"></div><span id="sb-badge">SHELBY · DEMO</span></div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+<div class="topbar">
+  <h1 id="topbar-title" style="font-size:15px;font-weight:800;letter-spacing:-.3px">Dashboard</h1>
+  <div class="flex gap-2 items-center">
+    <a href="/" class="btn btn-sm">← Home</a>
+    <a href="/api/health" target="_blank" class="btn btn-sm">Health ↗</a>
+    <a href="/api/config" target="_blank" class="btn btn-sm">Config ↗</a>
+  </div>
+</div>
+<div class="content">
+
+<!-- ========== DASHBOARD ========== -->
+<div id="page-dashboard" class="page active">
+  <div class="stat-grid mb-4">
+    <div class="stat-card"><div class="stat-label">Models</div><div class="stat-value" id="stat-models">—</div><div class="stat-sub">In registry</div></div>
+    <div class="stat-card"><div class="stat-label">Deployments</div><div class="stat-value" id="stat-deploys">—</div><div class="stat-sub">All time</div></div>
+    <div class="stat-card"><div class="stat-label">Verified</div><div class="stat-value" id="stat-verified" style="color:var(--green)">—</div><div class="stat-sub">100% complete</div></div>
+    <div class="stat-card"><div class="stat-label">In Flight</div><div class="stat-value" id="stat-inflight" style="color:var(--coral)">—</div><div class="stat-sub">Deploying</div></div>
+    <div class="stat-card"><div class="stat-label">Shelby Objects</div><div class="stat-value" id="stat-shelby-objects" style="color:var(--shelby)">—</div><div class="stat-sub">On-chain</div></div>
+    <div class="stat-card"><div class="stat-label">Expiring Soon</div><div class="stat-value" id="stat-expiring" style="color:var(--amber)">—</div><div class="stat-sub">< 7 days</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 360px;gap:20px">
+    <div class="card"><div class="card-header"><span class="card-title">Deployment activity</span><button class="btn btn-sm btn-primary" onclick="navigate('deploy')">+ Deploy</button></div><div id="deploy-feed" style="padding:0 18px"></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">Recent models</span><a class="btn btn-sm" onclick="navigate('registry')">All →</a></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Mode</th><th>Hash</th><th>Size</th><th></th></tr></thead><tbody id="recent-models"></tbody></table></div></div>
+  </div>
+</div>
+
+<!-- ========== DEPLOY ========== -->
+<div id="page-deploy" class="page">
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;max-width:860px">
+    <div>
+      <div class="card mb-4">
+        <div class="card-header"><span class="card-title">Step 1 — Hash & register model</span></div>
+        <div class="card-body">
+          <div class="form-group"><label class="form-label">Model name</label><input type="text" id="model-name-input" placeholder="Vision Edge v2.5"/></div>
+          <div class="form-group"><label class="form-label">Parent model ID (lineage)</label><input type="text" id="parent-id-input" placeholder="Leave empty for root model"/></div>
+          <div class="form-group"><label class="form-label">Tags (comma-separated)</label><input type="text" id="tags-input" placeholder="onnx, arm64, cameras"/></div>
+          <div class="drop-zone" id="dropzone"><div class="drop-zone-icon">⬆</div><div id="dz-text">Drop model file or click to browse</div><div class="drop-zone-sub">ZIP, ONNX, TFLite, bin — up to 100 MB</div></div>
+          <input type="file" id="file-input" class="hidden">
+          <div id="file-info" class="hidden" style="margin-top:10px;padding:8px 12px;background:var(--bg);border:2px solid var(--border);border-radius:6px;font-size:12px"><strong id="file-name"></strong><span class="text-muted" style="margin-left:8px" id="file-size"></span></div>
+          <div style="margin-top:12px"><button id="upload-btn" class="btn btn-primary" disabled>Hash & Register</button></div>
+          <div id="upload-result" class="hidden" style="margin-top:14px">
+            <div class="shelby-panel"><div class="shelby-panel-title">Registration result</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+              <div><div class="form-label">Model</div><strong id="res-model">—</strong></div>
+              <div><div class="form-label">Mode</div><span id="res-mode" class="badge">—</span></div>
+              <div><div class="form-label">SHA-256</div><span class="mono" id="res-hash">—</span></div>
+              <div><div class="form-label">Size</div><span id="res-size">—</span></div>
+              <div><div class="form-label">Record ID</div><span class="mono" id="res-id">—</span></div>
+              <div><div class="form-label">Expires</div><span id="res-expires">—</span></div>
+              <div colspan="2"><div class="form-label">Proof</div><a id="res-proof-link" href="#" target="_blank" class="btn btn-sm">View ↗</a></div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Step 2 — Deploy to fleet</span></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="form-group"><label class="form-label">Region</label><select id="deploy-region"><option>Global</option><option>Asia-Pacific</option><option>Europe</option><option>Americas</option><option>Middle East</option></select></div>
+            <div class="form-group"><label class="form-label">Canary rollout</label><div style="display:flex;align-items:center;gap:8px;padding-top:6px"><input type="checkbox" id="canary-toggle" style="width:auto"><span class="text-sm">10%→25%→50%→100%</span></div></div>
+          </div>
+          <button id="deploy-btn" class="btn btn-primary" disabled>Deploy to Fleet</button>
+        </div>
+      </div>
     </div>
-
-    <div class="sidebar-section">
-      <div class="sidebar-label">Operations</div>
-      <a class="nav-item active" data-page="dashboard">
-        <span class="icon">◈</span> Dashboard
-      </a>
-      <a class="nav-item" data-page="deploy">
-        <span class="icon">↑</span> Deploy Model
-      </a>
-      <a class="nav-item" data-page="registry">
-        <span class="icon">☰</span> Registry
-      </a>
+    <div>
+      <div class="card mb-4"><div class="card-header"><span class="card-title">Trust path</span></div><div class="card-body">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="flex gap-3"><div class="step-circle done">1</div><div><div class="fw-700" style="font-size:12px">Provenode SHA-256</div><div class="text-muted text-sm">Identity hash</div></div></div>
+          <div class="flex gap-3"><div class="step-circle active">2</div><div><div class="fw-700" style="font-size:12px">Shelby on-chain object</div><div class="text-muted text-sm">Immutable commitment</div></div></div>
+          <div class="flex gap-3"><div class="step-circle">3</div><div><div class="fw-700" style="font-size:12px">On-chain manifest</div><div class="text-muted text-sm">Deployment proof</div></div></div>
+          <div class="flex gap-3"><div class="step-circle">4</div><div><div class="fw-700" style="font-size:12px">Edge device verify</div><div class="text-muted text-sm">SHA-256 check + activate</div></div></div>
+        </div>
+      </div></div>
     </div>
+  </div>
+</div>
 
-    <div class="sidebar-section">
-      <div class="sidebar-label">Infrastructure</div>
-      <a class="nav-item" data-page="fleet">
-        <span class="icon">◎</span> Edge Fleet
-      </a>
-      <a class="nav-item" data-page="shelby">
-        <span class="icon">S</span> Shelby Layer
-      </a>
-    </div>
-
-    <div class="sidebar-bottom">
-      <div class="shelby-badge">
-        <div class="dot-live"></div>
-        <span id="shelby-badge-text">SHELBY · DEMO</span>
-      </div>
-    </div>
-  </nav>
-
-  <!-- ── Main ────────────────────────────────────────────────── -->
-  <div class="main">
-
-    <!-- Topbar -->
-    <div class="topbar">
-      <div class="flex items-center gap-3">
-        <h1 id="topbar-title" style="font-size:15px;font-weight:800;letter-spacing:-0.3px">Dashboard</h1>
-      </div>
-      <div class="flex items-center gap-2">
-        <a href="/" class="btn btn-sm">← Landing</a>
-        <a href="/api/health" target="_blank" class="btn btn-sm">API Health ↗</a>
+<!-- ========== HF IMPORT ========== -->
+<div id="page-import" class="page">
+  <div style="max-width:760px">
+    <div class="card mb-4">
+      <div class="card-header"><span class="card-title">Import from HuggingFace Hub → SHA-256 → Shelby</span></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group"><label class="form-label">Repo (owner/model)</label><input type="text" id="hf-repo" placeholder="ultralytics/yolov8n"/></div>
+          <div class="form-group"><label class="form-label">Filename</label><input type="text" id="hf-file" placeholder="yolov8n.onnx"/></div>
+          <div class="form-group"><label class="form-label">Model name (optional)</label><input type="text" id="hf-name" placeholder="YOLOv8n ONNX"/></div>
+        </div>
+        <button id="hf-import-btn" class="btn btn-primary">Import Model</button>
+        <div id="import-result" class="hidden" style="margin-top:14px">
+          <div class="shelby-panel"><div class="shelby-panel-title">Import complete</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+            <div><div class="form-label">Model</div><strong id="imp-model">—</strong></div>
+            <div><div class="form-label">Mode</div><strong id="imp-mode">—</strong></div>
+            <div><div class="form-label">SHA-256</div><span class="mono" id="imp-hash">—</span></div>
+            <div><div class="form-label">Size</div><span id="imp-size">—</span></div>
+          </div>
+          <div style="margin-top:12px"><button id="imp-deploy-btn" class="btn btn-primary">Deploy this model</button></div>
+          </div>
+        </div>
       </div>
     </div>
+    <div class="card"><div class="card-header"><span class="card-title">Import history</span><button class="btn btn-sm" onclick="loadImportJobs()">↻</button></div>
+    <div class="table-wrap"><table><thead><tr><th>Repo</th><th>File</th><th>Status</th><th>Size</th><th>When</th></tr></thead><tbody id="import-history"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody></table></div></div>
+  </div>
+</div>
 
-    <div class="content">
+<!-- ========== REGISTRY ========== -->
+<div id="page-registry" class="page">
+  <div class="card"><div class="card-header"><span class="card-title">Model registry</span><div class="flex gap-2"><button class="btn btn-sm" onclick="loadRegistry()">↻</button><button class="btn btn-sm btn-primary" onclick="navigate('deploy')">+ Upload</button></div></div>
+  <div class="table-wrap"><table><thead><tr><th>Model</th><th>Mode</th><th>SHA-256</th><th>Size</th><th>Object ID</th><th>Expires</th><th>Actions</th></tr></thead><tbody id="registry-tbody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody></table></div></div>
+</div>
 
-      <!-- ══════════════════════════════════════════════════════
-           PAGE: Dashboard
-      ══════════════════════════════════════════════════════════ -->
-      <div id="page-dashboard" class="page active">
+<!-- ========== LINEAGE ========== -->
+<div id="page-lineage" class="page">
+  <div style="max-width:640px">
+    <div class="card mb-4"><div class="card-header"><span class="card-title">Model lineage graph</span></div>
+    <div class="card-body"><div class="flex gap-2"><select id="lineage-model-select" style="flex:1"><option value="">— Select model —</option></select><button class="btn btn-primary" onclick="loadLineage()">View tree</button></div></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">Ancestry tree</span></div><div class="card-body"><div id="lineage-graph"><div class="empty">Select a model above to view its lineage.</div></div></div></div>
+  </div>
+</div>
 
-        <!-- Stat cards -->
-        <div class="stat-grid mb-6">
-          <div class="stat-card">
-            <div class="stat-label">Models Registered</div>
-            <div class="stat-value" id="stat-models">—</div>
-            <div class="stat-sub">In KV registry</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Total Deployments</div>
-            <div class="stat-value" id="stat-deploys">—</div>
-            <div class="stat-sub">All time</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Verified</div>
-            <div class="stat-value" id="stat-verified">—</div>
-            <div class="stat-sub" style="color:var(--green)">100% progress</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">In Flight</div>
-            <div class="stat-value" id="stat-inflight">—</div>
-            <div class="stat-sub" style="color:var(--coral)">Deploying now</div>
-          </div>
-        </div>
-
-        <!-- Two-column layout -->
-        <div style="display:grid;grid-template-columns:1fr 380px;gap:20px">
-
-          <!-- Deployment feed -->
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">Deployment activity</span>
-              <button class="btn btn-sm btn-primary" onclick="navigate('deploy')">+ New</button>
-            </div>
-            <div id="deploy-feed" style="padding:0 18px"></div>
-          </div>
-
-          <!-- Recent models -->
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">Recent models</span>
-              <a class="btn btn-sm" onclick="navigate('registry')">View all</a>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th><th>Mode</th><th>Hash</th><th>Size</th><th></th>
-                  </tr>
-                </thead>
-                <tbody id="recent-models"></tbody>
-              </table>
-            </div>
-          </div>
-
-        </div>
+<!-- ========== A/B TESTS ========== -->
+<div id="page-abtest" class="page">
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:20px">
+    <div>
+      <div class="card mb-4"><div class="card-header"><span class="card-title">Active A/B tests</span><button class="btn btn-sm" onclick="loadABTest()">↻</button></div>
+      <div id="abtest-list" style="padding:12px"><div class="empty">Loading…</div></div></div>
+    </div>
+    <div class="card"><div class="card-header"><span class="card-title">New A/B test</span></div>
+    <div class="card-body">
+      <div class="form-group"><label class="form-label">Test name</label><input type="text" id="ab-name" placeholder="Vision Edge 2.4 vs 2.5"/></div>
+      <div class="form-group"><label class="form-label">Model A</label><select id="ab-model-a"></select></div>
+      <div class="form-group"><label class="form-label">Model B</label><select id="ab-model-b"></select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="form-group"><label class="form-label">Split A%</label><input type="number" id="ab-split" value="50" min="1" max="99"/></div>
+        <div class="form-group"><label class="form-label">Duration (hours)</label><input type="number" id="ab-hours" value="24" min="1"/></div>
       </div>
+      <button class="btn btn-primary" onclick="createABTest()">Create Test</button>
+    </div></div>
+  </div>
+</div>
 
-      <!-- ══════════════════════════════════════════════════════
-           PAGE: Deploy
-      ══════════════════════════════════════════════════════════ -->
-      <div id="page-deploy" class="page">
-
-        <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;max-width:900px">
-
-          <!-- Upload card -->
-          <div>
-            <div class="card mb-4">
-              <div class="card-header">
-                <span class="card-title">Step 1 — Hash & register model</span>
-              </div>
-              <div class="card-body">
-
-                <div class="form-group">
-                  <label class="form-label" for="model-name-input">Model name (optional)</label>
-                  <input type="text" id="model-name-input" placeholder="e.g. Vision Edge v2.5" />
-                </div>
-
-                <div class="drop-zone" id="dropzone">
-                  <div class="drop-zone-icon">⬆</div>
-                  <div class="drop-zone-text" id="dropzone-text">Drop model file here or click to browse</div>
-                  <div class="drop-zone-sub">Any binary up to 100 MB · ZIP, ONNX, TFLite, bin…</div>
-                </div>
-                <input type="file" id="file-input" class="hidden">
-
-                <div id="file-info" class="hidden" style="margin-top:12px;padding:10px 12px;background:var(--bg);border:2px solid var(--border);border-radius:var(--radius);font-size:12px">
-                  <strong id="file-name"></strong>
-                  <span class="text-muted" style="margin-left:8px" id="file-size"></span>
-                </div>
-
-                <div style="margin-top:14px;display:flex;gap:8px">
-                  <button id="upload-btn" class="btn btn-primary" disabled>Hash & Register</button>
-                </div>
-
-                <!-- Upload result -->
-                <div id="upload-result" class="hidden" style="margin-top:16px">
-                  <div class="shelby-panel">
-                    <div class="shelby-panel-title">Registration result</div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
-                      <div><div class="form-label">Model</div><strong id="res-model">—</strong></div>
-                      <div><div class="form-label">Mode</div><span id="res-mode" class="badge">—</span></div>
-                      <div><div class="form-label">SHA-256</div><span class="mono" id="res-hash">—</span></div>
-                      <div><div class="form-label">Size</div><span id="res-size">—</span></div>
-                      <div><div class="form-label">Record ID</div><span class="mono" id="res-id">—</span></div>
-                      <div><div class="form-label">Proof</div><a id="res-proof-link" href="#" target="_blank" class="btn btn-sm">View ↗</a></div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-            <!-- Step 2 — Deploy -->
-            <div class="card">
-              <div class="card-header">
-                <span class="card-title">Step 2 — Deploy to fleet</span>
-              </div>
-              <div class="card-body">
-                <div class="form-group">
-                  <label class="form-label" for="deploy-region">Target region</label>
-                  <select id="deploy-region">
-                    <option value="Global">Global</option>
-                    <option value="Asia-Pacific">Asia-Pacific</option>
-                    <option value="Europe">Europe</option>
-                    <option value="Americas">Americas</option>
-                    <option value="Middle East">Middle East</option>
-                  </select>
-                </div>
-                <button id="deploy-btn" class="btn btn-primary" disabled>Deploy to Fleet</button>
-                <div class="text-muted text-sm" style="margin-top:8px">Register a model above before deploying.</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Trust path sidebar -->
-          <div>
-            <div class="card mb-4">
-              <div class="card-header"><span class="card-title">Trust path</span></div>
-              <div class="card-body">
-                <div class="steps" style="flex-direction:column;gap:16px">
-                  <div class="flex gap-3 items-center">
-                    <div class="step-circle done">1</div>
-                    <div><div class="fw-700" style="font-size:12px">Provenode</div><div class="text-muted text-sm">SHA-256 identity</div></div>
-                  </div>
-                  <div class="flex gap-3 items-center">
-                    <div class="step-circle active">2</div>
-                    <div><div class="fw-700" style="font-size:12px">Shelby object</div><div class="text-muted text-sm">Immutable commitment</div></div>
-                  </div>
-                  <div class="flex gap-3 items-center">
-                    <div class="step-circle">3</div>
-                    <div><div class="fw-700" style="font-size:12px">Edge device</div><div class="text-muted text-sm">Download & verify</div></div>
-                  </div>
-                  <div class="flex gap-3 items-center">
-                    <div class="step-circle">4</div>
-                    <div><div class="fw-700" style="font-size:12px">Health signal</div><div class="text-muted text-sm">Activate or rollback</div></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="card-header"><span class="card-title">Shelby mode</span></div>
-              <div class="card-body">
-                <div id="deploy-shelby-info" class="text-sm text-muted">Loading Shelby status…</div>
-              </div>
-            </div>
-          </div>
-
-        </div>
+<!-- ========== DEVICES ========== -->
+<div id="page-devices" class="page">
+  <div class="stat-grid mb-4" style="grid-template-columns:repeat(2,1fr)">
+    <div class="stat-card"><div class="stat-label">Total Devices</div><div class="stat-value" id="stat-device-total">—</div></div>
+    <div class="stat-card"><div class="stat-label">Online</div><div class="stat-value" id="stat-device-online" style="color:var(--green)">—</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 300px;gap:20px">
+    <div class="card"><div class="card-header"><span class="card-title">Device inventory</span><button class="btn btn-sm btn-primary" onclick="document.getElementById('register-device-form').classList.toggle('hidden')">+ Register</button></div>
+    <div id="register-device-form" class="hidden" style="padding:16px;border-bottom:2px solid var(--border)">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="form-group"><label class="form-label">Device ID</label><input type="text" id="dev-id" placeholder="CAM-SIN-042"/></div>
+        <div class="form-group"><label class="form-label">Type</label><select id="dev-type"><option>camera</option><option>drone</option><option>robot</option><option>vehicle</option><option>sensor</option></select></div>
+        <div class="form-group"><label class="form-label">Architecture</label><select id="dev-arch"><option>arm64</option><option>x64</option><option>armv7</option><option>riscv64</option></select></div>
+        <div class="form-group"><label class="form-label">Location</label><input type="text" id="dev-loc" placeholder="Singapore"/></div>
+        <div class="form-group"><label class="form-label">Fleet</label><input type="text" id="dev-fleet" placeholder="production"/></div>
       </div>
+      <button class="btn btn-primary" onclick="registerDevice()">Register Device</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Device ID</th><th>Type</th><th>Arch</th><th>Location</th><th>Fleet</th><th>Status</th><th>Last seen</th></tr></thead><tbody id="devices-tbody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody></table></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">OTA Agent</span></div><div class="card-body" style="font-size:12px">
+      <div class="text-muted mb-2">Devices should poll this endpoint every 5 min:</div>
+      <div class="mono" style="background:var(--bg);padding:8px;border-radius:4px;border:1px solid var(--border)">GET /api/fleet/:deviceId/pending</div>
+      <div class="text-muted mt-2 mb-2">Report completion:</div>
+      <div class="mono" style="background:var(--bg);padding:8px;border-radius:4px;border:1px solid var(--border)">POST /api/fleet/:deviceId/report</div>
+      <a href="https://github.com/salch-cred/provenode/blob/main/public/provenode-agent.py" target="_blank" class="btn btn-sm" style="margin-top:12px">Agent source ↗</a>
+    </div></div>
+  </div>
+</div>
 
-      <!-- ══════════════════════════════════════════════════════
-           PAGE: Registry
-      ══════════════════════════════════════════════════════════ -->
-      <div id="page-registry" class="page">
+<!-- ========== FLEET / OTA ========== -->
+<div id="page-fleet" class="page">
+  <div style="display:grid;grid-template-columns:1fr 360px;gap:20px">
+    <div class="card"><div class="card-header"><span class="card-title">Fleet OTA status</span><button class="btn btn-sm" onclick="loadFleet()">↻</button></div>
+    <div class="table-wrap"><table><thead><tr><th>Device ID</th><th>Type</th><th>Location</th><th>Status</th><th>Current model</th><th>Last seen</th></tr></thead><tbody id="fleet-tbody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">Active canary deployments</span></div><div id="canary-list" style="padding:12px"><div class="empty">No canary deployments.</div></div></div>
+  </div>
+</div>
 
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">Model registry</span>
-            <div class="flex gap-2">
-              <button class="btn btn-sm" onclick="loadRegistryPage()">↻ Refresh</button>
-              <button class="btn btn-sm btn-primary" onclick="navigate('deploy')">+ Upload</button>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Model</th>
-                  <th>Mode</th>
-                  <th>SHA-256</th>
-                  <th>Size</th>
-                  <th>Shelby Object ID</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="registry-tbody">
-                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">Loading…</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+<!-- ========== SHELBY OBJECTS ========== -->
+<div id="page-objects" class="page">
+  <div class="stat-grid mb-4">
+    <div class="stat-card"><div class="stat-label">Total objects</div><div class="stat-value" id="obj-total" style="color:var(--shelby)">—</div></div>
+    <div class="stat-card"><div class="stat-label">Healthy</div><div class="stat-value" id="obj-healthy" style="color:var(--green)">—</div></div>
+    <div class="stat-card"><div class="stat-label">Expiring soon</div><div class="stat-value" id="obj-expiring" style="color:var(--amber)">—</div></div>
+    <div class="stat-card"><div class="stat-label">Expired</div><div class="stat-value" id="obj-expired" style="color:var(--red)">—</div></div>
+  </div>
+  <div class="card"><div class="card-header"><span class="card-title">Shelby object registry</span><button class="btn btn-sm" onclick="loadObjects()">↻</button></div>
+  <div class="table-wrap"><table><thead><tr><th>Model</th><th>Object ID</th><th>SHA-256</th><th>Size</th><th>Expiry</th><th>Created</th></tr></thead><tbody id="objects-tbody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody></table></div></div>
+</div>
 
-      </div>
+<!-- ========== SHELBY LAYER ========== -->
+<div id="page-shelby" class="page">
+  <div id="shelby-status-banner" class="card card-sm mb-4" style="padding:14px 18px"><div class="spin"></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div class="card"><div class="card-header"><span class="card-title">Object proofs</span><span class="badge badge-shelby" id="shelby-stat-objects">—</span></div><div id="shelby-proofs" class="card-body" style="padding:12px"><div class="spin"></div></div></div>
+    <div>
+      <div class="card mb-4"><div class="card-header"><span class="card-title">Total registered</span></div><div class="card-body"><div class="stat-value" id="shelby-stat-total">—</div><div class="stat-sub">All models in KV</div></div></div>
+      <div class="card"><div class="card-header"><span class="card-title">Architecture</span></div><div class="card-body" style="font-size:12px;line-height:2.2">
+        <div class="flex gap-2"><span class="badge badge-blue">1</span><strong>Upload</strong> SHA-256 + KV record</div>
+        <div class="flex gap-2"><span class="badge badge-shelby">2</span><strong>Shelby</strong> on-chain immutable object</div>
+        <div class="flex gap-2"><span class="badge badge-green">3</span><strong>Manifest</strong> deployment blob on-chain</div>
+        <div class="flex gap-2"><span class="badge badge-amber">4</span><strong>Device</strong> verify hash → activate</div>
+        <div style="margin-top:12px"><a href="https://api.shelbynet.shelby.xyz/v1" target="_blank" class="btn btn-sm btn-shelby">API ↗</a> <a href="/api/shelby-status" target="_blank" class="btn btn-sm" style="margin-left:6px">Status ↗</a></div>
+      </div></div>
+    </div>
+  </div>
+</div>
 
-      <!-- ══════════════════════════════════════════════════════
-           PAGE: Fleet
-      ══════════════════════════════════════════════════════════ -->
-      <div id="page-fleet" class="page">
+<!-- ========== COMPLIANCE ========== -->
+<div id="page-compliance" class="page">
+  <div style="max-width:800px">
+    <div class="card mb-4"><div class="card-header"><span class="card-title">Compliance report</span><div class="flex gap-2"><button class="btn btn-sm btn-primary" onclick="loadCompliance()">Generate</button><button class="btn btn-sm" onclick="exportCSV()">Export CSV ↓</button></div></div>
+    <div class="card-body"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div class="form-group"><label class="form-label">From date</label><input type="date" id="comp-from"/></div>
+      <div class="form-group"><label class="form-label">To date</label><input type="date" id="comp-to"/></div>
+    </div></div></div>
+    <div class="stat-grid mb-4" style="grid-template-columns:repeat(4,1fr)">
+      <div class="stat-card"><div class="stat-label">Models</div><div class="stat-value" id="comp-models">—</div></div>
+      <div class="stat-card"><div class="stat-label">Deployments</div><div class="stat-value" id="comp-deploys">—</div></div>
+      <div class="stat-card"><div class="stat-label">Devices</div><div class="stat-value" id="comp-devices">—</div></div>
+      <div class="stat-card"><div class="stat-label">Shelby mode</div><div class="stat-value" id="comp-shelby" style="color:var(--shelby)">—</div></div>
+    </div>
+    <div class="card"><div class="card-header"><span class="card-title">Model audit trail</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Record ID</th><th>Model</th><th>SHA-256</th><th>Mode</th><th>Registered</th></tr></thead><tbody id="comp-tbody"><tr><td colspan="5" class="empty">Generate a report above.</td></tr></tbody></table></div></div>
+  </div>
+</div>
 
-        <div class="stat-grid mb-6">
-          <div class="stat-card">
-            <div class="stat-label">Smart Cameras</div>
-            <div class="stat-value" style="color:var(--green)">156</div>
-            <div class="stat-sub">99.4% healthy</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Autonomous Drones</div>
-            <div class="stat-value" style="color:var(--green)">64</div>
-            <div class="stat-sub">98.1% healthy</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Warehouse Robots</div>
-            <div class="stat-value" style="color:var(--green)">28</div>
-            <div class="stat-sub">100% healthy</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Total Fleet</div>
-            <div class="stat-value">248</div>
-            <div class="stat-sub">Across 4 regions</div>
-          </div>
-        </div>
+<!-- ========== WEBHOOKS ========== -->
+<div id="page-webhooks" class="page">
+  <div style="display:grid;grid-template-columns:1fr 360px;gap:20px">
+    <div><div class="card"><div class="card-header"><span class="card-title">Registered webhooks</span><div class="flex gap-2"><button class="btn btn-sm" onclick="testWebhook()">Send test</button><button class="btn btn-sm" onclick="loadWebhooks()">↻</button></div></div>
+    <div id="webhooks-list" style="padding:12px"><div class="empty">Loading…</div></div></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">Add webhook</span></div>
+    <div class="card-body">
+      <div class="form-group"><label class="form-label">Name</label><input type="text" id="wh-name" placeholder="Slack alerts"/></div>
+      <div class="form-group"><label class="form-label">URL</label><input type="text" id="wh-url" placeholder="https://hooks.slack.com/…"/></div>
+      <div class="form-group"><label class="form-label">Events (comma-separated or *)</label><input type="text" id="wh-events" placeholder="* or deployment.verified,integrity.mismatch"/></div>
+      <div class="form-group"><label class="form-label">Secret (for HMAC signing)</label><input type="text" id="wh-secret" placeholder="Optional signing secret"/></div>
+      <button class="btn btn-primary" onclick="createWebhook()">Register webhook</button>
+    </div></div>
+  </div>
+</div>
 
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">Device inventory</span>
-            <span class="badge badge-green">248 online</span>
-          </div>
-          <div class="card-body">
-            <div class="device-grid">
-              <div class="device-card">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="badge badge-green">Online</span>
-                </div>
-                <div class="device-id">CAM-SIN-042</div>
-                <div class="device-meta">Singapore · Camera · arm64</div>
-              </div>
-              <div class="device-card">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="badge badge-green">Online</span>
-                </div>
-                <div class="device-id">DRN-BLR-118</div>
-                <div class="device-meta">Bengaluru · Drone · arm64</div>
-              </div>
-              <div class="device-card">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="badge badge-green">Online</span>
-                </div>
-                <div class="device-id">BOT-SFO-007</div>
-                <div class="device-meta">San Francisco · Robot · x64</div>
-              </div>
-              <div class="device-card">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="badge badge-green">Online</span>
-                </div>
-                <div class="device-id">CAM-FRA-221</div>
-                <div class="device-meta">Frankfurt · Camera · arm64</div>
-              </div>
-              <div class="device-card">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="badge badge-amber">Warning</span>
-                </div>
-                <div class="device-id">CAM-DXB-055</div>
-                <div class="device-meta">Dubai · Camera · arm64</div>
-              </div>
-              <div class="device-card">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="badge badge-green">Online</span>
-                </div>
-                <div class="device-id">BOT-TYO-033</div>
-                <div class="device-meta">Tokyo · Robot · x64</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ══════════════════════════════════════════════════════
-           PAGE: Shelby Layer
-      ══════════════════════════════════════════════════════════ -->
-      <div id="page-shelby" class="page">
-
-        <!-- Status banner -->
-        <div id="shelby-status-banner" class="card card-sm mb-6" style="padding:14px 18px">
-          <div class="loading-spin"></div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-
-          <!-- Proof list -->
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">Object proofs</span>
-              <div class="flex gap-2 items-center">
-                <span class="badge badge-shelby" id="shelby-stat-objects">—</span>
-                <span class="text-muted text-sm">shelby objects</span>
-              </div>
-            </div>
-            <div id="shelby-proofs" class="card-body" style="padding:12px">
-              <div class="loading-spin"></div>
-            </div>
-          </div>
-
-          <!-- Trust architecture -->
-          <div>
-            <div class="card mb-4">
-              <div class="card-header"><span class="card-title">Total registered models</span></div>
-              <div class="card-body">
-                <div class="stat-value" id="shelby-stat-total">—</div>
-                <div class="stat-sub">KV-persisted across reloads</div>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="card-header"><span class="card-title">Architecture</span></div>
-              <div class="card-body">
-                <div style="font-size:12px;line-height:2">
-                  <div class="flex items-center gap-2 mb-2">
-                    <span class="badge badge-blue">1</span>
-                    <strong>Upload</strong> — SHA-256 hash + KV record
-                  </div>
-                  <div style="padding-left:12px;color:var(--text-muted);margin-bottom:8px">↓</div>
-                  <div class="flex items-center gap-2 mb-2">
-                    <span class="badge badge-shelby">2</span>
-                    <strong>Shelby</strong> — on-chain immutable object
-                  </div>
-                  <div style="padding-left:12px;color:var(--text-muted);margin-bottom:8px">↓</div>
-                  <div class="flex items-center gap-2 mb-2">
-                    <span class="badge badge-green">3</span>
-                    <strong>Deploy</strong> — signed manifest to fleet
-                  </div>
-                  <div style="padding-left:12px;color:var(--text-muted);margin-bottom:8px">↓</div>
-                  <div class="flex items-center gap-2">
-                    <span class="badge badge-demo">4</span>
-                    <strong>Verify</strong> — device digest check
-                  </div>
-                </div>
-
-                <div style="margin-top:16px;padding-top:14px;border-top:1px solid #e5e5e5">
-                  <a href="https://docs.shelby.xyz/sdks/typescript" target="_blank" class="btn btn-shelby btn-sm">
-                    SDK docs ↗
-                  </a>
-                  <a href="/api/shelby-status" target="_blank" class="btn btn-sm" style="margin-left:8px">
-                    Live status ↗
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-    </div><!-- /content -->
-  </div><!-- /main -->
-</div><!-- /shell -->
-
-<!-- Toast container -->
+</div></div></div><!-- /content/main/shell -->
 <div id="toast-container"></div>
-
 <script src="/app.js"></script>
 <script>
-  // Wire Shelby info into deploy page on load
-  document.addEventListener('DOMContentLoaded', async () => {
-    const res = await fetch('/api/shelby-status').then(r => r.json()).catch(() => ({}));
-    const el = document.getElementById('deploy-shelby-info');
-    if (el) {
-      if (res.connected) {
-        el.innerHTML = '<span class="badge badge-shelby">Production</span> <span style="margin-left:6px;font-size:12px">Real Shelby uploads active on ' + (res.network||'testnet') + '</span>';
-      } else {
-        el.innerHTML = '<span class="badge badge-demo">Demo</span> <span style="margin-left:6px;font-size:12px">Set <code>SHELBY_API_KEY</code> in Vercel env vars to enable real on-chain uploads.</span>';
-      }
-    }
-  });
+document.addEventListener('DOMContentLoaded',()=>{
+  // Wire import page tab to also load jobs
+  document.querySelector('[data-page="import"]')?.addEventListener('click',()=>setTimeout(loadImportJobs,300));
+  document.querySelector('[data-page="lineage"]')?.addEventListener('click',()=>setTimeout(()=>{ const s=document.getElementById('lineage-model-select'); if(s&&!s.options.length) loadLineage(); },300));
+});
 </script>
-
-</body>
-</html>
+</body></html>

@@ -1,49 +1,41 @@
 /**
- * Shared Shelby upload helper — used by both /api/upload and /api/deploy.
- *
- * Returns: { objectId: string, mode: 'shelby' | 'demo', warning?: string }
- *
- * When SHELBY_API_KEY is set, performs a real upload to Shelby shelbynet.
- * On any failure (bad key, faucet outage, rate-limit) it degrades gracefully
- * to demo mode and sets `warning` explaining what happened.
+ * Shelby Protocol helper — persistent org identity + upload
+ * Network: Shelbynet  API: https://api.shelbynet.shelby.xyz/v1
  */
 
-export async function shelbyUpload({ blobData, blobName, apiKey }) {
-  if (!apiKey) {
-    return {
-      objectId: `demo://provenode/${blobName}`,
-      mode: 'demo',
-    };
-  }
-
+export async function getOrgAccount() {
+  const privKey = process.env.SHELBY_PRIVATE_KEY;
+  if (!privKey) return null;
   try {
-    // nodejs_compat polyfills — needed in some edge environments
-    if (typeof Buffer === 'undefined') {
-      const nodeBuffer = await import('node:buffer');
-      globalThis.Buffer = nodeBuffer.Buffer;
-    }
-    if (typeof process === 'undefined') {
-      globalThis.process = { env: {} };
-    }
+    const { Account, Ed25519PrivateKey } = await import('@aptos-labs/ts-sdk');
+    return Account.fromPrivateKey({ privateKey: new Ed25519PrivateKey(privKey) });
+  } catch { return null; }
+}
+
+export async function shelbyUpload({ blobData, blobName, apiKey }) {
+  if (!apiKey) return { objectId: `demo://provenode/${blobName}`, mode: 'demo' };
+  try {
+    const nodeBuffer = await import('node:buffer');
+    if (typeof Buffer === 'undefined') globalThis.Buffer = nodeBuffer.Buffer;
+    if (typeof process === 'undefined') globalThis.process = { env: {} };
 
     const { ShelbyClient } = await import('@shelby-protocol/sdk/browser');
-    const { Account, Network } = await import('@aptos-labs/ts-sdk');
+    const { Account, Network, Ed25519PrivateKey } = await import('@aptos-labs/ts-sdk');
 
-    // API URL confirmed from Shelby dashboard: https://api.shelbynet.shelby.xyz/v1
     const client = new ShelbyClient({ network: Network.SHELBYNET, apiKey });
-    const account = Account.generate();
-    const expirationMicros = Date.now() * 1000 + 86_400_000_000; // 24 h
 
-    // Fund gas + storage fees via the SDK's own faucet helpers
-    await client.fundAccountWithAPT({
-      address: account.accountAddress,
-      amount: 100_00000000,
-    });
-    await client.fundAccountWithShelbyUSD({
-      address: account.accountAddress,
-      amount: 10000_00000000,
-    });
+    // Use persistent org account if available, else ephemeral
+    let account;
+    const privKey = process.env.SHELBY_PRIVATE_KEY;
+    if (privKey) {
+      account = Account.fromPrivateKey({ privateKey: new Ed25519PrivateKey(privKey) });
+    } else {
+      account = Account.generate();
+      await client.fundAccountWithAPT({ address: account.accountAddress, amount: 100_00000000 });
+      await client.fundAccountWithShelbyUSD({ address: account.accountAddress, amount: 10000_00000000 });
+    }
 
+    const expirationMicros = Date.now() * 1000 + 86_400_000_000 * 90; // 90 days
     await client.upload({
       blobData: blobData instanceof Uint8Array ? blobData : new Uint8Array(blobData),
       signer: account,
@@ -54,20 +46,15 @@ export async function shelbyUpload({ blobData, blobName, apiKey }) {
     return {
       objectId: `shelby://shelbynet/${account.accountAddress.toString()}/${blobName}`,
       mode: 'shelby',
+      address: account.accountAddress.toString(),
+      expiresAt: new Date(Date.now() + 86_400_000 * 90).toISOString(),
     };
   } catch (err) {
-    console.error('[shelby] upload failed, degrading to demo mode:', err.message);
-    return {
-      objectId: `demo://provenode/${blobName}`,
-      mode: 'demo',
-      warning: `Shelby upload failed (${err.message}); registered in demo mode instead.`,
-    };
+    console.error('[shelby] upload failed:', err.message);
+    return { objectId: `demo://provenode/${blobName}`, mode: 'demo', warning: err.message };
   }
 }
 
-/**
- * Build a deterministic blob name from a model slug and version.
- */
 export function makeBlobName(slug, suffix = '') {
   const safe = slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'model';
   return `models/${safe}${suffix}`;
