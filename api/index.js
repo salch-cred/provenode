@@ -564,7 +564,12 @@ export default async function handler(req, res) {
         }
         const { url, events, secret, name } = body;
         if (!url) return json(res, 400, { error: 'url required.' });
-        try { new URL(url); } catch { return json(res, 400, { error: 'Invalid URL.' }); }
+        let parsedUrl;
+        try { parsedUrl = new URL(url); } catch { return json(res, 400, { error: 'Invalid URL.' }); }
+        const blocked = ['localhost','127.0.0.1','0.0.0.0','::1','169.254.','10.','192.168.','172.16.'];
+        if (blocked.some(b => parsedUrl.hostname.startsWith(b) || parsedUrl.hostname === b.replace('.','')) || !['http:','https:'].includes(parsedUrl.protocol)) {
+          return json(res, 400, { error: 'Private or non-HTTP URLs are not allowed.' });
+        }
         const id = crypto.randomUUID();
         const hook = { id, name: name || url, url, events: events || ['*'], secret: secret || null, enabled: true, createdAt: new Date().toISOString() };
         await db.put(`webhook:${id}`, JSON.stringify(hook));
@@ -929,7 +934,10 @@ export default async function handler(req, res) {
       });
     }
 
-    return json(res, 404, { error: `Unknown route: ${method} ${path}`, tip: 'See GET /api/docs' });
+    // Return 405 if path is known but method is wrong
+    const knownPaths = ['/api/health','/api/config','/api/models','/api/metrics','/api/docs','/api/objects','/api/audit','/api/analytics','/api/schedule','/api/groups','/api/bluegreen','/api/webhooks','/api/marketplace','/api/compliance','/api/lineage'];
+    const isKnown = knownPaths.some(kp => path.startsWith(kp));
+    return json(res, isKnown ? 405 : 404, { error: isKnown ? `Method ${method} not allowed on ${path}.` : `Unknown route: ${method} ${path}`, tip: 'See GET /api/docs' });
   } catch (err) {
     console.error('[api]', err);
     return json(res, 500, { error: err.message || 'Internal error' });
