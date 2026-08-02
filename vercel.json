@@ -6,50 +6,148 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "crons": [
-    { "path": "/api/crons/expiry-check",      "schedule": "0 6 * * *"    },
-    { "path": "/api/crons/tamper-check",      "schedule": "0 * * * *"    },
-    { "path": "/api/crons/scheduled-deploy",  "schedule": "*/5 * * * *"  }
+    {
+      "path": "/api/crons/expiry-check",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/crons/tamper-check",
+      "schedule": "0 18 * * *"
+    }
   ],
   "routes": [
-    { "src": "/console", "dest": "/app.html", "status": 301 },
-    { "src": "/api/fleet/(.*)",       "dest": "/api/fleet"       },
-    { "src": "/api/devices/(.*)",     "dest": "/api/devices"     },
-    { "src": "/api/abtest/(.*)",      "dest": "/api/abtest"      },
-    { "src": "/api/bluegreen/(.*)",   "dest": "/api/bluegreen"   },
-    { "src": "/api/marketplace/(.*)", "dest": "/api/marketplace" },
-    { "src": "/api/analytics/(.*)",   "dest": "/api/analytics"   },
-    { "src": "/api/groups/(.*)",      "dest": "/api/groups"      },
-    { "src": "/api/schedule/(.*)",    "dest": "/api/schedule"    },
-    { "src": "/api/webhooks/(.*)",    "dest": "/api/webhooks"    },
-    { "src": "/api/compliance/(.*)",  "dest": "/api/compliance"  },
-    { "src": "/api/identity/(.*)",    "dest": "/api/identity"    },
-    { "src": "/api/import/(.*)",      "dest": "/api/import"      },
-    { "src": "/api/sign/(.*)",        "dest": "/api/sign"        },
-    { "src": "/api/notifications/(.*)", "dest": "/api/notifications" },
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/(.*)", "dest": "/$1" }
+    {
+      "src": "/console",
+      "dest": "/app.html",
+      "status": 301
+    },
+    {
+      "src": "/api/fleet/(.*)",
+      "dest": "/api/fleet"
+    },
+    {
+      "src": "/api/devices/(.*)",
+      "dest": "/api/devices"
+    },
+    {
+      "src": "/api/abtest/(.*)",
+      "dest": "/api/abtest"
+    },
+    {
+      "src": "/api/bluegreen/(.*)",
+      "dest": "/api/bluegreen"
+    },
+    {
+      "src": "/api/marketplace/(.*)",
+      "dest": "/api/marketplace"
+    },
+    {
+      "src": "/api/analytics/(.*)",
+      "dest": "/api/analytics"
+    },
+    {
+      "src": "/api/groups/(.*)",
+      "dest": "/api/groups"
+    },
+    {
+      "src": "/api/schedule/(.*)",
+      "dest": "/api/schedule"
+    },
+    {
+      "src": "/api/webhooks/(.*)",
+      "dest": "/api/webhooks"
+    },
+    {
+      "src": "/api/compliance/(.*)",
+      "dest": "/api/compliance"
+    },
+    {
+      "src": "/api/identity/(.*)",
+      "dest": "/api/identity"
+    },
+    {
+      "src": "/api/import/(.*)",
+      "dest": "/api/import"
+    },
+    {
+      "src": "/api/sign/(.*)",
+      "dest": "/api/sign"
+    },
+    {
+      "src": "/api/notifications/(.*)",
+      "dest": "/api/notifications"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options",  "value": "nosniff" },
-        { "key": "X-Frame-Options",         "value": "DENY" },
-        { "key": "X-XSS-Protection",        "value": "1; mode=block" },
-        { "key": "Referrer-Policy",         "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy",      "value": "camera=(), microphone=(), geolocation=()" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https://api.shelbynet.shelby.xyz https://shelbynet.aptoslabs.com https://huggingface.co https://api.resend.com; img-src 'self' data: blob:; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests" },
-        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https://api.shelbynet.shelby.xyz https://shelbynet.aptoslabs.com https://huggingface.co https://api.resend.com; img-src 'self' data: blob:; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        }
       ]
     },
-    { "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
-    { "source": "/assets/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] }
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
   ],
   "functions": {
-    "api/**/*.js": { "runtime": "nodejs20.x", "maxDuration": 30, "memory": 512 }
+    "api/**/*.js": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 30,
+      "memory": 512
+    }
   },
   "env": {
-    "SHELBY_MODE":    "demo",
+    "SHELBY_MODE": "demo",
     "SHELBY_NETWORK": "shelbynet"
   }
 }
