@@ -20,7 +20,7 @@
     "vercel": "^35.0.0"
   },
   "engines": {
-    "node": "20"
+    "node": "24.x"
   },
   "overrides": {
     "@aptos-labs/ts-sdk": "^6.0.0"
