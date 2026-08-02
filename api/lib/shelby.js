@@ -29,6 +29,7 @@ export async function shelbyUpload({ blobData, blobName, apiKey }) {
     const { ShelbyClient } = await import('@shelby-protocol/sdk/browser');
     const { Account, Network } = await import('@aptos-labs/ts-sdk');
 
+    // API URL confirmed from Shelby dashboard: https://api.shelbynet.shelby.xyz/v1
     const client = new ShelbyClient({ network: Network.SHELBYNET, apiKey });
     const account = Account.generate();
     const expirationMicros = Date.now() * 1000 + 86_400_000_000; // 24 h
