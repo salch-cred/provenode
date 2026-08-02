@@ -1,4 +1,9 @@
-node_modules
-.wrangler
-.dev.vars
-.env
+node_modules/
+.vercel/
+.env.local
+.env.*.local
+*.log
+.DS_Store
+Thumbs.db
+dist/
+.next/

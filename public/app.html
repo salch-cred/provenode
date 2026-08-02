@@ -1,5 +1,462 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Provenode Console — Verified edge AI deployments</title><link rel="stylesheet" href="https://cdn.hugeicons.com/font/hgi-stroke-rounded.css"><style>
-:root{--paper:#f5f3ee;--white:#fff;--ink:#171714;--muted:#6d6a64;--line:#d8d4cc;--orange:#ff6b3d;--peach:#ffe1d5;--yellow:#f7dc72;--green:#bce3c5;--blue:#c9dcff;--purple:#ded2ff;--red:#d94848;--redsoft:#ffe4e2}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}button,input,select{font:inherit}button{cursor:pointer}.app{min-height:100vh;display:grid;grid-template-columns:218px 1fr}.side{height:100vh;position:sticky;top:0;background:#ebe8e1;border-right:1.5px solid var(--ink);padding:18px 13px;display:flex;flex-direction:column}.brand{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:850;padding:3px 8px 24px}.brandmark{width:31px;height:31px;border:1.5px solid var(--ink);border-radius:8px;background:var(--orange);display:grid;place-items:center}.brandmark img{width:31px;height:31px;display:block}.nav{display:grid;gap:5px}.nav button{border:1px solid transparent;background:transparent;border-radius:8px;min-height:42px;padding:0 11px;text-align:left;display:flex;align-items:center;gap:11px;font-weight:650;color:#625f59}.nav button i{font-size:18px}.nav button:hover,.nav button.active{background:white;border-color:var(--ink);color:var(--ink);box-shadow:2px 2px 0 var(--ink)}.side-status{margin-top:auto;border:1px solid var(--line);border-radius:10px;background:white;padding:13px}.side-status strong{display:flex;align-items:center;gap:7px}.dot{width:8px;height:8px;border-radius:50%;background:#31a867}.tiny{font-size:11px;color:var(--muted);margin-top:5px}.main{min-width:0}.topbar{height:68px;border-bottom:1px solid var(--line);background:rgba(245,243,238,.92);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:9}.pagetitle{font-weight:800;font-size:16px}.topright{display:flex;gap:9px;align-items:center}.chip{border:1px solid var(--line);border-radius:99px;background:white;padding:6px 10px;font-size:11px;font-weight:700}.avatar{width:32px;height:32px;border:1px solid var(--ink);border-radius:50%;background:var(--yellow);display:grid;place-items:center;font-weight:800}.content{max-width:1400px;margin:auto;padding:27px 30px 60px}.hero{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:22px}.hero h1{font-size:30px;letter-spacing:-.045em;margin:0 0 5px}.hero p{margin:0;color:var(--muted)}.btn{min-height:39px;padding:0 14px;border:1.5px solid var(--ink);border-radius:8px;background:white;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:750;box-shadow:2px 2px 0 var(--ink)}.btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--ink)}.btn.orange{background:var(--orange)}.btn.danger{background:var(--red);color:white}.btn.small{min-height:32px;font-size:11px;padding:0 10px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.card{background:white;border:1px solid var(--line);border-radius:11px}.stat{padding:16px;position:relative}.stat-icon{position:absolute;right:14px;top:14px;width:31px;height:31px;border:1px solid var(--line);border-radius:7px;background:var(--paper);display:grid;place-items:center}.label{font-size:11px;color:var(--muted);font-weight:700}.value{font-size:27px;font-weight:850;letter-spacing:-.04em;margin:7px 0 2px}.positive{font-size:11px;color:#278553}.grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.75fr);gap:15px}.cardhead{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.cardhead h2{font-size:14px;margin:0}.cardhead span{font-size:10px;color:var(--muted)}.rollout{padding:17px}.rolltop{display:flex;justify-content:space-between;align-items:flex-start}.eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:800}.rolltop h3{font-size:20px;margin:5px 0 3px}.status{display:inline-flex;align-items:center;gap:5px;padding:5px 7px;border-radius:6px;background:#e7f5ea;color:#237246;font-size:10px;font-weight:850}.status.warn{background:#fff0d0;color:#8c5b00}.status.fail{background:var(--redsoft);color:#9d2d2d}.track{height:9px;background:#ece9e2;border-radius:99px;overflow:hidden;margin:20px 0 7px}.bar{height:100%;width:0;background:var(--orange);transition:.55s;border-radius:inherit}.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}.stages{display:grid;grid-template-columns:repeat(4,1fr);margin-top:19px;position:relative}.stages:before{content:"";position:absolute;left:9%;right:9%;top:11px;height:1px;background:var(--line)}.stage{text-align:center;font-size:10px;color:var(--muted);position:relative}.stage-dot{position:relative;z-index:1;width:23px;height:23px;border-radius:50%;background:white;border:1px solid var(--line);display:grid;place-items:center;margin:0 auto 7px}.stage.done .stage-dot{background:var(--orange);border-color:var(--ink)}.stage.current{color:var(--ink);font-weight:800}.stage.current .stage-dot{border:2px solid var(--ink);box-shadow:0 0 0 3px var(--peach)}.incident{display:none;margin-top:17px;border:1.5px solid var(--red);background:var(--redsoft);border-radius:9px;padding:12px;align-items:center;justify-content:space-between;gap:12px}.incident.show{display:flex}.incident strong{display:block;color:#962e2e}.incident p{margin:2px 0 0;font-size:11px;color:#815252}.device-list{padding:2px 15px 8px}.device{display:grid;grid-template-columns:32px 1fr auto;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}.device:last-child{border:0}.devicon{width:31px;height:31px;border:1px solid var(--line);border-radius:7px;background:var(--blue);display:grid;place-items:center}.devname{font-size:12px;font-weight:800}.devmeta{font-size:10px;color:var(--muted)}.health{width:8px;height:8px;border-radius:50%;background:#32a867}.health.bad{background:var(--red)}.activity{margin-top:15px}.timeline{padding:5px 16px 12px}.event{display:grid;grid-template-columns:27px 1fr auto;gap:9px;padding:10px 0;border-bottom:1px solid var(--line)}.event:last-child{border:0}.emark{width:25px;height:25px;border:1px solid var(--line);border-radius:7px;background:var(--peach);display:grid;place-items:center}.event strong{font-size:11px}.event p,.event time{font-size:10px;color:var(--muted);margin:2px 0}.models-view,.fleet-view,.shelby-view{display:none}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%;text-align:left}th{background:#efede7;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#6f6b64;padding:10px 14px;border-bottom:1px solid var(--line)}td{padding:13px 14px;border-bottom:1px solid var(--line);font-size:12px}tr:last-child td{border:0}.modelname{font-weight:800}.sub{font-size:10px;color:var(--muted)}.mono{font:10px ui-monospace,SFMono-Regular,Menlo,monospace;color:#66625c}.fleetgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}.fleetcard{padding:19px}.fleeticon{width:42px;height:42px;border:1.5px solid var(--ink);border-radius:9px;background:var(--peach);display:grid;place-items:center;box-shadow:2px 2px 0 var(--ink);font-size:20px}.fleetcard h3{font-size:17px;margin:17px 0 4px}.fleetcard p{font-size:11px;color:var(--muted);margin:0}.fleetnums{display:flex;gap:26px;border-top:1px solid var(--line);margin-top:17px;padding-top:13px}.fleetnums b{display:block;font-size:19px}.shelby-banner{border:1.5px solid var(--ink);background:var(--peach);border-radius:12px;padding:22px;display:flex;align-items:center;justify-content:space-between;box-shadow:4px 4px 0 var(--ink);margin-bottom:16px}.shelby-banner h2{font-size:22px;margin:4px 0}.shelby-banner p{margin:0;color:#695e58}.smark{width:52px;height:52px;border:1.5px solid var(--ink);border-radius:11px;background:var(--orange);display:grid;place-items:center;font-weight:900}.proofgrid{display:grid;grid-template-columns:1.2fr .8fr;gap:15px}.objects{padding:2px 16px 10px}.object{display:grid;grid-template-columns:1.3fr .8fr .55fr auto;gap:10px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}.object:last-child{border:0}.object b{font-size:11px}.trustpath{padding:16px}.trustnode{border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:11px;margin-bottom:9px}.trustnode b{display:block;font-size:11px}.trustnode span{font-size:10px;color:var(--muted)}.arrow{text-align:center;color:var(--orange);margin:-6px 0 4px}.modalbg{display:none;position:fixed;inset:0;background:rgba(20,19,17,.48);z-index:30;align-items:center;justify-content:center;padding:18px}.modalbg.show{display:flex}.modal{width:min(500px,100%);background:white;border:1.5px solid var(--ink);border-radius:12px;box-shadow:7px 7px 0 var(--ink);overflow:hidden}.modalhead{padding:17px 19px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.modalhead h2{font-size:16px;margin:0}.close{border:0;background:transparent;font-size:20px}.modalbody{padding:19px}.field{margin-bottom:14px}.field label{display:block;font-size:11px;font-weight:800;margin-bottom:6px}.field input,.field select{width:100%;min-height:40px;border:1px solid var(--line);border-radius:7px;padding:0 10px;background:white}.drop{display:block;border:1.5px dashed #aaa59c;background:var(--paper);border-radius:9px;padding:21px;text-align:center}.drop input{display:none}.drop strong{display:block}.drop span{font-size:10px;color:var(--muted)}.fileresult{display:none;text-align:left;background:white;border:1px solid var(--line);border-radius:7px;padding:9px;margin-top:10px}.fileresult.show{display:block}.modalfoot{padding:13px 19px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}.toast{position:fixed;right:22px;bottom:22px;background:var(--ink);color:white;border-radius:8px;padding:11px 14px;opacity:0;transform:translateY(12px);transition:.2s;z-index:50}.toast.show{opacity:1;transform:none}.mobilemenu{display:none}.sideoverlay{display:none}@media(max-width:980px){.app{grid-template-columns:74px 1fr}.side{padding:17px 9px}.brand{justify-content:center;padding-left:0;padding-right:0}.brand>span:last-child,.nav button span,.side-status{display:none}.nav button{justify-content:center}.stats{grid-template-columns:1fr 1fr}.grid,.proofgrid{grid-template-columns:1fr}.fleetgrid{grid-template-columns:1fr 1fr}}@media(max-width:620px){.app{display:block}.side{display:none}.side.open{display:flex;position:fixed;inset:0 auto 0 0;width:244px;height:100vh;z-index:21;box-shadow:8px 0 30px rgba(23,23,20,.18)}.side.open .brand>span:last-child,.side.open .nav button span,.side.open .side-status{display:flex}.side.open .nav button{justify-content:flex-start}.sideoverlay.show{display:block;position:fixed;inset:0;background:rgba(23,23,20,.35);z-index:20}.topbar{height:61px;padding:0 15px}.mobilemenu{display:block;border:0;background:transparent;font-size:20px}.content{padding:20px 14px}.hero{display:block}.hero .btn{width:100%;margin-top:15px}.stats{gap:9px}.stat{padding:13px}.value{font-size:23px}.grid{grid-template-columns:1fr}.fleetgrid{grid-template-columns:1fr}.incident.show{display:block}.incident .btn{width:100%;margin-top:9px}.object{grid-template-columns:1fr auto}.object>div:nth-child(2),.object>div:nth-child(3){display:none}.shelby-banner{display:block}.smark{margin-top:16px}.topright .chip{display:none}}
-</style><style>.advanced-view{display:none}.advgrid{display:grid;grid-template-columns:1.2fr .8fr;gap:15px}.adv-object{border:1.5px solid var(--ink);background:var(--peach);box-shadow:4px 4px 0 var(--ink);border-radius:12px;padding:20px}.adv-kvs{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:16px 0}.adv-kv{background:#fff9;border:1px solid var(--line);border-radius:8px;padding:10px}.adv-kv span{display:block;font-size:9px;text-transform:uppercase;color:var(--muted);font-weight:800}.adv-kv b{display:block;font-size:11px;word-break:break-all}.adv-search{display:flex;gap:8px}.adv-search input{flex:1;border:1.5px solid var(--ink);border-radius:8px;padding:10px}.manifestbox{background:#171714;color:#f5f3ee;padding:14px;border-radius:9px;font:10px/1.55 ui-monospace,monospace;white-space:pre-wrap;overflow:auto;max-height:300px}.advcheck{display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:11px 0}.advcheck:before{content:'✓';width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--green);font-weight:900}.advtrack{height:10px;background:#e6e2da;border-radius:9px;overflow:hidden;margin:14px 0}.advtrack i{height:100%;display:block;width:0;background:var(--orange);transition:.2s}.prooflink{font:10px ui-monospace,monospace;word-break:break-all}@media(max-width:900px){.advgrid{grid-template-columns:1fr}.adv-kvs{grid-template-columns:1fr}}</style></head><body><div class="app"><aside class="side"><div class="brand"><span class="brandmark"><img src="provenode-logo.svg" alt=""></span><span>Provenode</span></div><nav class="nav"><button class="active" data-view="dashboard"><i class="hgi-stroke hgi-dashboard-square-01"></i><span>Overview</span></button><button data-view="models"><i class="hgi-stroke hgi-ai-brain-01"></i><span>Models</span></button><button data-view="fleet"><i class="hgi-stroke hgi-machine-robot"></i><span>Fleet</span></button><button data-view="shelby"><i class="hgi-stroke hgi-database-02"></i><span>Shelby</span></button><button data-view="advanced"><i class="hgi-stroke hgi-shield-energy"></i><span>Verified</span></button></nav><div class="side-status"><strong><i class="dot"></i>Shelby ready</strong><div class="tiny">Testnet adapter · active mode</div></div></aside><div class="sideoverlay" id="sideOverlay"></div><main class="main"><header class="topbar"><button class="mobilemenu"><i class="hgi-stroke hgi-menu-01"></i></button><div class="pagetitle" id="pageTitle">Operations overview</div><div class="topright"><span class="chip">● Production environment</span><span class="avatar">MS</span></div></header><div class="content"><section class="dashboard-view view"><div class="hero"><div><h1>Ship edge AI with confidence.</h1><p>One control plane for verified models, healthy fleets, and safe recovery.</p></div><button class="btn orange" id="runDemo"><i class="hgi-stroke hgi-play"></i>Start deployment</button></div><div class="stats"><div class="card stat"><span class="stat-icon"><i class="hgi-stroke hgi-wifi-01"></i></span><div class="label">Fleet online</div><div class="value">248</div><div class="positive">98.8% healthy</div></div><div class="card stat"><span class="stat-icon"><i class="hgi-stroke hgi-ai-brain-01"></i></span><div class="label">Active models</div><div class="value" id="modelCount">4</div><div class="positive">Across 3 runtimes</div></div><div class="card stat"><span class="stat-icon"><i class="hgi-stroke hgi-cloud-upload"></i></span><div class="label">Deployments</div><div class="value">31</div><div class="positive">+6 this week</div></div><div class="card stat"><span class="stat-icon"><i class="hgi-stroke hgi-shield-01"></i></span><div class="label">Integrity rate</div><div class="value">99.99%</div><div class="positive">Verified at activation</div></div></div><div class="grid"><div><div class="card"><div class="cardhead"><div><h2>Vision Edge v2.4.1 rollout</h2><span>Production · Global camera fleet</span></div><button class="btn small" id="continueBtn" disabled>Continue rollout</button></div><div class="rollout"><div class="rolltop"><div><div class="eyebrow">DEP-1042 · CANARY STRATEGY</div><h3 id="rolloutTitle">Ready to deploy</h3><div class="sub">vision-edge-v2.4.1.onnx · 184 MB</div></div><span class="status" id="rolloutStatus">● Ready</span></div><div class="track"><div class="bar" id="progressBar"></div></div><div class="meta"><span id="progressText">0 of 248 devices</span><span id="progressPct">0%</span></div><div class="stages"><div class="stage current" id="s0"><div class="stage-dot">1</div>Prepare</div><div class="stage" id="s1"><div class="stage-dot">2</div>10% canary</div><div class="stage" id="s2"><div class="stage-dot">3</div>50% rollout</div><div class="stage" id="s3"><div class="stage-dot">4</div>Complete</div></div><div class="incident" id="incident"><div><strong>Integrity mismatch on CAM-SIN-042</strong><p>Downloaded digest differs from the signed manifest. Activation blocked.</p></div><button class="btn danger small" id="rollbackBtn"><i class="hgi-stroke hgi-arrow-turn-backward"></i>Rollback device</button></div></div></div><div class="card activity"><div class="cardhead"><h2>Deployment activity</h2><span>Live</span></div><div class="timeline" id="timeline"><div class="event"><div class="emark"><i class="hgi-stroke hgi-tick-01"></i></div><div><strong>Manifest signed and ready</strong><p>SHA-256 · arm64 · ONNX Runtime 1.19</p></div><time>Now</time></div><div class="event"><div class="emark"><i class="hgi-stroke hgi-database-02"></i></div><div><strong>Artifact staged for Shelby</strong><p>Immutable object boundary configured</p></div><time>1m</time></div></div></div></div><div class="card"><div class="cardhead"><h2>Fleet health</h2><span>248 devices</span></div><div class="device-list"><div class="device" id="singaporeDevice"><span class="devicon"><i class="hgi-stroke hgi-camera-01"></i></span><div><div class="devname">CAM-SIN-042</div><div class="devmeta">Singapore · Camera</div></div><i class="health"></i></div><div class="device"><span class="devicon" style="background:var(--purple)"><i class="hgi-stroke hgi-drone"></i></span><div><div class="devname">DRN-BLR-118</div><div class="devmeta">Bengaluru · Drone</div></div><i class="health"></i></div><div class="device"><span class="devicon" style="background:var(--yellow)"><i class="hgi-stroke hgi-machine-robot"></i></span><div><div class="devname">BOT-SFO-007</div><div class="devmeta">San Francisco · Robot</div></div><i class="health"></i></div><div class="device"><span class="devicon"><i class="hgi-stroke hgi-camera-01"></i></span><div><div class="devname">CAM-FRA-221</div><div class="devmeta">Frankfurt · Camera</div></div><i class="health"></i></div></div></div></div></section><section class="models-view view"><div class="hero"><div><h1>Model registry</h1><p>Every approved artifact gets a content identity before deployment.</p></div><button class="btn orange" id="uploadOpen"><i class="hgi-stroke hgi-upload-02"></i>Add model</button></div><div class="card"><div class="cardhead"><h2>Approved artifacts</h2><span id="registryCount">4 model versions</span></div><div class="tablewrap"><table><thead><tr><th>Model</th><th>Runtime</th><th>Size</th><th>SHA-256</th><th>Status</th></tr></thead><tbody id="modelRows"><tr><td><div class="modelname">Vision Edge v2.4.1</div><div class="sub">Uploaded today</div></td><td>ONNX · arm64</td><td>184 MB</td><td class="mono">9e4a…b82f</td><td><span class="status">✓ Verified</span></td></tr><tr><td><div class="modelname">Warehouse Detect v1.8</div><div class="sub">3 days ago</div></td><td>TensorRT · x64</td><td>322 MB</td><td class="mono">72ac…119d</td><td><span class="status">✓ Verified</span></td></tr><tr><td><div class="modelname">Drone Nav v3.2</div><div class="sub">1 week ago</div></td><td>TFLite · arm64</td><td>96 MB</td><td class="mono">c811…a25e</td><td><span class="status">✓ Verified</span></td></tr><tr><td><div class="modelname">Safety Adapter v0.9</div><div class="sub">2 weeks ago</div></td><td>LoRA · CUDA</td><td>48 MB</td><td class="mono">50d2…f082</td><td><span class="status warn">Staged</span></td></tr></tbody></table></div></div></section><section class="fleet-view view"><div class="hero"><div><h1>Edge fleet</h1><p>Inventory grouped by workload, architecture, and rollout policy.</p></div><button class="btn" id="healthCheck"><i class="hgi-stroke hgi-refresh"></i>Run health check</button></div><div class="fleetgrid"><article class="card fleetcard"><span class="fleeticon"><i class="hgi-stroke hgi-camera-01"></i></span><h3>Smart cameras</h3><p>Retail and security vision workloads</p><div class="fleetnums"><div><b>156</b><span class="sub">Online</span></div><div><b>99.4%</b><span class="sub">Healthy</span></div></div></article><article class="card fleetcard"><span class="fleeticon" style="background:var(--purple)"><i class="hgi-stroke hgi-drone"></i></span><h3>Autonomous drones</h3><p>Inspection and navigation workloads</p><div class="fleetnums"><div><b>64</b><span class="sub">Online</span></div><div><b>98.1%</b><span class="sub">Healthy</span></div></div></article><article class="card fleetcard"><span class="fleeticon" style="background:var(--yellow)"><i class="hgi-stroke hgi-machine-robot"></i></span><h3>Warehouse robots</h3><p>Picking and obstacle detection</p><div class="fleetnums"><div><b>28</b><span class="sub">Online</span></div><div><b>100%</b><span class="sub">Healthy</span></div></div></article></div></section><section class="shelby-view view"><div class="hero"><div><h1>Shelby delivery layer</h1><p>Object proofs, global retrieval, and activation evidence.</p></div><a class="btn orange" href="https://docs.shelby.xyz/sdks/typescript" target="_blank" rel="noreferrer"><i class="hgi-stroke hgi-book-open-01"></i>SDK docs</a></div><div class="shelby-banner"><div><div class="eyebrow">SHELBY TESTNET · ACTIVE ADAPTER</div><h2>One model object. Every deployment region.</h2><p>Signed manifests bind edge devices to one exact immutable artifact.</p></div><span class="smark">S</span></div><div class="stats"><div class="card stat"><div class="label">Shelby objects</div><div class="value" id="shelbyObjectsStat">4</div><div class="positive">All commitments healthy</div></div><div class="card stat"><div class="label">Verified reads</div><div class="value">18.4k</div><div class="positive">Global telemetry</div></div><div class="card stat"><div class="label">Global regions</div><div class="value">4</div><div class="positive">One namespace</div></div><div class="card stat"><div class="label">Activation blocks</div><div class="value">1</div><div class="positive">Unsafe load prevented</div></div></div><div class="proofgrid"><div class="card"><div class="cardhead"><div><h2>Object proofs</h2><span>Registry → Shelby mapping</span></div><span class="status">● Ready</span></div><div class="objects" id="shelbyObjects"><div class="object"><div><b>Vision Edge v2.4.1</b><div class="mono">shelby://testnet/models/vision/2.4.1</div></div><div class="mono">0x73ab…20f1</div><div>184 MB</div><span class="status">✓ Verified</span></div><div class="object"><div><b>Warehouse Detect v1.8</b><div class="mono">shelby://testnet/models/warehouse/1.8</div></div><div class="mono">0x19dc…77a2</div><div>322 MB</div><span class="status">✓ Verified</span></div><div class="object"><div><b>Drone Nav v3.2</b><div class="mono">shelby://testnet/models/drone/3.2</div></div><div class="mono">0xe871…b019</div><div>96 MB</div><span class="status">✓ Verified</span></div></div></div><div class="card"><div class="cardhead"><h2>Trust path</h2><span>Production design</span></div><div class="trustpath"><div class="trustnode"><b>1 · Provenode</b><span>Hash and sign rollout manifest</span></div><div class="arrow">↓</div><div class="trustnode"><b>2 · Shelby object</b><span>Store immutable model commitment</span></div><div class="arrow">↓</div><div class="trustnode"><b>3 · Edge device</b><span>Download, compare, activate</span></div><div class="arrow">↓</div><div class="trustnode"><b>4 · Health signal</b><span>Continue or roll back</span></div></div></div></div></section><section class="advanced-view view"><div class="hero"><div><h1>Verified delivery</h1><p>Shelby object inspection, signed manifests, resumable downloads, canary controls and public proofs.</p></div><button class="btn orange" id="advUseLatest">Use latest model</button></div><div class="stats"><div class="card stat"><div class="label">Integrity</div><div class="value">100%</div><div class="positive">SHA-256 enforced</div></div><div class="card stat"><div class="label">Canary</div><div class="value">25%</div><div class="positive">Auto-stop enabled</div></div><div class="card stat"><div class="label">Median pull</div><div class="value">218ms</div><div class="positive">Global production fleet</div></div><div class="card stat"><div class="label">Rollbacks</div><div class="value">2</div><div class="positive">Verified restores</div></div></div><div class="adv-object"><div class="rolltop"><div><div class="eyebrow">Shelby Object Explorer</div><h2 style="margin:5px 0">Inspect a model artifact</h2></div><span class="status">● Testnet ready</span></div><div class="adv-search"><input id="advQuery" placeholder="Object ID, hash or model name"><button class="btn" id="advInspect">Inspect</button></div><div class="adv-kvs" id="advKvs"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn orange" id="advVerify">Verify object</button><button class="btn" id="advCopy">Copy ID</button><button class="btn" id="advProof">Public proof</button></div></div><div class="advgrid" style="margin-top:16px"><div class="card" style="display:none"><div class="cardhead"><h2>Signed deployment manifest</h2><span>provenode/v1</span></div><div style="padding:16px"><pre class="manifestbox" id="advManifest"></pre></div></div><div class="card" style="grid-column: 1 / -1"><div class="cardhead"><h2>Device safety path</h2><span>Atomic activation</span></div><div style="padding:16px"><div class="advcheck">Resolve Shelby object</div><div class="advcheck">Resume verified chunks</div><div class="advcheck">Calculate SHA-256</div><div class="advcheck">Compare signed manifest</div><div class="advcheck">Activate or roll back</div></div></div></div><div class="advgrid" style="margin-top:16px"><div class="card"><div class="cardhead"><h2>Resumable transfer test</h2><span>250 MB simulation</span></div><div style="padding:16px"><div id="advDlText"><b>Ready</b> · chunks verify independently</div><div class="advtrack"><i id="advDlBar"></i></div><button class="btn orange" id="advDownload">Simulate interruption + resume</button></div></div><div class="card"><div class="cardhead"><h2>Canary & rollback</h2><span>Failure threshold 2%</span></div><div style="padding:16px"><select id="advCanary" style="width:100%;padding:10px;border:1.5px solid var(--ink);border-radius:8px"><option>Single test device</option><option>5% canary</option><option selected>25% canary</option><option>Full fleet</option></select><div style="display:flex;gap:8px;margin-top:12px"><button class="btn orange" id="advDeploy">Deploy</button><button class="btn" id="advRollback">Verified rollback</button></div></div></div></div></section></div></main></div><div class="modalbg" id="uploadModal"><div class="modal"><div class="modalhead"><h2>Add a model version</h2><button class="close" id="uploadClose">×</button></div><div class="modalbody"><div class="field"><label>Display name</label><input id="modelName" value="Edge Vision v2.5.0"></div><div class="field"><label>Runtime</label><select id="runtime"><option>ONNX · arm64</option><option>TensorRT · x64</option><option>TFLite · arm64</option><option>LoRA · CUDA</option></select></div><label class="drop" for="modelFile"><input type="file" id="modelFile"><i class="hgi-stroke hgi-cloud-upload" style="font-size:24px"></i><strong>Choose a model artifact</strong><span>ONNX, TFLite, TensorRT, SafeTensors or any model file</span><div class="fileresult" id="fileResult"></div></label></div><div class="modalfoot"><button class="btn" id="cancelUpload">Cancel</button><button class="btn orange" id="saveModel" disabled>Hash & register</button></div></div></div><div class="toast" id="toast"></div><script>
-const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);let currentFile=null,modelTotal=4,step=0,currentManifest=null;const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2300)};$$('.nav button').forEach(b=>b.onclick=()=>{const v=b.dataset.view;$$('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.view').forEach(x=>x.style.display='none');$('.'+v+'-view').style.display='block';$('#pageTitle').textContent={dashboard:'Operations overview',models:'Model registry',fleet:'Edge fleet',shelby:'Shelby delivery layer',advanced:'Verified delivery'}[v]});const addEvent=(icon,title,desc)=>{const d=document.createElement('div');d.className='event';d.innerHTML=`<div class="emark"><i class="hgi-stroke ${icon}"></i></div><div><strong>${title}</strong><p>${desc}</p></div><time>Now</time>`;$('#timeline').prepend(d)};let shelbyObjectCount=4;const addObjectProof=(name,objectId,hash,size)=>{const el=document.createElement('div');el.className='object';el.innerHTML=`<div><b>${name}</b><div class="mono">${objectId}</div></div><div class="mono">0x${hash.slice(0,8)}…</div><div>${size}</div><span class="status">✓ Verified</span>`;$('#shelbyObjects').prepend(el);shelbyObjectCount++;$('#shelbyObjectsStat').textContent=shelbyObjectCount};function stage(n){for(let i=0;i<4;i++)$('#s'+i).className='stage'+(i<n?' done':i===n?' current':'')}function progress(p,count,title,status,cls=''){ $('#progressBar').style.width=p+'%';$('#progressText').textContent=count+' of 248 devices';$('#progressPct').textContent=p+'%';$('#rolloutTitle').textContent=title;$('#rolloutStatus').className='status '+cls;$('#rolloutStatus').textContent=status}$('#runDemo').onclick=async()=>{$('#runDemo').disabled=true;$('#runDemo').textContent='Preparing deployment…';try{const res=await fetch('/api/deploy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modelName:'Vision Edge',version:'v2.4.1',region:'Global'})});const d=await res.json();if(!res.ok||!d.success)throw new Error(d.error||'Deploy failed');currentManifest=d.manifest;addEvent('hgi-file-security',d.manifest.mode==='shelby'?'Real Shelby object created':'Manifest signed (demo mode)',`SHA-256 ${d.manifest.sha256.slice(0,12)}… · ${d.manifest.shelbyObjectId}`);if(d.warning)toast(d.warning)}catch(e){toast('Deploy error: '+e.message);$('#runDemo').disabled=false;$('#runDemo').textContent='Start deployment';return}step=1;$('#runDemo').textContent='Deploying canary…';stage(1);progress(4,10,'Distributing canary','● Deploying');addEvent('hgi-route-01','Canary rollout started','24 devices targeted across 4 regions');let p=4;const timer=setInterval(()=>{p+=2;progress(Math.min(p,10),Math.round(248*Math.min(p,10)/100),'Distributing canary','● Deploying');if(p>=10){clearInterval(timer);setTimeout(()=>{progress(10,24,'Rollout paused','! Integrity incident','fail');$('#incident').classList.add('show');$('#singaporeDevice .health').classList.add('bad');addEvent('hgi-alert-02','Activation blocked','SHA-256 mismatch on CAM-SIN-042');$('#runDemo').textContent='Deployment running'},500)}},230)};const bumpVerified=count=>{if(!currentManifest)return;fetch('/api/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:currentManifest.id,status:'verified',count})}).catch(()=>{})};$('#rollbackBtn').onclick=()=>{$('#incident').classList.remove('show');$('#singaporeDevice .health').classList.remove('bad');progress(10,24,'Canary healthy','✓ 24 verified');$('#continueBtn').disabled=false;addEvent('hgi-arrow-turn-backward','Device rolled back safely','Previous model restored');toast('Rollback complete · fleet protected');bumpVerified(24)};$('#continueBtn').onclick=()=>{if(step===1){step=2;stage(2);progress(50,124,'Expanding rollout','● Deploying');$('#continueBtn').textContent='Complete rollout';addEvent('hgi-route-01','Expanded to 50%','124 devices verified');bumpVerified(100)}else{step=3;stage(3);progress(100,248,'Deployment complete','✓ Verified');$('#continueBtn').disabled=true;$('#continueBtn').textContent='Complete';$('#runDemo').textContent='✓ Deployment complete';addEvent('hgi-checkmark-circle-02','Global rollout completed','248 devices activated');toast('Deployment completed successfully');bumpVerified(124)}};const modal=$('#uploadModal');$('#uploadOpen').onclick=()=>modal.classList.add('show');$('#uploadClose').onclick=$('#cancelUpload').onclick=()=>modal.classList.remove('show');$('#modelFile').onchange=e=>{currentFile=e.target.files[0];if(!currentFile)return;$('#fileResult').classList.add('show');$('#fileResult').innerHTML=`<strong>${currentFile.name}</strong><br><span>${(currentFile.size/1024/1024).toFixed(2)} MB · ready to hash</span>`;$('#saveModel').disabled=false};$('#saveModel').onclick=async()=>{if(!currentFile)return;const btn=$('#saveModel');btn.disabled=true;btn.textContent='Uploading to Shelby…';try{const fd=new FormData();fd.append('file',currentFile);fd.append('name',$('#modelName').value.replace(/[<>]/g,''));const res=await fetch('/api/upload',{method:'POST',body:fd});if(!res.ok){const e=await res.json();throw new Error(e.error||'Failed')}const d=await res.json();const savedName=$('#modelName').value.replace(/[<>]/g,'');const sizeMb=(currentFile.size/1024/1024).toFixed(2);const proofUrl=`/verify.html?id=${encodeURIComponent(d.objectId)}&name=${encodeURIComponent(savedName)}&hash=${d.hash}&version=latest`;const tr=document.createElement('tr');tr.innerHTML=`<td><div class="modelname">${savedName}</div><div class="sub">${d.mode==='shelby'?'Stored in Shelby':'Demo registry'}</div></td><td>${$('#runtime').value}</td><td>${sizeMb} MB</td><td class="mono" title="${d.objectId}">${d.objectId.split('/').pop().slice(0,8)}…</td><td><span class="status">✓ Stored</span> <button class="btn small deploy-model" data-id="${d.id}" data-name="${savedName}">Deploy</button> <a class="btn small" href="${proofUrl}" target="_blank">Proof</a></td>`;$('#modelRows').prepend(tr);modelTotal++;$('#modelCount').textContent=modelTotal;$('#registryCount').textContent=modelTotal+' model versions';addObjectProof(savedName,d.objectId,d.hash,sizeMb+' MB');modal.classList.remove('show');toast(d.warning||(d.mode==='shelby'?'Uploaded to Shelby testnet!':'Upload complete!'));if(window.setExplorerObj)window.setExplorerObj({name:$('#modelName').value.replace(/[<>]/g,''),version:'latest',id:d.objectId,hash:d.hash,size:sizeMb+' MB',runtime:$('#runtime').value})}catch(e){toast('Error: '+e.message)}finally{btn.textContent='Hash & register';btn.disabled=false}};$('#healthCheck').onclick=e=>{e.target.disabled=true;e.target.textContent='Checking 248 devices…';setTimeout(()=>{e.target.disabled=false;e.target.innerHTML='<i class="hgi-stroke hgi-refresh"></i>Run health check';toast('248 devices responded · 98.8% healthy')},1300)};$('#modelRows').addEventListener('click',async e=>{const b=e.target.closest('.deploy-model');if(!b)return;const orig=b.textContent;b.disabled=true;b.textContent='Deploying…';try{const res=await fetch('/api/deploy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modelId:b.dataset.id})});const d=await res.json();if(!res.ok||!d.success)throw new Error(d.error||'Deploy failed');toast(d.warning||(d.manifest.mode==='shelby'?'Deployed to Shelby testnet!':'Deployment recorded (demo mode)'));addEvent('hgi-route-01','Deployment created from registry',`${b.dataset.name} · ${d.manifest.shelbyObjectId}`)}catch(err){toast('Deploy error: '+err.message)}finally{b.disabled=false;b.textContent=orig}});const side=$('.side'),overlay=$('#sideOverlay');function closeMobileNav(){side.classList.remove('open');overlay.classList.remove('show')}$('.mobilemenu').onclick=()=>{side.classList.toggle('open');overlay.classList.toggle('show')};overlay.onclick=closeMobileNav;$$('.nav button').forEach(b=>b.addEventListener('click',closeMobileNav));window.onkeydown=e=>{if(e.key==='Escape'){modal.classList.remove('show');closeMobileNav()}};(async()=>{try{const r=await fetch('/api/models');if(!r.ok)return;const d=await r.json();if(!d.success||!Array.isArray(d.models)||!d.models.length)return;for(const m of d.models.slice().reverse()){const sizeMb=(m.size/1024/1024).toFixed(2);const proofUrl=`/verify.html?id=${encodeURIComponent(m.objectId)}&name=${encodeURIComponent(m.model)}&hash=${m.sha256}&version=${encodeURIComponent(m.version||'latest')}`;const tr=document.createElement('tr');tr.innerHTML=`<td><div class="modelname">${m.model}</div><div class="sub">${m.mode==='shelby'?'Stored in Shelby':'Demo registry'}</div></td><td>—</td><td>${sizeMb} MB</td><td class="mono" title="${m.objectId}">${m.objectId.split('/').pop().slice(0,8)}…</td><td><span class="status">✓ Stored</span> <button class="btn small deploy-model" data-id="${m.id}" data-name="${m.model}">Deploy</button> <a class="btn small" href="${proofUrl}" target="_blank">Proof</a></td>`;$('#modelRows').prepend(tr);modelTotal++;addObjectProof(m.model,m.objectId,m.sha256,sizeMb+' MB')}$('#modelCount').textContent=modelTotal;$('#registryCount').textContent=modelTotal+' model versions';const latest=d.models[0];if(latest&&window.setExplorerObj)window.setExplorerObj({name:latest.model,version:latest.version||'latest',id:latest.objectId,hash:latest.sha256,size:(latest.size/1024/1024).toFixed(2)+' MB',runtime:'—'})}catch(e){}})();
-</script><script>(()=>{const q=s=>document.querySelector(s);let obj={name:'Vision Edge',version:'v2.4.1',id:'shlb_73ab20f1d9c2',hash:'73ab6fb170e0f4fc9e93a31bd70d6f89e80ec5b68235200c934228f760c120f1',size:'184 MB',runtime:'ONNX'};function draw(){q('#advKvs').innerHTML=[['Object ID',obj.id],['Integrity','Verified'],['SHA-256',obj.hash],['Size',obj.size],['Runtime',obj.runtime],['Network','Shelby testnet']].map(x=>`<div class="adv-kv"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');q('#advManifest').textContent=JSON.stringify({schema:'provenode/v1',model:obj.name,version:obj.version,shelbyObjectId:obj.id,sha256:obj.hash,runtime:obj.runtime,policy:{verifyBeforeActivate:true,atomicSwap:true,keepPrevious:true},signature:'sig:ed25519:8d29…f0a1'},null,2)}draw();window.setExplorerObj=o=>{obj=o;draw();q('.advanced-view .rolltop h3').textContent='Inspecting: '+o.name;};q('#advInspect').onclick=()=>toast('Object resolved and commitment loaded');q('#advVerify').onclick=()=>toast('Hash matches the approved manifest');q('#advCopy').onclick=()=>navigator.clipboard.writeText(obj.id).then(()=>toast('Object ID copied'));q('#advProof').onclick=()=>open('/verify.html?id='+encodeURIComponent(obj.id)+'&name='+encodeURIComponent(obj.name)+'&hash='+obj.hash,'_blank');q('#advDeploy').onclick=()=>toast(q('#advCanary').value+' deployment started');q('#advRollback').onclick=()=>toast('Previous verified Shelby object restored');q('#advUseLatest').onclick=()=>toast('Latest registered model selected');q('#advDownload').onclick=()=>{let n=0,pause=false;q('#advDlText').innerHTML='<b>Downloading</b> · verifying chunks from Shelby';let t=setInterval(()=>{if(pause)return;n+=5;if(n===45){pause=true;q('#advDlText').innerHTML='<b>Connection interrupted</b> · resuming at 112.5 MB';setTimeout(()=>pause=false,650)}q('#advDlBar').style.width=n+'%';if(n>=100){clearInterval(t);q('#advDlText').innerHTML='<b>Complete</b> · SHA-256 verified and activated';toast('Resumable download completed')}},80)}})();</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provenode Console — Verified edge AI deployments</title>
+  <meta name="description" content="One control plane for verified models, healthy fleets, and safe Shelby-backed recovery.">
+  <link rel="icon" href="/provenode-logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────── -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="dot"></div>
+      Provenode
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Operations</div>
+      <a class="nav-item active" data-page="dashboard">
+        <span class="icon">◈</span> Dashboard
+      </a>
+      <a class="nav-item" data-page="deploy">
+        <span class="icon">↑</span> Deploy Model
+      </a>
+      <a class="nav-item" data-page="registry">
+        <span class="icon">☰</span> Registry
+      </a>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Infrastructure</div>
+      <a class="nav-item" data-page="fleet">
+        <span class="icon">◎</span> Edge Fleet
+      </a>
+      <a class="nav-item" data-page="shelby">
+        <span class="icon">S</span> Shelby Layer
+      </a>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="shelby-badge">
+        <div class="dot-live"></div>
+        <span id="shelby-badge-text">SHELBY · DEMO</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Main ────────────────────────────────────────────────── -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="flex items-center gap-3">
+        <h1 id="topbar-title" style="font-size:15px;font-weight:800;letter-spacing:-0.3px">Dashboard</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="/" class="btn btn-sm">← Landing</a>
+        <a href="/api/health" target="_blank" class="btn btn-sm">API Health ↗</a>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ══════════════════════════════════════════════════════
+           PAGE: Dashboard
+      ══════════════════════════════════════════════════════════ -->
+      <div id="page-dashboard" class="page active">
+
+        <!-- Stat cards -->
+        <div class="stat-grid mb-6">
+          <div class="stat-card">
+            <div class="stat-label">Models Registered</div>
+            <div class="stat-value" id="stat-models">—</div>
+            <div class="stat-sub">In KV registry</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Deployments</div>
+            <div class="stat-value" id="stat-deploys">—</div>
+            <div class="stat-sub">All time</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Verified</div>
+            <div class="stat-value" id="stat-verified">—</div>
+            <div class="stat-sub" style="color:var(--green)">100% progress</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">In Flight</div>
+            <div class="stat-value" id="stat-inflight">—</div>
+            <div class="stat-sub" style="color:var(--coral)">Deploying now</div>
+          </div>
+        </div>
+
+        <!-- Two-column layout -->
+        <div style="display:grid;grid-template-columns:1fr 380px;gap:20px">
+
+          <!-- Deployment feed -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Deployment activity</span>
+              <button class="btn btn-sm btn-primary" onclick="navigate('deploy')">+ New</button>
+            </div>
+            <div id="deploy-feed" style="padding:0 18px"></div>
+          </div>
+
+          <!-- Recent models -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Recent models</span>
+              <a class="btn btn-sm" onclick="navigate('registry')">View all</a>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th><th>Mode</th><th>Hash</th><th>Size</th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="recent-models"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           PAGE: Deploy
+      ══════════════════════════════════════════════════════════ -->
+      <div id="page-deploy" class="page">
+
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;max-width:900px">
+
+          <!-- Upload card -->
+          <div>
+            <div class="card mb-4">
+              <div class="card-header">
+                <span class="card-title">Step 1 — Hash & register model</span>
+              </div>
+              <div class="card-body">
+
+                <div class="form-group">
+                  <label class="form-label" for="model-name-input">Model name (optional)</label>
+                  <input type="text" id="model-name-input" placeholder="e.g. Vision Edge v2.5" />
+                </div>
+
+                <div class="drop-zone" id="dropzone">
+                  <div class="drop-zone-icon">⬆</div>
+                  <div class="drop-zone-text" id="dropzone-text">Drop model file here or click to browse</div>
+                  <div class="drop-zone-sub">Any binary up to 100 MB · ZIP, ONNX, TFLite, bin…</div>
+                </div>
+                <input type="file" id="file-input" class="hidden">
+
+                <div id="file-info" class="hidden" style="margin-top:12px;padding:10px 12px;background:var(--bg);border:2px solid var(--border);border-radius:var(--radius);font-size:12px">
+                  <strong id="file-name"></strong>
+                  <span class="text-muted" style="margin-left:8px" id="file-size"></span>
+                </div>
+
+                <div style="margin-top:14px;display:flex;gap:8px">
+                  <button id="upload-btn" class="btn btn-primary" disabled>Hash & Register</button>
+                </div>
+
+                <!-- Upload result -->
+                <div id="upload-result" class="hidden" style="margin-top:16px">
+                  <div class="shelby-panel">
+                    <div class="shelby-panel-title">Registration result</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+                      <div><div class="form-label">Model</div><strong id="res-model">—</strong></div>
+                      <div><div class="form-label">Mode</div><span id="res-mode" class="badge">—</span></div>
+                      <div><div class="form-label">SHA-256</div><span class="mono" id="res-hash">—</span></div>
+                      <div><div class="form-label">Size</div><span id="res-size">—</span></div>
+                      <div><div class="form-label">Record ID</div><span class="mono" id="res-id">—</span></div>
+                      <div><div class="form-label">Proof</div><a id="res-proof-link" href="#" target="_blank" class="btn btn-sm">View ↗</a></div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Step 2 — Deploy -->
+            <div class="card">
+              <div class="card-header">
+                <span class="card-title">Step 2 — Deploy to fleet</span>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label" for="deploy-region">Target region</label>
+                  <select id="deploy-region">
+                    <option value="Global">Global</option>
+                    <option value="Asia-Pacific">Asia-Pacific</option>
+                    <option value="Europe">Europe</option>
+                    <option value="Americas">Americas</option>
+                    <option value="Middle East">Middle East</option>
+                  </select>
+                </div>
+                <button id="deploy-btn" class="btn btn-primary" disabled>Deploy to Fleet</button>
+                <div class="text-muted text-sm" style="margin-top:8px">Register a model above before deploying.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Trust path sidebar -->
+          <div>
+            <div class="card mb-4">
+              <div class="card-header"><span class="card-title">Trust path</span></div>
+              <div class="card-body">
+                <div class="steps" style="flex-direction:column;gap:16px">
+                  <div class="flex gap-3 items-center">
+                    <div class="step-circle done">1</div>
+                    <div><div class="fw-700" style="font-size:12px">Provenode</div><div class="text-muted text-sm">SHA-256 identity</div></div>
+                  </div>
+                  <div class="flex gap-3 items-center">
+                    <div class="step-circle active">2</div>
+                    <div><div class="fw-700" style="font-size:12px">Shelby object</div><div class="text-muted text-sm">Immutable commitment</div></div>
+                  </div>
+                  <div class="flex gap-3 items-center">
+                    <div class="step-circle">3</div>
+                    <div><div class="fw-700" style="font-size:12px">Edge device</div><div class="text-muted text-sm">Download & verify</div></div>
+                  </div>
+                  <div class="flex gap-3 items-center">
+                    <div class="step-circle">4</div>
+                    <div><div class="fw-700" style="font-size:12px">Health signal</div><div class="text-muted text-sm">Activate or rollback</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><span class="card-title">Shelby mode</span></div>
+              <div class="card-body">
+                <div id="deploy-shelby-info" class="text-sm text-muted">Loading Shelby status…</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           PAGE: Registry
+      ══════════════════════════════════════════════════════════ -->
+      <div id="page-registry" class="page">
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Model registry</span>
+            <div class="flex gap-2">
+              <button class="btn btn-sm" onclick="loadRegistryPage()">↻ Refresh</button>
+              <button class="btn btn-sm btn-primary" onclick="navigate('deploy')">+ Upload</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Mode</th>
+                  <th>SHA-256</th>
+                  <th>Size</th>
+                  <th>Shelby Object ID</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="registry-tbody">
+                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           PAGE: Fleet
+      ══════════════════════════════════════════════════════════ -->
+      <div id="page-fleet" class="page">
+
+        <div class="stat-grid mb-6">
+          <div class="stat-card">
+            <div class="stat-label">Smart Cameras</div>
+            <div class="stat-value" style="color:var(--green)">156</div>
+            <div class="stat-sub">99.4% healthy</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Autonomous Drones</div>
+            <div class="stat-value" style="color:var(--green)">64</div>
+            <div class="stat-sub">98.1% healthy</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Warehouse Robots</div>
+            <div class="stat-value" style="color:var(--green)">28</div>
+            <div class="stat-sub">100% healthy</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Fleet</div>
+            <div class="stat-value">248</div>
+            <div class="stat-sub">Across 4 regions</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Device inventory</span>
+            <span class="badge badge-green">248 online</span>
+          </div>
+          <div class="card-body">
+            <div class="device-grid">
+              <div class="device-card">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="badge badge-green">Online</span>
+                </div>
+                <div class="device-id">CAM-SIN-042</div>
+                <div class="device-meta">Singapore · Camera · arm64</div>
+              </div>
+              <div class="device-card">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="badge badge-green">Online</span>
+                </div>
+                <div class="device-id">DRN-BLR-118</div>
+                <div class="device-meta">Bengaluru · Drone · arm64</div>
+              </div>
+              <div class="device-card">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="badge badge-green">Online</span>
+                </div>
+                <div class="device-id">BOT-SFO-007</div>
+                <div class="device-meta">San Francisco · Robot · x64</div>
+              </div>
+              <div class="device-card">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="badge badge-green">Online</span>
+                </div>
+                <div class="device-id">CAM-FRA-221</div>
+                <div class="device-meta">Frankfurt · Camera · arm64</div>
+              </div>
+              <div class="device-card">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="badge badge-amber">Warning</span>
+                </div>
+                <div class="device-id">CAM-DXB-055</div>
+                <div class="device-meta">Dubai · Camera · arm64</div>
+              </div>
+              <div class="device-card">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="badge badge-green">Online</span>
+                </div>
+                <div class="device-id">BOT-TYO-033</div>
+                <div class="device-meta">Tokyo · Robot · x64</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════
+           PAGE: Shelby Layer
+      ══════════════════════════════════════════════════════════ -->
+      <div id="page-shelby" class="page">
+
+        <!-- Status banner -->
+        <div id="shelby-status-banner" class="card card-sm mb-6" style="padding:14px 18px">
+          <div class="loading-spin"></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+
+          <!-- Proof list -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Object proofs</span>
+              <div class="flex gap-2 items-center">
+                <span class="badge badge-shelby" id="shelby-stat-objects">—</span>
+                <span class="text-muted text-sm">shelby objects</span>
+              </div>
+            </div>
+            <div id="shelby-proofs" class="card-body" style="padding:12px">
+              <div class="loading-spin"></div>
+            </div>
+          </div>
+
+          <!-- Trust architecture -->
+          <div>
+            <div class="card mb-4">
+              <div class="card-header"><span class="card-title">Total registered models</span></div>
+              <div class="card-body">
+                <div class="stat-value" id="shelby-stat-total">—</div>
+                <div class="stat-sub">KV-persisted across reloads</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><span class="card-title">Architecture</span></div>
+              <div class="card-body">
+                <div style="font-size:12px;line-height:2">
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="badge badge-blue">1</span>
+                    <strong>Upload</strong> — SHA-256 hash + KV record
+                  </div>
+                  <div style="padding-left:12px;color:var(--text-muted);margin-bottom:8px">↓</div>
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="badge badge-shelby">2</span>
+                    <strong>Shelby</strong> — on-chain immutable object
+                  </div>
+                  <div style="padding-left:12px;color:var(--text-muted);margin-bottom:8px">↓</div>
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="badge badge-green">3</span>
+                    <strong>Deploy</strong> — signed manifest to fleet
+                  </div>
+                  <div style="padding-left:12px;color:var(--text-muted);margin-bottom:8px">↓</div>
+                  <div class="flex items-center gap-2">
+                    <span class="badge badge-demo">4</span>
+                    <strong>Verify</strong> — device digest check
+                  </div>
+                </div>
+
+                <div style="margin-top:16px;padding-top:14px;border-top:1px solid #e5e5e5">
+                  <a href="https://docs.shelby.xyz/sdks/typescript" target="_blank" class="btn btn-shelby btn-sm">
+                    SDK docs ↗
+                  </a>
+                  <a href="/api/shelby-status" target="_blank" class="btn btn-sm" style="margin-left:8px">
+                    Live status ↗
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script src="/app.js"></script>
+<script>
+  // Wire Shelby info into deploy page on load
+  document.addEventListener('DOMContentLoaded', async () => {
+    const res = await fetch('/api/shelby-status').then(r => r.json()).catch(() => ({}));
+    const el = document.getElementById('deploy-shelby-info');
+    if (el) {
+      if (res.connected) {
+        el.innerHTML = '<span class="badge badge-shelby">Production</span> <span style="margin-left:6px;font-size:12px">Real Shelby uploads active on ' + (res.network||'testnet') + '</span>';
+      } else {
+        el.innerHTML = '<span class="badge badge-demo">Demo</span> <span style="margin-left:6px;font-size:12px">Set <code>SHELBY_API_KEY</code> in Vercel env vars to enable real on-chain uploads.</span>';
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
