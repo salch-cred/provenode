@@ -2,6 +2,7 @@
   "name": "provenode",
   "version": "3.0.0",
   "private": true,
+  "type": "module",
   "description": "Production-grade verified AI model deployment on Shelby testnet",
   "scripts": {
     "dev": "vercel dev",

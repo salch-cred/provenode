@@ -11,6 +11,17 @@
   ],
   "routes": [
     { "src": "/console", "dest": "/app.html", "status": 301 },
+
+    { "src": "/api/fleet/(.*)", "dest": "/api/fleet" },
+    { "src": "/api/devices/(.*)", "dest": "/api/devices" },
+    { "src": "/api/abtest/(.*)", "dest": "/api/abtest" },
+    { "src": "/api/import/(.*)", "dest": "/api/import" },
+    { "src": "/api/lineage/(.*)", "dest": "/api/lineage" },
+    { "src": "/api/objects/(.*)", "dest": "/api/objects" },
+    { "src": "/api/webhooks/(.*)", "dest": "/api/webhooks" },
+    { "src": "/api/compliance/(.*)", "dest": "/api/compliance" },
+    { "src": "/api/identity/(.*)", "dest": "/api/identity" },
+
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/(.*)", "dest": "/$1" }
   ],

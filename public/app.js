@@ -256,7 +256,7 @@ async function registerDevice() {
   const loc=document.getElementById('dev-loc')?.value.trim();
   const fleet=document.getElementById('dev-fleet')?.value.trim();
   if(!id){ toast('Device ID required.','error'); return; }
-  const {ok,data}=await api('POST','/api/devices/register',{deviceId:id,type,arch,location:loc,fleet});
+  const {ok,data}=await api('POST','/api/devices',{deviceId:id,type,arch,location:loc,fleet});
   if(!ok){ toast(data.error||'Failed','error'); return; }
   toast(`Device ${id} registered!`,'success'); await loadDevices();
   document.getElementById('register-device-form').classList.add('hidden');

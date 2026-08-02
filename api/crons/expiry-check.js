@@ -2,7 +2,8 @@
 import { getDB } from '../lib/kv.js';
 import { dispatch } from '../lib/notify.js';
 export default async function handler(req, res) {
-  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) return res.status(401).end();
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && req.headers.authorization !== `Bearer ${cronSecret}`) return res.status(401).end('Unauthorized');
   const db = getDB();
   const { keys } = await db.list({ prefix: 'model:' });
   const now = Date.now(), sevenDays = 7 * 86400000;

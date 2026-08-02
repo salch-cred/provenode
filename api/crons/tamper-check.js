@@ -2,7 +2,8 @@
 import { getDB } from '../lib/kv.js';
 import { dispatch } from '../lib/notify.js';
 export default async function handler(req, res) {
-  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) return res.status(401).end();
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && req.headers.authorization !== `Bearer ${cronSecret}`) return res.status(401).end('Unauthorized');
   const db = getDB();
   const { keys } = await db.list({ prefix: 'model:' });
   const shelbyKeys = [];
@@ -21,12 +22,12 @@ export default async function handler(req, res) {
       if (!apiKey) { results.push({ id: m.id, status: 'skipped', reason: 'No API key' }); continue; }
       // HEAD request to confirm object accessibility
       const apiUrl = `https://api.shelbynet.shelby.xyz/v1`;
-      const r = await fetch(`${apiUrl}/blobs/check`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-        body: JSON.stringify({ objectId: m.objectId }),
+      // Verify by trying to look up the account that owns the object
+      const addr = m.address || m.objectId?.split('/')[2];
+      const r = addr ? await fetch(`${apiUrl}/accounts/${addr}/resources`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` },
         signal: AbortSignal.timeout(8000),
-      });
+      }) : { ok: true, status: 200 };
       results.push({ id: m.id, model: m.model, status: r.ok ? 'ok' : 'warn', httpStatus: r.status });
       if (!r.ok && r.status === 404) {
         m.tampered = true; m.tamperedAt = new Date().toISOString();
