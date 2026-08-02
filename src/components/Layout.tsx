@@ -47,7 +47,7 @@ export default function Layout() {
   }, [open]);
 
   return (
-    <div className="shell">
+    <div className="app-shell">
       {open && <div className="sidebar-overlay show" onClick={() => setOpen(false)} />}
 
       <nav className={`sidebar ${open ? 'open' : ''}`}>
