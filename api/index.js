@@ -143,10 +143,15 @@ export default async function handler(req, res) {
     // ── upload ──────────────────────────────────────────────
     if (root === 'upload' && method === 'POST') {
       const form = formidable({ maxFileSize: 100 * 1024 * 1024, keepExtensions: true, allowEmptyFiles: false, minFileSize: 1 });
-      const [fields, files] = await new Promise((resolve, reject) =>
-        form.parse(req, (err, f, v) => err ? reject(err) : resolve([f, v]))
-      );
-      const uploaded = Array.isArray(files.file) ? files.file[0] : files.file;
+      let fields, files;
+      try {
+        [fields, files] = await new Promise((resolve, reject) =>
+          form.parse(req, (err, f, v) => err ? reject(err) : resolve([f, v]))
+        );
+      } catch (fe) {
+        return json(res, 400, { error: fe.message?.includes('empty') || fe.httpCode === 400 ? 'File is empty or too small.' : fe.message || 'Upload parse error.' });
+      }
+      const uploaded = Array.isArray(files?.file) ? files.file[0] : files?.file;
       if (!uploaded) return json(res, 400, { error: 'No file provided.' });
       const rawName = Array.isArray(fields.name) ? fields.name[0] : fields.name;
       const modelName = (rawName || uploaded.originalFilename || 'unnamed').toString().slice(0, 120);
