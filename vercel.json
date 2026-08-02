@@ -15,75 +15,18 @@
       "schedule": "0 18 * * *"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/console",
-      "dest": "/app.html",
-      "status": 301
+      "source": "/console",
+      "destination": "/app.html"
     },
     {
-      "src": "/api/fleet/(.*)",
-      "dest": "/api/fleet"
+      "source": "/api/crons/:path*",
+      "destination": "/api/crons/:path*"
     },
     {
-      "src": "/api/devices/(.*)",
-      "dest": "/api/devices"
-    },
-    {
-      "src": "/api/abtest/(.*)",
-      "dest": "/api/abtest"
-    },
-    {
-      "src": "/api/bluegreen/(.*)",
-      "dest": "/api/bluegreen"
-    },
-    {
-      "src": "/api/marketplace/(.*)",
-      "dest": "/api/marketplace"
-    },
-    {
-      "src": "/api/analytics/(.*)",
-      "dest": "/api/analytics"
-    },
-    {
-      "src": "/api/groups/(.*)",
-      "dest": "/api/groups"
-    },
-    {
-      "src": "/api/schedule/(.*)",
-      "dest": "/api/schedule"
-    },
-    {
-      "src": "/api/webhooks/(.*)",
-      "dest": "/api/webhooks"
-    },
-    {
-      "src": "/api/compliance/(.*)",
-      "dest": "/api/compliance"
-    },
-    {
-      "src": "/api/identity/(.*)",
-      "dest": "/api/identity"
-    },
-    {
-      "src": "/api/import/(.*)",
-      "dest": "/api/import"
-    },
-    {
-      "src": "/api/sign/(.*)",
-      "dest": "/api/sign"
-    },
-    {
-      "src": "/api/notifications/(.*)",
-      "dest": "/api/notifications"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "source": "/api/:path*",
+      "destination": "/api"
     }
   ],
   "headers": [
@@ -126,15 +69,6 @@
         {
           "key": "Cache-Control",
           "value": "no-store"
-        }
-      ]
-    },
-    {
-      "source": "/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
         }
       ]
     }
