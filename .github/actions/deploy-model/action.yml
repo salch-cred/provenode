@@ -1,0 +1,49 @@
+name: Deploy Model to Provenode
+description: Upload and deploy an AI model file to Provenode edge fleet via Shelby testnet
+author: Provenode
+
+inputs:
+  model-path:
+    description: Path to model file (ONNX, TFLite, bin, etc.)
+    required: true
+  model-name:
+    description: Human-readable model name
+    required: false
+    default: ''
+  provenode-url:
+    description: Provenode instance URL
+    required: true
+  region:
+    description: Target deployment region
+    required: false
+    default: Global
+  canary:
+    description: Use canary rollout (10%→25%→50%→100%)
+    required: false
+    default: 'false'
+  tags:
+    description: Comma-separated tags (e.g. "onnx,arm64,production")
+    required: false
+    default: ''
+  wait-for-completion:
+    description: Wait for deployment to reach 100% verified
+    required: false
+    default: 'true'
+
+outputs:
+  model-id:
+    description: Registered model ID
+  sha256:
+    description: Model SHA-256 hash
+  deployment-id:
+    description: Deployment ID
+  proof-url:
+    description: Public proof page URL
+  shelby-object-id:
+    description: Shelby on-chain object ID
+  mode:
+    description: Upload mode (shelby or demo)
+
+runs:
+  using: node20
+  main: index.js

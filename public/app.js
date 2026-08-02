@@ -360,3 +360,222 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   navigate('dashboard');
   await loadDashboard();
 });
+
+
+// ══════════════════════════════════════════════════════════════
+// NEW FEATURES — v3.1
+// ══════════════════════════════════════════════════════════════
+
+// ── Marketplace ───────────────────────────────────────────────
+async function loadMarketplace() {
+  const {ok,data}=await api('GET','/api/marketplace');
+  const listings=data?.listings||[];
+  set('mp-total',listings.length);
+  const el=document.getElementById('marketplace-grid'); if(!el) return;
+  if(!listings.length){el.innerHTML='<div class="empty">No models published yet. Be the first!</div>';return;}
+  el.innerHTML=listings.map(l=>`<div class="card card-sm" style="margin-bottom:12px"><div class="card-header"><span class="card-title">${esc(l.name)}</span><span class="badge badge-demo">${l.license||'MIT'}</span></div><div class="card-body" style="padding:12px"><div class="text-muted text-sm mb-2">${esc(l.description||'No description')}</div><div class="flex gap-2 mb-2">${(l.tags||[]).map(t=>'<span class="tag">'+esc(t)+'</span>').join('')}</div><div class="flex gap-2 items-center text-sm"><span>${fmt(l.size)}</span><span class="text-muted">${modeBadge(l.mode)}</span><span class="ml-auto text-muted">⬇ ${l.downloads||0}</span></div><div style="margin-top:10px"><button class="btn btn-sm btn-primary" onclick="importMarketplace('${l.id}','${esc(l.name)}')">Import</button></div></div></div>`).join('');
+}
+
+async function importMarketplace(listingId,name){
+  const {ok,data}=await api('POST','/api/marketplace',{action:'import',listingId});
+  if(!ok){toast(data.error||'Failed','error');return;}
+  toast(`Imported ${name} → registry!`,'success'); await loadMarketplace();
+}
+
+async function publishToMarketplace(){
+  const modelId=document.getElementById('mp-model-select')?.value;
+  const desc=document.getElementById('mp-description')?.value.trim();
+  const tags=document.getElementById('mp-tags')?.value.trim().split(',').map(t=>t.trim()).filter(Boolean);
+  if(!modelId){toast('Select a model first','error');return;}
+  const {ok,data}=await api('POST','/api/marketplace',{modelId,description:desc,tags});
+  if(!ok){toast(data.error||'Failed','error');return;}
+  toast('Published to marketplace!','success'); await loadMarketplace();
+}
+
+// ── Analytics ─────────────────────────────────────────────────
+async function loadAnalyticsPage(){
+  const {ok,data}=await api('GET','/api/analytics');
+  if(!ok) return;
+  const s=data?.summary||{};
+  set('an-total',s.total||0); set('an-online',s.online||0);
+  const byCls=['byType','byLocation','byFleet'];
+  for(const k of byCls){
+    const el=document.getElementById('an-'+k); if(!el) continue;
+    const obj=s[k]||{};
+    el.innerHTML=Object.entries(obj).map(([k2,v])=>`<div class="flex items-center gap-2 mb-1"><span class="text-sm fw-700">${esc(k2)}</span><span class="ml-auto badge badge-demo">${v}</span></div>`).join('');
+  }
+}
+
+async function loadDeviceMetrics(){
+  const id=document.getElementById('an-device-id')?.value.trim();
+  const metric=document.getElementById('an-metric')?.value||'latency';
+  const days=document.getElementById('an-days')?.value||'7';
+  if(!id){toast('Enter a device ID','error');return;}
+  const {ok,data}=await api('GET',`/api/analytics?deviceId=${id}&metric=${metric}&days=${days}`);
+  if(!ok){toast(data.error||'Failed','error');return;}
+  const el=document.getElementById('an-chart'); if(!el) return;
+  const pts=data.points||[]; const stats=data.stats;
+  if(!pts.length){el.innerHTML='<div class="empty">No data for this device/metric.</div>';return;}
+  const maxVal=Math.max(...pts.map(p=>p.value),1);
+  el.innerHTML=`<div style="display:flex;align-items:flex-end;gap:2px;height:80px;margin-bottom:8px">${pts.slice(-40).map(p=>`<div title="${p.value}" style="flex:1;background:var(--coral);height:${Math.round(p.value/maxVal*100)}%;min-height:2px;border-radius:2px 2px 0 0"></div>`).join('')}</div>${stats?`<div class="flex gap-4 text-sm"><span>min:<strong>${stats.min}</strong></span><span>avg:<strong>${stats.avg}</strong></span><span>max:<strong>${stats.max}</strong></span><span>p95:<strong>${stats.p95}</strong></span></div>`:''}`;
+}
+
+// ── Scheduled Deployments ─────────────────────────────────────
+async function loadSchedule(){
+  const {ok,data}=await api('GET','/api/schedule');
+  const jobs=data?.jobs||[];
+  const el=document.getElementById('schedule-list'); if(!el) return;
+  if(!jobs.length){el.innerHTML='<div class="empty">No scheduled deployments.</div>';return;}
+  el.innerHTML=jobs.map(j=>`<div class="card card-sm mb-2"><div class="card-header"><span class="card-title">${esc(j.label||j.id.slice(0,8))}</span><span class="badge ${j.status==='pending'?'badge-blue':j.status==='triggered'?'badge-green':'badge-red'}">${j.status}</span></div><div class="card-body" style="padding:10px 14px"><div class="text-sm">📅 ${new Date(j.scheduledFor).toLocaleString()} · ${esc(j.region)}${j.canary?' · canary':''}</div><div style="margin-top:8px"><button class="btn btn-sm btn-danger" onclick="cancelSchedule('${j.id}')">Cancel</button></div></div></div>`).join('');
+}
+
+async function createScheduledDeploy(){
+  const modelId=document.getElementById('sched-model')?.value;
+  const when=document.getElementById('sched-when')?.value;
+  const region=document.getElementById('sched-region')?.value||'Global';
+  const canary=document.getElementById('sched-canary')?.checked;
+  const label=document.getElementById('sched-label')?.value.trim();
+  if(!modelId||!when){toast('Model and date/time required','error');return;}
+  const scheduledFor=new Date(when).toISOString();
+  const {ok,data}=await api('POST','/api/schedule',{modelId,scheduledFor,region,canary,label});
+  if(!ok){toast(data.error||'Failed','error');return;}
+  toast('Deployment scheduled!','success'); await loadSchedule();
+}
+
+async function cancelSchedule(id){
+  await api('DELETE',`/api/schedule?id=${id}`);
+  toast('Scheduled deployment cancelled.','info'); await loadSchedule();
+}
+
+// ── Fleet Groups ──────────────────────────────────────────────
+async function loadGroups(){
+  const {ok,data}=await api('GET','/api/groups');
+  const groups=data?.groups||[];
+  const el=document.getElementById('groups-list'); if(!el) return;
+  if(!groups.length){el.innerHTML='<div class="empty">No fleet groups yet.</div>';return;}
+  el.innerHTML=groups.map(g=>`<div class="card card-sm mb-2" style="border-left:4px solid ${g.color||'var(--shelby)'}"><div class="card-header"><span class="card-title">${esc(g.name)}</span></div><div class="card-body" style="padding:10px 14px"><div class="text-muted text-sm mb-2">${esc(g.description||'No description')}</div>${g.selector?.tags?`<div>${g.selector.tags.map(t=>'<span class="tag">'+esc(t)+'</span>').join('')}</div>`:''}<div style="margin-top:8px"><button class="btn btn-sm" onclick="viewGroup('${g.id}')">View devices</button> <button class="btn btn-sm btn-danger" onclick="deleteGroup('${g.id}')">Delete</button></div></div></div>`).join('');
+}
+
+async function createGroup(){
+  const name=document.getElementById('grp-name')?.value.trim();
+  const desc=document.getElementById('grp-desc')?.value.trim();
+  const tags=document.getElementById('grp-tags')?.value.trim().split(',').map(t=>t.trim()).filter(Boolean);
+  const color=document.getElementById('grp-color')?.value||'#6366f1';
+  if(!name){toast('Name required','error');return;}
+  const {ok,data}=await api('POST','/api/groups',{name,description:desc,selector:tags.length?{tags}:null,color});
+  if(!ok){toast(data.error||'Failed','error');return;}
+  toast('Group created!','success'); await loadGroups();
+}
+
+async function viewGroup(id){
+  const {ok,data}=await api('GET',`/api/groups?id=${id}`);
+  if(!ok){toast('Failed','error');return;}
+  toast(`${data.group.name}: ${data.memberCount} matching devices`,'info',5000);
+}
+
+async function deleteGroup(id){ await api('DELETE',`/api/groups?id=${id}`); toast('Deleted','info'); await loadGroups(); }
+
+// ── Blue-Green ────────────────────────────────────────────────
+async function loadBluegreenPage(){
+  const {ok,data}=await api('GET','/api/bluegreen');
+  const configs=data?.configs||[];
+  const [{data:deps}]=await Promise.all([api('GET','/api/status')]);
+  const depList=deps?.deployments||[];
+  const sel=document.getElementById('bg-dep-select');
+  if(sel) sel.innerHTML=depList.map(d=>`<option value="${d.id}">${esc(d.model)} v${esc(d.version)}</option>`).join('');
+  const el=document.getElementById('bluegreen-list'); if(!el) return;
+  if(!configs.length){el.innerHTML='<div class="empty">No blue-green configs.</div>';return;}
+  el.innerHTML=configs.map(c=>`<div class="card card-sm mb-3"><div class="card-header"><span class="card-title">${esc(c.name)}</span><span class="badge ${c.activeSlot==='blue'?'badge-blue':'badge-green'}">ACTIVE: ${c.activeSlot.toUpperCase()}</span></div><div class="card-body" style="padding:12px"><div class="flex gap-4 text-sm mb-3"><div><span class="form-label">Blue slot</span><div class="mono">${(c.blueDeploymentId||'—').slice(0,12)}…</div></div><div><span class="form-label">Green slot</span><div class="mono">${(c.greenDeploymentId||'—').slice(0,12)}…</div></div></div><div class="flex gap-2"><button class="btn btn-sm btn-primary" onclick="switchBlueGreen('${c.projectId}')">⇄ Switch Active Slot</button></div>${c.history?.length?'<div class="text-muted text-sm" style="margin-top:8px">Last switch: '+ago(c.history[0]?.at)+'</div>':''}</div></div>`).join('');
+}
+
+async function createBluegreenConfig(){
+  const projectId=document.getElementById('bg-project-id')?.value.trim();
+  const name=document.getElementById('bg-name')?.value.trim();
+  const blueId=document.getElementById('bg-blue-id')?.value;
+  const greenId=document.getElementById('bg-green-id')?.value;
+  if(!projectId||!name){toast('Project ID and name required','error');return;}
+  const {ok,data}=await api('POST','/api/bluegreen',{projectId,name,blueDeploymentId:blueId,greenDeploymentId:greenId});
+  if(!ok){toast(data.error||'Failed','error');return;}
+  toast('Blue-green config created!','success'); await loadBluegreenPage();
+}
+
+async function switchBlueGreen(projectId){
+  const {ok,data}=await api('POST','/api/bluegreen/switch',{projectId});
+  if(!ok){toast(data.error||'Failed','error');return;}
+  toast(`Switched to ${data.switched.to.toUpperCase()} slot! ✅`,'success'); await loadBluegreenPage();
+}
+
+// ── Audit Log ─────────────────────────────────────────────────
+async function loadAuditPage(){
+  const action=document.getElementById('audit-filter')?.value||'';
+  const limit=document.getElementById('audit-limit')?.value||'100';
+  const qs=new URLSearchParams({limit});
+  if(action) qs.set('action',action);
+  const {ok,data}=await api('GET',`/api/audit?${qs}`);
+  const records=data?.records||[];
+  const el=document.getElementById('audit-tbody'); if(!el) return;
+  if(!records.length){el.innerHTML='<tr><td colspan="5" class="empty">No audit records yet.</td></tr>';return;}
+  el.innerHTML=records.map(r=>`<tr><td class="mono text-sm">${new Date(r.timestamp).toLocaleString()}</td><td><span class="tag">${esc(r.action)}</span></td><td class="text-sm">${esc(r.actor)}</td><td class="mono text-sm">${esc(r.target||'—')}</td><td class="text-sm text-muted">${esc(JSON.stringify(r.details||{}).slice(0,60))}</td></tr>`).join('');
+}
+
+// ── Sign ──────────────────────────────────────────────────────
+async function signModel(modelId, modelName){
+  const {ok,data}=await api('POST','/api/sign',{modelId});
+  if(!ok){toast(data.error||'Failed','error');return;}
+  toast(`${modelName} signed with org key ✅`,'success');
+}
+
+// ── Live Stream (SSE) ─────────────────────────────────────────
+function startLiveStream(deploymentId){
+  const el=document.getElementById('stream-output');
+  if(el) el.innerHTML='<div class="empty">Connecting to live stream…</div>';
+  const es=new EventSource(`/api/stream?deploymentId=${deploymentId}`);
+  es.addEventListener('progress',e=>{
+    const d=JSON.parse(e.data);
+    if(el) el.innerHTML=`<div class="progress-track mb-2"><div class="progress-bar ${d.status==='verified'?'green':''}" style="width:${d.progress}%"></div></div><div class="text-sm">${d.progress}% — ${d.verified}/${d.target} devices — ${d.status}</div>`;
+  });
+  es.addEventListener('complete',e=>{
+    const d=JSON.parse(e.data);
+    if(el) el.innerHTML=`<div class="badge ${d.status==='verified'?'badge-green':'badge-red'}" style="font-size:13px">${d.status==='verified'?'✅ Deployment Verified!':'⚠️ '+d.status}</div>`;
+    es.close(); toast('Deployment stream ended: '+d.status,'success');
+  });
+  es.addEventListener('error',()=>{ if(el) el.innerHTML='<div class="empty text-muted">Stream closed.</div>'; es.close(); });
+  return es;
+}
+
+// ── Docs page ─────────────────────────────────────────────────
+async function loadDocsPage(){
+  const {ok,data}=await api('GET','/api/docs');
+  if(!ok) return;
+  const el=document.getElementById('docs-endpoints'); if(!el) return;
+  const paths=data.paths||{};
+  const byTag={};
+  for(const [path,methods] of Object.entries(paths)){
+    for(const [method,op] of Object.entries(methods)){
+      const tag=(op.tags||['Other'])[0];
+      if(!byTag[tag]) byTag[tag]=[];
+      byTag[tag].push({path,method:method.toUpperCase(),summary:op.summary||''});
+    }
+  }
+  el.innerHTML=Object.entries(byTag).map(([tag,eps])=>`<div class="mb-4"><div class="form-label mb-2">${esc(tag)}</div>${eps.map(e=>`<div class="flex gap-3 items-center mb-1" style="padding:6px 10px;background:var(--bg);border-radius:4px"><span class="badge ${e.method==='GET'?'badge-green':e.method==='POST'?'badge-blue':e.method==='DELETE'?'badge-red':'badge-amber'}">${e.method}</span><span class="mono text-sm">${esc(e.path)}</span><span class="text-muted text-sm ml-auto">${esc(e.summary)}</span></div>`).join('')}</div>`).join('');
+}
+
+// Extended navigation handler
+const _origNavigate = navigate;
+window.navigateExtended = async function(page){
+  await _origNavigate(page);
+  if(page==='marketplace') { await loadMarketplace(); const {data}=await api('GET','/api/models'); const sel=document.getElementById('mp-model-select'); if(sel&&data?.models) sel.innerHTML=data.models.map(m=>`<option value="${m.id}">${esc(m.model)}</option>`).join(''); }
+  if(page==='analytics')   await loadAnalyticsPage();
+  if(page==='schedule')    { await loadSchedule(); const {data}=await api('GET','/api/models'); const sel=document.getElementById('sched-model'); if(sel&&data?.models) sel.innerHTML=data.models.map(m=>`<option value="${m.id}">${esc(m.model)}</option>`).join(''); }
+  if(page==='groups')      await loadGroups();
+  if(page==='bluegreen')   await loadBluegreenPage();
+  if(page==='audit')       await loadAuditPage();
+  if(page==='docs')        await loadDocsPage();
+};
+
+// Re-wire nav items on load (extend the existing DOMContentLoaded)
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
+    el.onclick = () => window.navigateExtended(el.dataset.page);
+  });
+});

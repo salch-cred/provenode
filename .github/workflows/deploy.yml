@@ -11,20 +11,16 @@ env:
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
-  # ── Lint & basic checks ────────────────────────────────────────────────────
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
+        with: { node-version: 20, cache: npm }
       - run: npm ci
       - run: npm run lint --if-present
 
-  # ── Preview deploy (PRs) ───────────────────────────────────────────────────
   deploy-preview:
     name: Preview Deploy
     needs: lint
@@ -33,16 +29,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
+        with: { node-version: 20, cache: npm }
       - run: npm ci
       - run: npx vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
       - run: npx vercel build --token=${{ secrets.VERCEL_TOKEN }}
       - id: deploy
-        run: |
-          url=$(npx vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
-          echo "url=$url" >> $GITHUB_OUTPUT
+        run: echo "url=$(npx vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
       - uses: actions/github-script@v7
         with:
           script: |
@@ -50,10 +42,9 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '🚀 Preview: ${{ steps.deploy.outputs.url }}'
+              body: `🚀 Preview: ${{ steps.deploy.outputs.url }}`
             })
 
-  # ── Production deploy (main) ───────────────────────────────────────────────
   deploy-production:
     name: Production Deploy
     needs: lint
@@ -62,9 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
+        with: { node-version: 20, cache: npm }
       - run: npm ci
       - run: npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
       - run: npx vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}

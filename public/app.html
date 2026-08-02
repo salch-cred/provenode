@@ -293,7 +293,126 @@
   </div>
 </div>
 
-</div></div></div><!-- /content/main/shell -->
+</div></div>
+
+<!-- ========== MARKETPLACE ========== -->
+<div id="page-marketplace" class="page">
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:20px">
+    <div>
+      <div class="card mb-4"><div class="card-header"><span class="card-title">Community Model Marketplace</span><div class="flex gap-2"><span class="badge badge-shelby" id="mp-total">—</span><button class="btn btn-sm" onclick="loadMarketplace()">↻</button></div></div>
+      <div id="marketplace-grid" style="padding:12px"><div class="empty">Loading…</div></div></div>
+    </div>
+    <div class="card"><div class="card-header"><span class="card-title">Publish your model</span></div>
+    <div class="card-body">
+      <div class="form-group"><label class="form-label">Select model</label><select id="mp-model-select"></select></div>
+      <div class="form-group"><label class="form-label">Description</label><textarea id="mp-description" style="height:72px" placeholder="What this model does, intended use, accuracy…"></textarea></div>
+      <div class="form-group"><label class="form-label">Tags (comma-separated)</label><input type="text" id="mp-tags" placeholder="onnx, arm64, object-detection"/></div>
+      <button class="btn btn-primary" onclick="publishToMarketplace()">Publish →</button>
+    </div></div>
+  </div>
+</div>
+
+<!-- ========== ANALYTICS ========== -->
+<div id="page-analytics" class="page">
+  <div class="stat-grid mb-4" style="grid-template-columns:repeat(2,1fr)">
+    <div class="stat-card"><div class="stat-label">Total Devices</div><div class="stat-value" id="an-total">—</div></div>
+    <div class="stat-card"><div class="stat-label">Online</div><div class="stat-value" id="an-online" style="color:var(--green)">—</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
+    <div class="card"><div class="card-header"><span class="card-title">By type</span></div><div class="card-body" id="an-byType"></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">By location</span></div><div class="card-body" id="an-byLocation"></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">By fleet</span></div><div class="card-body" id="an-byFleet"></div></div>
+  </div>
+  <div class="card"><div class="card-header"><span class="card-title">Device time-series</span></div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:12px">
+      <div class="form-group" style="margin:0"><label class="form-label">Device ID</label><input type="text" id="an-device-id" placeholder="CAM-SIN-042"/></div>
+      <div class="form-group" style="margin:0"><label class="form-label">Metric</label><select id="an-metric"><option>latency</option><option>error_rate</option><option>accuracy</option><option>temperature</option><option>memory</option><option>uptime</option></select></div>
+      <div class="form-group" style="margin:0"><label class="form-label">Days</label><input type="number" id="an-days" value="7" min="1" max="90"/></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn btn-primary" onclick="loadDeviceMetrics()">Plot</button></div>
+    </div>
+    <div id="an-chart"><div class="empty">Select a device and metric above.</div></div>
+  </div></div>
+</div>
+
+<!-- ========== SCHEDULED DEPLOYS ========== -->
+<div id="page-schedule" class="page">
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:20px">
+    <div class="card"><div class="card-header"><span class="card-title">Scheduled deployments</span><button class="btn btn-sm" onclick="loadSchedule()">↻</button></div>
+    <div id="schedule-list" style="padding:12px"><div class="empty">Loading…</div></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">Schedule new</span></div>
+    <div class="card-body">
+      <div class="form-group"><label class="form-label">Model</label><select id="sched-model"></select></div>
+      <div class="form-group"><label class="form-label">Date & Time (local)</label><input type="datetime-local" id="sched-when"/></div>
+      <div class="form-group"><label class="form-label">Region</label><select id="sched-region"><option>Global</option><option>Asia-Pacific</option><option>Europe</option><option>Americas</option></select></div>
+      <div class="form-group"><label class="form-label">Label</label><input type="text" id="sched-label" placeholder="Off-hours maintenance deploy"/></div>
+      <div class="form-group"><label class="form-label" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="sched-canary" style="width:auto"> Canary rollout</label></div>
+      <button class="btn btn-primary" onclick="createScheduledDeploy()">Schedule</button>
+    </div></div>
+  </div>
+</div>
+
+<!-- ========== FLEET GROUPS ========== -->
+<div id="page-groups" class="page">
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:20px">
+    <div class="card"><div class="card-header"><span class="card-title">Fleet groups</span><button class="btn btn-sm" onclick="loadGroups()">↻</button></div>
+    <div id="groups-list" style="padding:12px"><div class="empty">Loading…</div></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">Create group</span></div>
+    <div class="card-body">
+      <div class="form-group"><label class="form-label">Group name</label><input type="text" id="grp-name" placeholder="Production Cameras"/></div>
+      <div class="form-group"><label class="form-label">Description</label><input type="text" id="grp-desc" placeholder="All production camera devices"/></div>
+      <div class="form-group"><label class="form-label">Match tags (fleet/type/location)</label><input type="text" id="grp-tags" placeholder="production,camera,singapore"/></div>
+      <div class="form-group"><label class="form-label">Color</label><input type="color" id="grp-color" value="#6366f1" style="width:60px;height:36px;padding:2px"/></div>
+      <button class="btn btn-primary" onclick="createGroup()">Create group</button>
+    </div></div>
+  </div>
+</div>
+
+<!-- ========== BLUE-GREEN ========== -->
+<div id="page-bluegreen" class="page">
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:20px">
+    <div class="card"><div class="card-header"><span class="card-title">Blue-Green deployments</span><button class="btn btn-sm" onclick="loadBluegreenPage()">↻</button></div>
+    <div id="bluegreen-list" style="padding:12px"><div class="empty">Loading…</div></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">Configure B/G</span></div>
+    <div class="card-body">
+      <div class="form-group"><label class="form-label">Project ID</label><input type="text" id="bg-project-id" placeholder="vision-edge-prod"/></div>
+      <div class="form-group"><label class="form-label">Name</label><input type="text" id="bg-name" placeholder="Vision Edge Production"/></div>
+      <div class="form-group"><label class="form-label">Blue deployment</label><select id="bg-blue-id"></select></div>
+      <div class="form-group"><label class="form-label">Green deployment</label><select id="bg-green-id"></select></div>
+      <button class="btn btn-primary" onclick="createBluegreenConfig()">Save config</button>
+    </div></div>
+  </div>
+</div>
+
+<!-- ========== AUDIT LOG ========== -->
+<div id="page-audit" class="page">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Immutable audit log</span>
+    <div class="flex gap-2">
+      <select id="audit-filter" style="width:220px;padding:5px 8px;border:2px solid var(--border);border-radius:6px;font-size:12px">
+        <option value="">All events</option>
+        <option>model.registered</option><option>model.signed</option><option>model.imported</option>
+        <option>deployment.started</option><option>deployment.verified</option><option>deployment.rolled_back</option>
+        <option>canary.advanced</option><option>bluegreen.switched</option>
+        <option>marketplace.published</option><option>marketplace.imported</option>
+        <option>schedule.created</option><option>schedule.triggered</option>
+        <option>group.created</option><option>abtest.created</option><option>abtest.ended</option>
+        <option>integrity.mismatch</option>
+      </select>
+      <input type="number" id="audit-limit" value="100" min="10" max="500" style="width:70px;padding:5px 8px;border:2px solid var(--border);border-radius:6px;font-size:12px"/>
+      <button class="btn btn-sm btn-primary" onclick="loadAuditPage()">Load</button>
+    </div></div>
+    <div class="table-wrap"><table><thead><tr><th>Timestamp</th><th>Event</th><th>Actor</th><th>Target</th><th>Details</th></tr></thead><tbody id="audit-tbody"><tr><td colspan="5" class="empty">Click "Load" to fetch audit records.</td></tr></tbody></table></div>
+  </div>
+</div>
+
+<!-- ========== API DOCS ========== -->
+<div id="page-docs" class="page">
+  <div class="card mb-4"><div class="card-header"><span class="card-title">API Reference</span><div class="flex gap-2"><a href="/api/docs" target="_blank" class="btn btn-sm">Raw OpenAPI JSON ↗</a><a href="https://editor.swagger.io/?url=${location.origin}/api/docs" target="_blank" class="btn btn-sm btn-primary">Swagger UI ↗</a></div></div>
+  <div class="card-body"><div id="docs-endpoints"><div class="empty">Loading…</div></div></div></div>
+</div>
+
+</div><!-- /content/main/shell -->
 <div id="toast-container"></div>
 <script src="/app.js"></script>
 <script>
