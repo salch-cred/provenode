@@ -6,7 +6,7 @@ with open("README.md", encoding="utf-8") as f:
 setup(
     name="provenode-sdk",
     version="1.0.0",
-    description="Python SDK for Provenode — verified AI model deployment on Shelby testnet",
+    description="Python SDK for Provenode — verified AI model deployment on Shelby shelbynet",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Provenode",

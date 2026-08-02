@@ -1,6 +1,6 @@
 """
 Provenode Python SDK
-Upload, deploy, and manage verified AI models on Shelby testnet.
+Upload, deploy, and manage verified AI models on Shelby shelbynet.
 
 Install: pip install provenode-sdk
 """

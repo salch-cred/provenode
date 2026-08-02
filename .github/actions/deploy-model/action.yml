@@ -1,5 +1,5 @@
 name: Deploy Model to Provenode
-description: Upload and deploy an AI model file to Provenode edge fleet via Shelby testnet
+description: Upload and deploy an AI model file to Provenode edge fleet via Shelby shelbynet
 author: Provenode
 
 inputs:

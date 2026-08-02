@@ -1,6 +1,6 @@
 /**
  * GET  /api/identity        — org identity (public address only)
- * POST /api/identity/fund   — fund account with testnet APT+ShelbyUSD
+ * POST /api/identity/fund   — fund account with shelbynet APT+ShelbyUSD
  */
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || '*');
@@ -14,7 +14,7 @@ export default async function handler(req, res) {
         configured: true,
         address: account.accountAddress.toString(),
         publicKey: account.publicKey.toString(),
-        network: process.env.SHELBY_NETWORK || 'testnet',
+        network: process.env.SHELBY_NETWORK || 'shelbynet',
         explorerUrl: `https://explorer.aptoslabs.com/account/${account.accountAddress.toString()}?network=custom&customNetworkUrl=https://api.shelbynet.shelby.xyz/v1`,
       });
     } catch (err) {

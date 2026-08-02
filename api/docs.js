@@ -14,7 +14,7 @@ export default function handler(req, res) {
     info: {
       title: 'Provenode API',
       version: '3.0.0',
-      description: 'Production-grade verified AI model deployment on Shelby testnet. All models are SHA-256 hashed and optionally uploaded as immutable Shelby objects.',
+      description: 'Production-grade verified AI model deployment on Shelby shelbynet. All models are SHA-256 hashed and optionally uploaded as immutable Shelby objects.',
       contact: { name: 'Provenode', url: 'https://github.com/salch-cred/provenode' },
       license: { name: 'MIT' },
     },

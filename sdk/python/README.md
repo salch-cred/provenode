@@ -1,6 +1,6 @@
 # provenode-sdk
 
-Python SDK for [Provenode](https://github.com/salch-cred/provenode) — verified AI model deployment on Shelby testnet.
+Python SDK for [Provenode](https://github.com/salch-cred/provenode) — verified AI model deployment on Shelby shelbynet.
 
 ## Install
 
