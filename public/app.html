@@ -9,8 +9,11 @@
 </head><body>
 <div class="shell">
 
+<!-- SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
 <!-- SIDEBAR -->
-<nav class="sidebar">
+<nav class="sidebar" id="sidebar">
   <div class="sidebar-logo"><div class="dot"></div>Provenode</div>
   <div class="sidebar-section">
     <div class="sidebar-label">Operations</div>
@@ -47,11 +50,13 @@
 <!-- MAIN -->
 <div class="main">
 <div class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="Open menu" type="button"><span></span></button>
   <h1 id="topbar-title" style="font-size:15px;font-weight:800;letter-spacing:-.3px">Dashboard</h1>
   <div class="flex gap-2 items-center">
-    <a href="/" class="btn btn-sm">← Home</a>
-    <a href="/api/health" target="_blank" class="btn btn-sm">Health ↗</a>
-    <a href="/api/config" target="_blank" class="btn btn-sm">Config ↗</a>
+    <a href="/" class="btn btn-sm desktop-only">← Home</a>
+    <a href="/api/health" target="_blank" class="btn btn-sm desktop-only">Health ↗</a>
+    <a href="/api/config" target="_blank" class="btn btn-sm desktop-only">Config ↗</a>
+    <a href="/" class="btn btn-sm mobile-only">Home</a>
   </div>
 </div>
 <div class="content">
