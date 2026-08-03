@@ -320,32 +320,6 @@ export default function Landing() {
                 </div>
                                 <pre className="lp-pre"><code>{CODE_SAMPLE}</code></pre>
 
-client = <span class="lp-fn">ProvenodeClient</span>(
-    <span class="lp-st">"https://provenode-seven.vercel.app"</span>
-)
-
-<span class="lp-cm"># Upload + SHA-256 + Shelby object</span>
-model = client.<span class="lp-fn">upload</span>(
-    <span class="lp-st">"./vision_edge_v3.onnx"</span>,
-    name=<span class="lp-st">"Vision Edge v3"</span>,
-    tags=[<span class="lp-st">"onnx"</span>, <span class="lp-st">"arm64"</span>]
-)
-<span class="lp-fn">print</span>(model.sha256)
-
-<span class="lp-cm"># Deploy with canary rollout</span>
-dep = client.<span class="lp-fn">deploy</span>(
-    model.id,
-    region=<span class="lp-st">"Asia-Pacific"</span>,
-    canary=<span class="lp-kw">True</span>
-)
-
-<span class="lp-cm"># Block until 248/248 verified</span>
-dep = client.<span class="lp-fn">wait</span>(
-    dep.id,
-    on_progress=<span class="lp-kw">lambda</span> d:
-        <span class="lp-fn">print</span>(<span class="lp-st">f"{d.progress}% verified"</span>)
-)
-<span class="lp-fn">print</span>(dep.status)  <span class="lp-cm"># "verified"</span>`}} />
               </div>
             </div>
           </div>
