@@ -79,6 +79,6 @@
   ],
   "env": {
     "SHELBY_MODE": "demo",
-    "SHELBY_NETWORK": "shelbynet"
+    "SHELBY_NETWORK": "testnet"
   }
 }

@@ -201,7 +201,7 @@ Checks Shelby object expiry dates. Sends email alert if anything expires within 
 | `CRON_SECRET` | yes | Cron auth token |
 | `SHELBY_API_KEY` | no | Shelby uploads (demo mode without it) |
 | `SHELBY_PRIVATE_KEY` | no | Ed25519 key for signing + persistent Shelby identity |
-| `SHELBY_NETWORK` | no | `shelbynet` or `mainnet` |
+| `SHELBY_NETWORK` | no | `testnet` or `shelbynet` or `mainnet` |
 | `RESEND_API_KEY` | no | Email alerts |
 | `ALERT_EMAIL` | no | Where tamper/expiry alerts go |
 | `MOVE_CONTRACT_ADDRESS` | no | Your deployed contract address |

@@ -97,7 +97,7 @@ export default async function handler(req, res) {
     if (root === 'config' && method === 'GET') {
       return json(res, 200, {
         mode: process.env.SHELBY_API_KEY ? 'shelby' : 'demo',
-        network: process.env.SHELBY_NETWORK || 'shelbynet',
+        network: process.env.SHELBY_NETWORK || 'testnet',
         shelbyApiUrl: 'https://api.shelbynet.shelby.xyz/v1',
         maxUploadBytes: 100 * 1024 * 1024,
         version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) || 'local',
@@ -115,10 +115,10 @@ export default async function handler(req, res) {
       const hasKey = Boolean(process.env.SHELBY_API_KEY);
       return json(res, 200, {
         mode: hasKey ? 'production' : 'demo',
-        network: process.env.SHELBY_NETWORK || 'shelbynet',
+        network: process.env.SHELBY_NETWORK || 'testnet',
         connected: hasKey,
         persistentIdentity: Boolean(process.env.SHELBY_PRIVATE_KEY),
-        apiUrl: 'https://api.shelbynet.shelby.xyz/v1',
+        apiUrl: process.env.SHELBY_NETWORK === 'shelbynet' ? 'https://api.shelbynet.shelby.xyz/v1' : 'https://api.testnet.shelby.xyz/v1',
       });
     }
 
@@ -136,7 +136,7 @@ export default async function handler(req, res) {
           configured: true,
           address: account.accountAddress.toString(),
           publicKey: account.publicKey.toString(),
-          network: process.env.SHELBY_NETWORK || 'shelbynet',
+          network: process.env.SHELBY_NETWORK || 'testnet',
           explorerUrl: `https://explorer.aptoslabs.com/account/${account.accountAddress.toString()}?network=custom&customNetworkUrl=https://api.shelbynet.shelby.xyz/v1`,
         });
       }
