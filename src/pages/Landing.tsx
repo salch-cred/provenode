@@ -603,100 +603,19 @@ export default function Landing() {
                   <div className="lp-dots lp-dots-dark"><span/><span/><span/></div>
                   <span className="lp-code-lang">Python</span>
                 </div>
-                <pre className="lp-pre"><code dangerouslySetInnerHTML={{__html: `<span class="lp-kw">from</span> provenode <span class="lp-kw">import</span> <span class="lp-fn">ProvenodeClient</span>
+                <pre className="lp-pre"><code>{
+                  `from provenode import ProvenodeClient
 
-client = <span class="lp-fn">ProvenodeClient</span>(
-    <span class="lp-st">"https://provenode-seven.vercel.app"</span>
-)
+                client = ProvenodeClient(
+                    api_url="https://provenode-git-main-teams16.vercel.app",
+                    token=os.environ["DEPLOY_SECRET"]
+                )
 
-<span class="lp-cm"># Upload + SHA-256 + Shelby object</span>
-model = client.<span class="lp-fn">upload</span>(
-    <span class="lp-st">"./vision_edge_v3.onnx"</span>,
-    name=<span class="lp-st">"Vision Edge v3"</span>,
-    tags=[<span class="lp-st">"onnx"</span>, <span class="lp-st">"arm64"</span>]
-)
-<span class="lp-fn">print</span>(model.sha256)
+                # Upload model to Shelby testnet, register SHA-256 on Aptos
+                model = client.upload("./model.onnx", name="ResNet-v2")
+                print(model.sha256)  # registered on Aptos testnet
 
-<span class="lp-cm"># Deploy with canary rollout</span>
-dep = client.<span class="lp-fn">deploy</span>(
-    model.id,
-    region=<span class="lp-st">"Asia-Pacific"</span>,
-    canary=<span class="lp-kw">True</span>
-)
-
-<span class="lp-cm"># Block until 248/248 verified</span>
-dep = client.<span class="lp-fn">wait</span>(
-    dep.id,
-    on_progress=<span class="lp-kw">lambda</span> d:
-        <span class="lp-fn">print</span>(<span class="lp-st">f"{d.progress}% verified"</span>)
-)
-<span class="lp-fn">print</span>(dep.status)  <span class="lp-cm"># "verified"</span>`}} />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Integrations ──────────────────────── */}
-        <section className="lp-integrations lp-reveal">
-          <div className="lp-shell">
-            <p className="lp-int-label">Integrates with</p>
-            <div className="lp-int-row">
-              {[
-                { icon: 'hgi-github',      label: 'GitHub Actions' },
-                { icon: 'hgi-blockchain-01', label: 'Shelby shelbynet' },
-                { icon: 'hgi-ai-brain-01', label: 'HuggingFace Hub' },
-                { icon: 'hgi-shield-01',   label: 'Aptos Move' },
-                { icon: 'hgi-zap',         label: 'Webhooks' },
-                { icon: 'hgi-analytics-02',label: 'Prometheus' },
-              ].map(({ icon, label }) => (
-                <div className="lp-int-item" key={label}>
-                  <i className={`hgi-stroke ${icon}`} />
-                  <span>{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── CTA ───────────────────────────────── */}
-        <section className="lp-cta">
-          <div className="lp-shell">
-            <div className="lp-cta-card lp-reveal">
-              <span className="lp-spark a" aria-hidden="true">✦</span>
-              <span className="lp-spark b" aria-hidden="true">✦</span>
-              <h2>When device 42 in Singapore loads the wrong model, you will know. Before it activates.</h2>
-              <p>Deploy your first model in under 5 minutes. Free. Open source.</p>
-              <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
-                <Link to="/app/dashboard" className="lp-btn lp-btn-dark">
-                  <i className="hgi-stroke hgi-dashboard-square-01"/> Open console
-                </Link>
-                <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer" className="lp-btn" style={{background:'rgba(255,255,255,.15)',border:'1.5px solid rgba(255,255,255,.4)',color:'#fff',boxShadow:'none'}}>
-                  <i className="hgi-stroke hgi-github"/> Star on GitHub
-                </a>
-              </div>
-            </div>
-          </div>
-        </section>
-
-      </main>
-
-      <footer className="lp-footer">
-        <div className="lp-shell lp-footer-inner">
-          <div className="lp-footer-brand">
-            <span className="lp-footer-dot" />
-            <b>Provenode</b>
-          </div>
-          <span className="lp-footer-tag">Verified AI model delivery · Shelby shelbynet</span>
-          <div className="lp-footer-links">
-            <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer">
-              <i className="hgi-stroke hgi-github"/> GitHub
-            </a>
-            <Link to="/app/dashboard">Console</Link>
-            <a href="/api/docs" target="_blank" rel="noreferrer">API docs</a>
-          </div>
-        </div>
-      </footer>
-
-    </div>
-  );
-}
+                # Deploy to fleet, each device verifies before loading
+                dep = client.deploy(model.id, region="Global")
+                print(dep.status)  # verified`
+                }</code></pre>

@@ -147,7 +147,7 @@ export default async function handler(req, res) {
         const { Account, Ed25519PrivateKey, Network } = await import('@aptos-labs/ts-sdk');
         const { ShelbyClient } = await import('@shelby-protocol/sdk/browser');
         const account = Account.fromPrivateKey({ privateKey: new Ed25519PrivateKey(privKey) });
-        const client = new ShelbyClient({ network: Network.SHELBYNET, apiKey });
+        const client = new ShelbyClient({ network: Network.TESTNET, apiKey });
         await client.fundAccountWithAPT({ address: account.accountAddress, amount: 100_00000000 });
         await client.fundAccountWithShelbyUSD({ address: account.accountAddress, amount: 10000_00000000 });
         return json(res, 200, { success: true, address: account.accountAddress.toString(), funded: true });
