@@ -290,19 +290,19 @@ export default function Landing() {
                   <div className="lp-dots lp-dots-dark"><span/><span/><span/></div>
                   <span className="lp-code-lang">Python</span>
                 </div>
-                <pre className="lp-pre"><code>from provenode import ProvenodeClient
+                <pre className="lp-pre"><code>{'from provenode import ProvenodeClient
 
 client = ProvenodeClient(
     api_url="https://provenode-git-main-teams16.vercel.app"
 )
 
-# Upload model, SHA-256 registered on Aptos testnet
+# Upload to Shelby testnet, SHA-256 on Aptos
 model = client.upload("model.onnx", name="ResNet-v2")
 print(model.sha256)
 
 # Deploy to fleet, devices verify before loading
 dep = client.deploy(model.id, region="Global")
-print(dep.status)  # verified</code></pre>t React, { useEffect, useRef } from 'react';
+print(dep.status)'}</code></pre>t React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function Landing() {
@@ -594,29 +594,16 @@ export default function Landing() {
                   <div className="lp-dots lp-dots-dark"><span/><span/><span/></div>
                   <span className="lp-code-lang">Python</span>
                 </div>
-                                <pre className="lp-pre"><code>{[
-                  'from provenode import ProvenodeClient
+                                <pre className="lp-pre"><code>{'from provenode import ProvenodeClient
 
-',
-                  'client = ProvenodeClient(
-',
-                  '    api_url="https://provenode-git-main-teams16.vercel.app",
-',
-                  '    token=os.environ["DEPLOY_SECRET"]
-',
-                  ')
+client = ProvenodeClient(
+    api_url="https://provenode-git-main-teams16.vercel.app"
+)
 
-',
-                  '# Upload to Shelby testnet, SHA-256 on Aptos
-',
-                  'model = client.upload("./model.onnx", name="ResNet-v2")
-',
-                  'print(model.sha256)
+# Upload to Shelby testnet, SHA-256 on Aptos
+model = client.upload("model.onnx", name="ResNet-v2")
+print(model.sha256)
 
-',
-                  '# Deploy to fleet
-',
-                  'dep = client.deploy(model.id, region="Global")
-',
-                  'print(dep.status)',
-                ].join('')}</code></pre>
+# Deploy to fleet, devices verify before loading
+dep = client.deploy(model.id, region="Global")
+print(dep.status)'}</code></pre>
