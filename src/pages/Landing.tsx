@@ -14,6 +14,21 @@ print(model.sha256)
 dep = client.deploy(model.id, region="Global")
 print(dep.status)`;
 
+const CODE_SAMPLE2 = `from provenode import ProvenodeClient
+
+client = ProvenodeClient(
+    api_url="https://provenode-git-main-teams16.vercel.app"
+)
+
+# Upload to Shelby testnet
+model = client.upload("model.onnx", name="ResNet-v2", version="2.1.0")
+print(model.sha256)  # registered on Aptos testnet
+
+# Deploy with canary rollout
+dep = client.deploy(model.id, region="Asia-Pacific", canary=True)
+print(dep.status)  # "verified"`;
+
+
 export default function Landing() {
   const ref = useRef<HTMLDivElement>(null);
 
