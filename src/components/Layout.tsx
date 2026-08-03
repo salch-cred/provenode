@@ -10,15 +10,15 @@ const NAV = [
   ]},
   { section: 'Intelligence', items: [
     { to: 'lineage',     label: 'Lineage',      icon: 'hgi-git-branch' },
-    { to: 'abtest',      label: 'A/B Tests',    icon: 'hgi-chart-bar-01' },
+    { to: 'abtest',      label: 'A/B Tests',    icon: 'hgi-analytics-01' },
   ]},
   { section: 'Fleet', items: [
-    { to: 'devices',     label: 'Devices',      icon: 'hgi-cpu-chip-01' },
-    { to: 'fleet',       label: 'OTA + Canary', icon: 'hgi-refresh-01' },
+    { to: 'devices',     label: 'Devices',      icon: 'hgi-cpu' },
+    { to: 'fleet',       label: 'OTA + Canary', icon: 'hgi-rotate-01' },
     { to: 'groups',      label: 'Groups',       icon: 'hgi-folder-01' },
   ]},
   { section: 'Blockchain', items: [
-    { to: 'objects',     label: 'Shelby Objects', icon: 'hgi-cube-01' },
+    { to: 'objects',     label: 'Shelby Objects', icon: 'hgi-package-open' },
     { to: 'shelby',      label: 'Shelby Layer',   icon: 'hgi-blockchain-01' },
     { to: 'compliance',  label: 'Compliance',     icon: 'hgi-shield-01' },
     { to: 'bluegreen',   label: 'Blue-Green',     icon: 'hgi-arrow-data-transfer-horizontal' },
