@@ -2,7 +2,7 @@
  * Ed25519 Model Signing — api/lib/sign.js
  * Signs model SHA-256 with org private key. Devices verify before loading.
  */
-import { createPrivateKey, createVerify, sign, verify } from 'node:crypto';
+import { createPrivateKey, createPublicKey, createVerify, sign, verify } from 'node:crypto';
 
 /** Sign a SHA-256 hex string with the org Ed25519 key (from SHELBY_PRIVATE_KEY or SIGN_KEY) */
 export async function signModel(sha256Hex) {
@@ -37,19 +37,20 @@ export async function signModel(sha256Hex) {
 export function verifySignature(sha256Hex, signatureHex, publicKeyHex) {
   try {
     const pubKeyBytes = Buffer.from(publicKeyHex.replace('0x',''), 'hex');
-    const publicKey = createPrivateKey({
+    // FIX C-2: Use createPublicKey (not createPrivateKey) for SPKI public key
+    const publicKey = createPublicKey({
       key: Buffer.concat([
         Buffer.from('302a300506032b6570032100', 'hex'),
         pubKeyBytes,
       ]),
       format: 'der',
       type: 'spki',
-    }).export({ format: 'der', type: 'spki' });
+    });
 
     return verify(
       null,
       Buffer.from(sha256Hex, 'utf8'),
-      { key: publicKey, format: 'der', type: 'spki' },
+      publicKey,
       Buffer.from(signatureHex, 'hex'),
     );
   } catch {

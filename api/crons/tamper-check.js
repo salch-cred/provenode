@@ -17,7 +17,15 @@ export default async function handler(req, res) {
     if (m.mode === 'shelby' && m.address) shelbyModels.push(m);
   }
 
-  const sample = shelbyModels.sort(() => Math.random() - 0.5).slice(0, 5);
+  // FIX M-2: Round-robin cursor instead of random sample for full coverage
+  const cursorKey = 'cron:tamper-check:cursor';
+  const rawCursor = await db.get(cursorKey);
+  const cursor = rawCursor ? parseInt(rawCursor) : 0;
+  const batchSize = 5;
+  const start = cursor % Math.max(shelbyModels.length, 1);
+  const sample = [...shelbyModels.slice(start, start + batchSize),
+                  ...shelbyModels.slice(0, Math.max(0, start + batchSize - shelbyModels.length))];
+  await db.put(cursorKey, String(start + batchSize));
   const results = [];
   const apiKey = process.env.SHELBY_API_KEY;
 

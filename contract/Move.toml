@@ -8,5 +8,5 @@ provenode_addr = "_"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
-rev = "mainnet"
+rev = "devnet"
 subdir = "aptos-move/framework/aptos-framework"

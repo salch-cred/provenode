@@ -19,10 +19,17 @@ export function getDB() {
     async del(key) {
       await redis.del(key);
     },
+    // FIX H-4: Use SCAN cursor instead of KEYS to avoid blocking Redis on large keyspaces
     async list({ prefix = "" } = {}) {
       const pattern = prefix ? `${prefix}*` : "*";
-      const names = await redis.keys(pattern);
-      return { keys: (names || []).map((n) => ({ name: n })) };
+      const allKeys = [];
+      let cursor = 0;
+      do {
+        const [nextCursor, batch] = await redis.scan(cursor, { match: pattern, count: 200 });
+        cursor = Number(nextCursor);
+        if (batch && batch.length) allKeys.push(...batch);
+      } while (cursor !== 0);
+      return { keys: allKeys.map((n) => ({ name: n })) };
     },
   };
 }

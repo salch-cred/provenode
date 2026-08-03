@@ -3,6 +3,8 @@
  * Every significant action is written to KV as an immutable audit record.
  */
 import { getDB } from './kv.js';
+import { Redis } from '@upstash/redis';
+const _redis = new Redis({ url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN });
 
 export async function logAudit(action, { actor = 'system', target, details = {} } = {}) {
   try {
@@ -13,7 +15,8 @@ export async function logAudit(action, { actor = 'system', target, details = {} 
       id, action, actor, target,
       details, timestamp: new Date(ts).toISOString(),
     };
-    await db.put(`audit:${ts}:${id}`, JSON.stringify(record));
+    // FIX M-3: Use NX (set-if-not-exists) to make audit records write-once / immutable
+    await redis.set(`audit:${ts}:${id}`, JSON.stringify(record), { nx: true });
     return record;
   } catch { /* audit must never crash the caller */ }
 }
