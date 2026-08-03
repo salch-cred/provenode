@@ -1,6 +1,19 @@
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
+const CODE_SAMPLE = `from provenode import ProvenodeClient
+
+client = ProvenodeClient(
+    api_url="https://provenode-git-main-teams16.vercel.app"
+)
+
+# Upload to Shelby testnet, SHA-256 registered on Aptos
+model = client.upload("model.onnx", name="ResNet-v2")
+print(model.sha256)
+
+dep = client.deploy(model.id, region="Global")
+print(dep.status)`;
+
 export default function Landing() {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -290,19 +303,7 @@ export default function Landing() {
                   <div className="lp-dots lp-dots-dark"><span/><span/><span/></div>
                   <span className="lp-code-lang">Python</span>
                 </div>
-                <pre className="lp-pre"><code>
-from provenode import ProvenodeClient
-
-client = ProvenodeClient(
-    api_url="https://provenode-git-main-teams16.vercel.app"
-)
-
-model = client.upload("model.onnx", name="ResNet-v2")
-print(model.sha256)
-
-dep = client.deploy(model.id, region="Global")
-print(dep.status)
-                </code></pre>
+                                <pre className="lp-pre"><code>{CODE_SAMPLE}</code></pre>
 
 client = <span class="lp-fn">ProvenodeClient</span>(
     <span class="lp-st">"https://provenode-seven.vercel.app"</span>
