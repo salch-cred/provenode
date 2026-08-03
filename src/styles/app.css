@@ -595,7 +595,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--coral); }
   .mobile-only { display: initial !important; }
   a.btn.mobile-only, button.mobile-only { display: inline-flex !important; }
 
-  .shell { height: 100dvh; height: 100vh; }
+  .app-shell { height: 100dvh; height: 100vh; }
 
   /* Off-canvas sidebar */
   .sidebar {
