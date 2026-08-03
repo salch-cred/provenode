@@ -4,19 +4,19 @@
  */
 import { createHash, createHmac } from 'node:crypto';
 import formidable from 'formidable';
-import { getDB } from './lib/kv.js';
-import { shelbyUpload, makeBlobName } from './lib/shelby.js';
-import { dispatch } from './lib/notify.js';
-import { logAudit, getAuditLog } from './lib/audit.js';
-import { signModel } from './lib/sign.js';
-import { sendEmail, deploymentVerifiedEmail, integrityMismatchEmail, expiryWarningEmail } from './lib/email.js';
+import { getDB } from '../lib/kv.js';
+import { shelbyUpload, makeBlobName } from '../lib/shelby.js';
+import { dispatch } from '../lib/notify.js';
+import { logAudit, getAuditLog } from '../lib/audit.js';
+import { signModel } from '../lib/sign.js';
+import { sendEmail, deploymentVerifiedEmail, integrityMismatchEmail, expiryWarningEmail } from '../lib/email.js';
 // ── TOP 10 TIER-1 SHELBY FEATURES ─────────────────────────────────────────
-import { createStreamManifest, getChunkUrl } from './lib/streaming.js';         // #1
-import { fedAvg, weightedFedAvg, createFLRound, generateContributionReceipt } from './lib/federated.js'; // #2
-import { computeDelta, applyDelta, buildVersionNode } from './lib/delta.js';     // #3
-import { buildDatasetRecord, shardDataset, computeMerkleRoot, buildDeletionRequest } from './lib/datasets.js'; // #10
-import { generateModelCommitment, verifyProof, STANDARD_BENCHMARK_VECTORS } from './lib/zkproof.js'; // #7
-import { detectTamper, buildHealCommand, buildIncidentRecord, evaluateFleetHealth } from './lib/selfheal.js'; // #6
+import { createStreamManifest, getChunkUrl } from '../lib/streaming.js';         // #1
+import { fedAvg, weightedFedAvg, createFLRound, generateContributionReceipt } from '../lib/federated.js'; // #2
+import { computeDelta, applyDelta, buildVersionNode } from '../lib/delta.js';     // #3
+import { buildDatasetRecord, shardDataset, computeMerkleRoot, buildDeletionRequest } from '../lib/datasets.js'; // #10
+import { generateModelCommitment, verifyProof, STANDARD_BENCHMARK_VECTORS } from '../lib/zkproof.js'; // #7
+import { detectTamper, buildHealCommand, buildIncidentRecord, evaluateFleetHealth } from '../lib/selfheal.js'; // #6
 
 function cors(res) {
   // FIX H-5: Fail closed — never default to wildcard CORS
