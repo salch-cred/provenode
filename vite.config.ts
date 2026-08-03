@@ -6,6 +6,14 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // Suppress Privy's misplaced __PURE__ annotation warnings
+        if (warning.code === 'INVALID_ANNOTATION') return
+        if (warning.message?.includes('/*#__PURE__*/')) return
+        warn(warning)
+      },
+    },
   },
   define: { global: 'globalThis' },
 })
