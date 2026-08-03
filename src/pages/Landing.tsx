@@ -11,6 +11,11 @@ export default function Landing() {
     );
     ref.current?.querySelectorAll('.lp-reveal').forEach(el => io.observe(el));
 
+    // Nav shadow on scroll
+    const nav = document.querySelector('.lp-nav') as HTMLElement | null;
+    const onScroll = () => nav?.classList.toggle('scrolled', window.scrollY > 10);
+    window.addEventListener('scroll', onScroll, { passive: true });
+
     // Counter animation
     const counters = ref.current?.querySelectorAll('[data-count]') || [];
     const cio = new IntersectionObserver((es) => {
@@ -35,7 +40,7 @@ export default function Landing() {
       });
     }, { threshold: 0.5 });
     counters.forEach(c => cio.observe(c));
-    return () => { io.disconnect(); cio.disconnect(); };
+    return () => { io.disconnect(); cio.disconnect(); window.removeEventListener('scroll', onScroll); };
   }, []);
 
   return (
@@ -285,34 +290,34 @@ export default function Landing() {
                   <div className="lp-dots lp-dots-dark"><span/><span/><span/></div>
                   <span className="lp-code-lang">Python</span>
                 </div>
-                <pre className="lp-pre"><code>{`from provenode import ProvenodeClient
+                <pre className="lp-pre"><code dangerouslySetInnerHTML={{__html: `<span class="lp-kw">from</span> provenode <span class="lp-kw">import</span> <span class="lp-fn">ProvenodeClient</span>
 
-client = ProvenodeClient(
-    "https://provenode-seven.vercel.app"
+client = <span class="lp-fn">ProvenodeClient</span>(
+    <span class="lp-st">"https://provenode-seven.vercel.app"</span>
 )
 
-# Upload + SHA-256 + Shelby object
-model = client.upload(
-    "./vision_edge_v3.onnx",
-    name="Vision Edge v3",
-    tags=["onnx", "arm64"]
+<span class="lp-cm"># Upload + SHA-256 + Shelby object</span>
+model = client.<span class="lp-fn">upload</span>(
+    <span class="lp-st">"./vision_edge_v3.onnx"</span>,
+    name=<span class="lp-st">"Vision Edge v3"</span>,
+    tags=[<span class="lp-st">"onnx"</span>, <span class="lp-st">"arm64"</span>]
 )
-print(model.sha256)
+<span class="lp-fn">print</span>(model.sha256)
 
-# Deploy with canary rollout
-dep = client.deploy(
+<span class="lp-cm"># Deploy with canary rollout</span>
+dep = client.<span class="lp-fn">deploy</span>(
     model.id,
-    region="Asia-Pacific",
-    canary=True
+    region=<span class="lp-st">"Asia-Pacific"</span>,
+    canary=<span class="lp-kw">True</span>
 )
 
-# Block until 248/248 verified
-dep = client.wait(
+<span class="lp-cm"># Block until 248/248 verified</span>
+dep = client.<span class="lp-fn">wait</span>(
     dep.id,
-    on_progress=lambda d:
-        print(f"{d.progress}% verified")
+    on_progress=<span class="lp-kw">lambda</span> d:
+        <span class="lp-fn">print</span>(<span class="lp-st">f"{d.progress}% verified"</span>)
 )
-print(dep.status)  # "verified"`}</code></pre>
+<span class="lp-fn">print</span>(dep.status)  <span class="lp-cm"># "verified"</span>`}} />
               </div>
             </div>
           </div>
