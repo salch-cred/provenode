@@ -290,28 +290,19 @@ export default function Landing() {
                   <div className="lp-dots lp-dots-dark"><span/><span/><span/></div>
                   <span className="lp-code-lang">Python</span>
                 </div>
-                <pre className="lp-pre"><code>
-                  <span className="lp-kw">from</span>{' provenode '}
-                  <span className="lp-kw">import</span>{' '}
-                  <span className="lp-fn">ProvenodeClient</span>{`
+                <pre className="lp-pre"><code>from provenode import ProvenodeClient
 
 client = ProvenodeClient(
-  api_url=`}<span className="lp-str">"https://provenode.app"</span>{`,
-  token=`}<span className="lp-str">"your-deploy-secret"</span>{`
+    api_url="https://provenode-git-main-teams16.vercel.app"
 )
 
-# Upload + register on Aptos
-result = client.`}<span className="lp-fn">upload</span>{`(
-  file_path=`}<span className="lp-str">"model.onnx"</span>{`,
-  name=`}<span className="lp-str">"ResNet-v2"</span>{`,
-  version=`}<span className="lp-str">"2.1.0"</span>{`
-)
-`}<span className="lp-cm"># result.sha256 now on-chain</span>{`
+# Upload model, SHA-256 registered on Aptos testnet
+model = client.upload("model.onnx", name="ResNet-v2")
+print(model.sha256)
 
-# Verify on any device
-ok = client.`}<span className="lp-fn">verify</span>{`(model_id=result.id)
-`}<span className="lp-kw">print</span>{`(ok)  `}<span className="lp-cm"># True ✓</span>
-</code></pre>t React, { useEffect, useRef } from 'react';
+# Deploy to fleet, devices verify before loading
+dep = client.deploy(model.id, region="Global")
+print(dep.status)  # verified</code></pre>t React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function Landing() {
@@ -603,19 +594,29 @@ export default function Landing() {
                   <div className="lp-dots lp-dots-dark"><span/><span/><span/></div>
                   <span className="lp-code-lang">Python</span>
                 </div>
-                <pre className="lp-pre"><code>{
-                  `from provenode import ProvenodeClient
+                                <pre className="lp-pre"><code>{[
+                  'from provenode import ProvenodeClient
 
-                client = ProvenodeClient(
-                    api_url="https://provenode-git-main-teams16.vercel.app",
-                    token=os.environ["DEPLOY_SECRET"]
-                )
+',
+                  'client = ProvenodeClient(
+',
+                  '    api_url="https://provenode-git-main-teams16.vercel.app",
+',
+                  '    token=os.environ["DEPLOY_SECRET"]
+',
+                  ')
 
-                # Upload model to Shelby testnet, register SHA-256 on Aptos
-                model = client.upload("./model.onnx", name="ResNet-v2")
-                print(model.sha256)  # registered on Aptos testnet
+',
+                  '# Upload to Shelby testnet, SHA-256 on Aptos
+',
+                  'model = client.upload("./model.onnx", name="ResNet-v2")
+',
+                  'print(model.sha256)
 
-                # Deploy to fleet, each device verifies before loading
-                dep = client.deploy(model.id, region="Global")
-                print(dep.status)  # verified`
-                }</code></pre>
+',
+                  '# Deploy to fleet
+',
+                  'dep = client.deploy(model.id, region="Global")
+',
+                  'print(dep.status)',
+                ].join('')}</code></pre>
