@@ -221,3 +221,78 @@
   .lp-features-6 { grid-template-columns: repeat(3, 1fr); }
   .lp-board-wrap { padding: 0 0 40px; }
 }
+
+/* ── Mobile nav — hide secondary button below 480px ──────── */
+@media (max-width: 479px) {
+  .lp-btn-ghost { display: none; }
+  .lp-nav-inner { padding: 0 4px; }
+  .lp-brand { font-size: 15px; }
+}
+
+/* ── Stats bar — wrap on small screens ───────────────────── */
+@media (max-width: 540px) {
+  .lp-stats { gap: 0; }
+  .lp-stat  { padding: 12px 16px; }
+  .lp-stat-div { display: none; }
+  .lp-stats { display: grid; grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Proof card — tighter grid on small ──────────────────── */
+@media (max-width: 600px) {
+  .lp-proof-row { grid-template-columns: 80px 1fr; gap: 8px; }
+  .lp-proof-card { font-size: 12px; }
+  .lp-problem-checks { gap: 8px; }
+  .lp-pcheck { font-size: 13px; }
+}
+
+/* ── Code block syntax colour (CSS only) ──────────────────── */
+.lp-pre { position: relative; }
+.lp-kw  { color: #ff7b72; }   /* keyword  */
+.lp-st  { color: #a5d6ff; }   /* string   */
+.lp-cm  { color: #8b949e; font-style: italic; }  /* comment */
+.lp-fn  { color: #d2a8ff; }   /* function */
+.lp-nr  { color: #79c0ff; }   /* number/name */
+
+/* ── Feature cards equal height ──────────────────────────── */
+.lp-features-6 { align-items: stretch; }
+.lp-feat { display: flex; flex-direction: column; }
+.lp-feat p { flex: 1; }
+
+/* ── Nav box-shadow on scroll (toggled by JS class) ──────── */
+.lp-nav.scrolled { box-shadow: 0 1px 12px rgba(0,0,0,.08); }
+
+/* ── Smooth scrollbar ────────────────────────────────────── */
+.lp ::-webkit-scrollbar { width: 6px; height: 6px; }
+.lp ::-webkit-scrollbar-track { background: transparent; }
+.lp ::-webkit-scrollbar-thumb { background: #d8d4cc; border-radius: 99px; }
+.lp ::-webkit-scrollbar-thumb:hover { background: #b0ac a4; }
+
+/* ── Focus rings ─────────────────────────────────────────── */
+.lp .lp-btn:focus-visible { outline: 2px solid var(--lp-orange); outline-offset: 2px; }
+.lp a:focus-visible { outline: 2px solid var(--lp-orange); outline-offset: 2px; border-radius: 4px; }
+
+/* ── Integrations hover label ────────────────────────────── */
+.lp-int-item { cursor: default; }
+
+/* ── Hero badge pulse ─────────────────────────────────────── */
+.lp-badge:hover { border-color: var(--lp-orange); }
+.lp-badge:hover .lp-badge-dot { background: var(--lp-orange); }
+
+/* ── CTA card inner text width ───────────────────────────── */
+.lp-cta-card h2 { max-width: 640px; }
+
+/* ── Board: last row no bottom border ─────────────────────── */
+.lp-grid-6 .lp-td:nth-last-child(-n+6) { border-bottom: none !important; }
+
+/* ── Integrations on small ────────────────────────────────── */
+@media (max-width: 480px) {
+  .lp-int-row { gap: 6px; }
+  .lp-int-item { padding: 7px 12px; font-size: 12px; }
+  .lp-int-item i { font-size: 16px; }
+}
+
+/* ── Code block responsive ────────────────────────────────── */
+@media (max-width: 600px) {
+  .lp-pre code { font-size: 11px; }
+  .lp-code-bullets { gap: 8px; }
+}
