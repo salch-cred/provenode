@@ -1,258 +1,218 @@
 # Provenode
 
-On-chain AI model registry and edge fleet deployment tool built on Aptos + Shelby Protocol.
+AI model registry and edge fleet manager. Upload a model, register its SHA-256 on Aptos, deploy to edge devices, and verify integrity on every pull from Shelby storage.
 
-Upload a model, get a SHA-256 registered on-chain, deploy to edge devices, verify integrity on every pull.
+## Overview
 
----
+I'm building this to solve a specific problem: when you deploy AI models to hundreds of edge devices (cameras, robots, embedded systems), you have no way to prove the model running on a device is exactly what you signed off on. Provenode fixes that.
 
-## What it does
+Every model gets:
+1. Uploaded to [Shelby Protocol](https://shelby.xyz) (decentralized blob storage)
+2. SHA-256 registered on Aptos via a Move contract
+3. Signed with an Ed25519 key
+4. Deployed to devices via OTA
 
-- Upload AI models (ONNX, TFLite, GGUF, bin) to Shelby Protocol decentralized storage
-- Register the model SHA-256 on Aptos via a Move smart contract
-- Deploy models to edge device fleets over-the-air
-- Verify model integrity on device — reject anything that doesn't match the on-chain hash
-- Sign models with Ed25519 keys so devices know the model came from your org
-- Monitor fleet health, detect tampered devices, auto-heal via Shelby objectId
-- Track model lineage (what was fine-tuned from what, on which datasets)
+Devices verify the SHA-256 against the on-chain record before loading. If it doesn't match, they reject it.
 
-## Stack
+## Tech
 
-- **Blockchain:** Aptos (Move smart contract)
-- **Storage:** Shelby Protocol (decentralized blob storage)
-- **API:** Node.js serverless functions on Vercel
-- **Frontend:** React + TypeScript + Privy auth
-- **Database:** Upstash Redis (KV)
-- **Notifications:** Resend (email), webhooks
+- Aptos + Move — on-chain model registry
+- Shelby Protocol — model storage (returns an object ID per upload)
+- Node.js — serverless API on Vercel
+- React + TypeScript — dashboard (Privy for auth)
+- Upstash Redis — KV store for device/model state
+- Resend — email alerts
 
 ## Contract
 
-```
-Address: 0xcc19b66dd18fe15fe8e7f993d31a3feaac5cb17cebe33ff60641e783adcdb21f
-Network: Aptos Devnet
-Module:  ModelRegistry
-```
+Network: Aptos Devnet  
+Address: `0xcc19b66dd18fe15fe8e7f993d31a3feaac5cb17cebe33ff60641e783adcdb21f`  
+Module: `ModelRegistry`
 
-Functions:
-- `initialize(account)` — set up registry for an org
-- `register_model(account, sha256, shelby_object_id, name, version, id)`
-- `mark_signed(account, sha256)` — mark model as Ed25519 signed
-- `deactivate_model(account, sha256)` — revoke a model
-- `register_dataset(account, id, name, merkle_root, shard_count, total_bytes, license, source)`
-- `log_provenance(account, child_model_id, parent_model_id, operation, node_hash)`
-- `log_incident(account, id, device_id, model_id, old_sha256, new_sha256)`
+```move
+// Setup
+initialize(account)
 
-View functions:
-- `verify_model(address, sha256): bool`
-- `model_count(address): u64`
-- `dataset_count(address): u64`
-- `incident_count(address): u64`
+// Models
+register_model(account, sha256, shelby_object_id, name, version, id)
+mark_signed(account, sha256)
+deactivate_model(account, sha256)
 
-## API Routes
+// Datasets
+register_dataset(account, id, name, merkle_root, shard_count, total_bytes, license, source)
 
-```
-# Core
-GET  /api/health
-GET  /api/config
-POST /api/upload              upload model to Shelby, register SHA-256
-GET  /api/models              list registered models
-GET  /api/verify?id=X         verify model on-chain
-POST /api/sign                sign model with org Ed25519 key
-POST /api/deploy              push model to fleet
-GET  /api/status?id=X         deployment status
+// Provenance
+log_provenance(account, child_model_id, parent_model_id, operation, node_hash)
 
-# Devices & Fleet
-POST   /api/devices           register edge device
-DELETE /api/devices?id=X      remove device
-POST   /api/fleet             push OTA update
-GET    /api/fleet/:deviceId   device status
+// Incidents
+log_incident(account, id, device_id, model_id, old_sha256, new_sha256)
 
-# Self-Healing
-POST   /api/selfheal          device reports current SHA → tamper check → auto-heal
-PATCH  /api/selfheal          device confirms heal complete
-GET    /api/selfheal          fleet health overview
-
-# Model Streaming
-POST /api/stream-inference?modelId=X   split model into Shelby chunks
-GET  /api/stream-inference?modelId=X&chunk=0  fetch individual chunk
-
-# Federated Learning
-POST  /api/federated          submit gradient update from device
-PATCH /api/federated          aggregate round (FedAvg)
-GET   /api/federated?modelId  list rounds
-
-# Delta Versions
-POST /api/delta               register delta version (diff-only upload)
-GET  /api/delta?modelId=X     version DAG
-
-# Provenance & Datasets
-POST /api/provenance          add provenance node (parent → child model)
-GET  /api/provenance?modelId  full lineage chain
-POST /api/datasets            register training dataset
-GET  /api/datasets            list datasets
-DELETE /api/datasets          GDPR deletion request
-
-# ZK Proofs
-POST /api/zkproof?modelId=X   generate commitment proof, upload to Shelby
-GET  /api/zkproof?modelId=X   verify proof
-
-# Analytics
-POST /api/telemetry           ingest inference events
-GET  /api/telemetry?modelId   stats (latency, confidence, throughput)
-
-# Cross-chain
-POST /api/bridge              create attestation on Solana or Ethereum
-GET  /api/bridge              list attestations
-
-# Other
-GET  /api/lineage?id=X        model lineage graph
-POST /api/webhooks            register webhook
-POST /api/marketplace         list model for sale
-GET  /api/audit               audit log
+// Views
+verify_model(address, sha256): bool
+model_count(address): u64
+dataset_count(address): u64
+incident_count(address): u64
 ```
 
-## Setup
+## Getting started
 
 ```bash
 git clone https://github.com/salch-cred/provenode.git
 cd provenode
 npm install
 cp .env.example .env.local
-```
-
-Fill in `.env.local`:
-
-```env
-# Required
-KV_REST_API_URL=
-KV_REST_API_TOKEN=
-DEPLOY_SECRET=
-
-# Shelby Protocol (get from shelby.xyz)
-SHELBY_API_KEY=
-SHELBY_PRIVATE_KEY=   # Ed25519 hex key
-
-# Optional
-RESEND_API_KEY=
-ALERT_EMAIL=
-MOVE_CONTRACT_ADDRESS=
-ALLOWED_ORIGIN=
-```
-
-Run dev server:
-
-```bash
 npm run dev
 ```
 
-## Deploy contract
+Minimum env vars to run:
 
-Requires Aptos CLI:
+```env
+KV_REST_API_URL=
+KV_REST_API_TOKEN=
+DEPLOY_SECRET=any_secret_string
+CRON_SECRET=any_secret_string
+```
+
+To actually use Shelby storage:
+
+```env
+SHELBY_API_KEY=        # from shelby.xyz
+SHELBY_PRIVATE_KEY=    # your Ed25519 private key hex
+```
+
+Without `SHELBY_API_KEY` it runs in demo mode — uploads return a fake `demo://` object ID, nothing goes to Shelby.
+
+## Deploy the contract
 
 ```bash
-# Install CLI
+# Install Aptos CLI
 curl -fsSL https://aptos.dev/scripts/install_cli.py | python3
 
-# Fund account from devnet faucet
-aptos account fund-with-faucet \
-  --account <your_address> \
-  --faucet-url https://faucet.devnet.aptoslabs.com
+# Create a profile
+aptos init --profile default --network devnet
+
+# Fund it
+aptos account fund-with-faucet --profile default
 
 # Compile
 cd contract
-aptos move compile \
-  --named-addresses provenode_addr=<your_address>
+aptos move compile --named-addresses provenode_addr=$(aptos account lookup-address --profile default | python3 -c "import json,sys; print(json.load(sys.stdin)['Result'])")
 
 # Publish
-aptos move publish \
-  --profile default \
-  --named-addresses provenode_addr=<your_address>
+aptos move publish --profile default --named-addresses provenode_addr=<your_address>
 
-# Initialize
-aptos move run \
-  --function-id <your_address>::ModelRegistry::initialize
+# Initialize the registry
+aptos move run --function-id <your_address>::ModelRegistry::initialize
+
+# Verify it works
+aptos move view --function-id <your_address>::ModelRegistry::model_count --args address:<your_address>
+# should return 0
 ```
 
-## Shelby Protocol
+Set `MOVE_CONTRACT_ADDRESS=<your_address>` in your env.
 
-Models are stored on [Shelby Protocol](https://shelby.xyz) — decentralized blob storage built on Aptos.
+## API
 
-- Each model file is uploaded as a blob, returns a `shelby://` object ID
-- The object ID + SHA-256 are stored on-chain in `ModelRegistry`
-- Edge devices fetch the blob by object ID, verify SHA-256 locally before loading
-- If SHA-256 doesn't match what's on-chain, the device rejects the model
-
-Streaming inference splits the model into 5MB chunks, each uploaded as a separate Shelby blob. Devices fetch the next chunk while processing the current one.
-
-Delta uploads store only the binary diff between model versions. Base model is uploaded once; subsequent fine-tunes upload only the changed bytes (typically 1–5% of model size).
-
-## Federated Learning
-
-Devices train locally, upload gradient updates to Shelby:
+All POST/PATCH/DELETE routes require `X-Provenode-Token: <DEPLOY_SECRET>` header.
 
 ```
-POST /api/federated
-{
-  "modelId": "model-001",
-  "deviceId": "cam-001",
-  "gradientHex": "...",
-  "sampleCount": 500,
-  "roundNumber": 1
-}
+POST   /api/upload              upload model file → Shelby + on-chain registration
+GET    /api/models              list all models
+GET    /api/verify?id=X         verify model SHA-256 on-chain
+POST   /api/sign                sign model with org key
+POST   /api/deploy              deploy model to fleet
+GET    /api/status?id=X         deployment progress
+
+POST   /api/devices             register a device
+DELETE /api/devices?id=X        remove device
+POST   /api/fleet               push OTA to devices
+GET    /api/fleet/:deviceId     device status
+
+POST   /api/selfheal            device reports current SHA, gets heal command if tampered
+PATCH  /api/selfheal            device confirms heal done
+GET    /api/selfheal            fleet health (% healthy, list of tampered devices)
+
+POST   /api/stream-inference    split model into 5MB chunks, upload each to Shelby
+GET    /api/stream-inference?modelId=X&chunk=0   get one chunk
+
+POST   /api/federated           device submits gradient update
+PATCH  /api/federated           aggregate round (FedAvg) → new model blob on Shelby
+GET    /api/federated?modelId   list rounds
+
+POST   /api/delta               register a delta version (diff only, not full model)
+GET    /api/delta?modelId=X     version history DAG
+
+POST   /api/datasets            register training dataset with Merkle root
+GET    /api/datasets
+DELETE /api/datasets            GDPR deletion request
+
+POST   /api/provenance          add lineage node (model B was fine-tuned from model A)
+GET    /api/provenance?modelId  full lineage chain
+
+POST   /api/zkproof             generate commitment proof, store on Shelby
+GET    /api/zkproof?modelId     verify proof
+
+POST   /api/telemetry           batch inference events (latency, confidence, device)
+GET    /api/telemetry?modelId   aggregated stats per hour
+
+POST   /api/bridge              create cross-chain attestation (Solana / Ethereum)
+GET    /api/bridge
+
+POST   /api/webhooks            register webhook (fires on model events)
+GET    /api/audit               audit log
 ```
 
-Once enough devices have submitted, call PATCH to aggregate:
+## How Shelby storage works here
 
-```
-PATCH /api/federated
-{ "modelId": "model-001", "roundNumber": 1 }
-```
+When you upload a model:
 
-Aggregated gradient uploaded to Shelby. Each device gets an on-chain receipt proving their data was included.
+1. File goes to `POST /api/upload`
+2. API computes SHA-256 of the file
+3. Calls `ShelbyClient.upload()` — returns an object ID like `shelby://shelbynet/<address>/models/<name>`
+4. Calls `ModelRegistry::register_model()` on Aptos with that object ID + SHA-256
+5. Returns `{ id, hash, objectId, mode }`
 
-## Dataset Registry
+When a device pulls the model:
 
-Register training datasets on Shelby + link them to model versions:
+1. Device calls `GET /api/verify?id=X` to get the on-chain SHA-256 and Shelby object ID
+2. Device fetches the blob from Shelby by object ID
+3. Device computes SHA-256 of downloaded file
+4. Compares against on-chain value — loads if match, rejects if not
 
-```
-POST /api/datasets
-{
-  "name": "my-training-set",
-  "merkleRoot": "...",
-  "shardCount": 100,
-  "license": "MIT",
-  "source": "huggingface.co/datasets/...",
-  "modelIds": ["model-001"]
-}
-```
-
-Computes Merkle root of all shard SHA-256s, registers on-chain. Links dataset to model versions so you can trace what any model was trained on.
-
-## Environment Variables Reference
-
-| Variable | Required | Description |
-|---|---|---|
-| `KV_REST_API_URL` | Yes | Upstash Redis REST URL |
-| `KV_REST_API_TOKEN` | Yes | Upstash Redis token |
-| `DEPLOY_SECRET` | Yes | Auth token for all mutating API calls |
-| `CRON_SECRET` | Yes | Auth token for cron jobs |
-| `SHELBY_API_KEY` | No | Shelby API key (demo mode without it) |
-| `SHELBY_PRIVATE_KEY` | No | Ed25519 hex key for persistent org identity |
-| `SHELBY_NETWORK` | No | `shelbynet` or `mainnet` (default: shelbynet) |
-| `RESEND_API_KEY` | No | Email alerts |
-| `ALERT_EMAIL` | No | Where to send tamper/expiry alerts |
-| `MOVE_CONTRACT_ADDRESS` | No | Deployed Aptos contract address |
-| `ALLOWED_ORIGIN` | No | CORS allowed origin (defaults to VERCEL_URL) |
+Streaming inference works the same way but splits the model into 5MB chunks first. Each chunk is a separate Shelby blob. Devices fetch chunk 0, start processing, fetch chunk 1, and so on.
 
 ## Crons
 
-Defined in `vercel.json`:
+Both run as Vercel cron functions. Both need `Authorization: Bearer <CRON_SECRET>`.
 
-- `GET /api/crons/tamper-check` — runs daily at 18:00 UTC, samples models from Shelby, checks integrity
-- `GET /api/crons/expiry-check` — runs daily at 06:00 UTC, warns on Shelby objects expiring within 7 days
+`GET /api/crons/tamper-check` — daily at 18:00 UTC  
+Loops through models in Shelby, checks if the blobs are still reachable. Marks as tampered + sends alert if a blob returns 404.
 
-Both require `Authorization: Bearer <CRON_SECRET>` header (injected automatically by Vercel).
+`GET /api/crons/expiry-check` — daily at 06:00 UTC  
+Checks Shelby object expiry dates. Sends email alert if anything expires within 7 days.
 
-## License
+## Env vars
 
-MIT
+| Variable | Required | What it's for |
+|---|---|---|
+| `KV_REST_API_URL` | yes | Upstash Redis |
+| `KV_REST_API_TOKEN` | yes | Upstash Redis |
+| `DEPLOY_SECRET` | yes | API auth token |
+| `CRON_SECRET` | yes | Cron auth token |
+| `SHELBY_API_KEY` | no | Shelby uploads (demo mode without it) |
+| `SHELBY_PRIVATE_KEY` | no | Ed25519 key for signing + persistent Shelby identity |
+| `SHELBY_NETWORK` | no | `shelbynet` or `mainnet` |
+| `RESEND_API_KEY` | no | Email alerts |
+| `ALERT_EMAIL` | no | Where tamper/expiry alerts go |
+| `MOVE_CONTRACT_ADDRESS` | no | Your deployed contract address |
+| `ALLOWED_ORIGIN` | no | CORS origin (defaults to Vercel URL) |
+| `SIGN_KEY` | no | Separate signing key if different from SHELBY_PRIVATE_KEY |
+
+## Status
+
+Working on devnet. Contract deployed and tested. Shelby integration runs in demo mode by default, real mode with an API key.
+
+Things still in progress:
+- Frontend pages for streaming inference, FL, and dataset registry
+- Shelby mainnet testing
+- Device SDK (currently devices just call the REST API directly)
