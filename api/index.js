@@ -26,6 +26,8 @@ function cors(res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Provenode-Token');
   res.setHeader('Vary', 'Origin');
+  // Security: block TRACE (reflected XSS vector)
+  res.setHeader('X-XSS-Protection', '1; mode=block');
 }
 
 // FIX C-1: Central auth guard — applied to ALL mutating (POST/PATCH/DELETE) routes
@@ -68,9 +70,40 @@ export const config = {
   api: { bodyParser: false },
 };
 
+
+// ── Rate limiting (IP-based, 30 req/10s on mutating routes) ─────────
+const _rateLimitStore = new Map(); // in-memory sliding window (sufficient for serverless)
+function checkRateLimit(req, limit = 30, windowMs = 10000) {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+              req.headers['x-real-ip'] || 'unknown';
+  const now = Date.now();
+  const key = ip;
+  const record = _rateLimitStore.get(key) || { count: 0, resetAt: now + windowMs };
+  if (now > record.resetAt) { record.count = 0; record.resetAt = now + windowMs; }
+  record.count++;
+  _rateLimitStore.set(key, record);
+  // Clean old entries occasionally
+  if (_rateLimitStore.size > 10000) {
+    for (const [k, v] of _rateLimitStore) { if (now > v.resetAt) _rateLimitStore.delete(k); }
+  }
+  return { allowed: record.count <= limit, remaining: Math.max(0, limit - record.count), resetAt: record.resetAt };
+}
+
 export default async function handler(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
+  // FIX: Block TRACE method — prevents header reflection attacks
+  if (req.method === 'TRACE') return res.status(405).json({ error: 'Method not allowed.' });
+
+  // Rate limit mutating requests (POST, PATCH, DELETE) — 30 per 10s per IP
+  if (['POST','PATCH','DELETE'].includes(req.method)) {
+    const rl = checkRateLimit(req, 30, 10000);
+    res.setHeader('X-RateLimit-Remaining', String(rl.remaining));
+    if (!rl.allowed) {
+      res.setHeader('Retry-After', String(Math.ceil((rl.resetAt - Date.now()) / 1000)));
+      return res.status(429).json({ error: 'Too many requests. Slow down.', retryAfterMs: rl.resetAt - Date.now() });
+    }
+  }
 
   const path = pathOf(req);
   const q = queryOf(req);
@@ -124,8 +157,8 @@ export default async function handler(req, res) {
 
     // ── identity ────────────────────────────────────────────
     if (root === 'identity') {
-      // FIX C-1: Auth guard on all mutating requests
-      if (method !== 'GET' && requireAuth(req, res)) return;
+      // FIX: identity GET now requires auth (exposes wallet address)
+      if (requireAuth(req, res)) return;
 
       if (method === 'GET') {
         const privKey = process.env.SHELBY_PRIVATE_KEY;
