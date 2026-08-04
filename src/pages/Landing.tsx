@@ -11,37 +11,29 @@ client = ProvenodeClient(
 model = client.upload("model.onnx", name="ResNet-v2")
 print(model.sha256)
 
+# Deploy to fleet — devices verify before loading
 dep = client.deploy(model.id, region="Global")
-print(dep.status)`;
-
-const CODE_SAMPLE2 = `from provenode import ProvenodeClient
-
-client = ProvenodeClient(
-    api_url="https://provenode-git-main-teams16.vercel.app"
-)
-
-# Upload to Shelby testnet
-model = client.upload("model.onnx", name="ResNet-v2", version="2.1.0")
-print(model.sha256)  # registered on Aptos testnet
-
-# Deploy with canary rollout
-dep = client.deploy(model.id, region="Asia-Pacific", canary=True)
 print(dep.status)  # "verified"`;
-
 
 export default function Landing() {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Scroll reveal
     const io = new IntersectionObserver(
-      (es) => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }),
-      { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
+      (es) => es.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
+      }),
+      { threshold: 0.07, rootMargin: '0px 0px -40px 0px' }
     );
     ref.current?.querySelectorAll('.lp-reveal').forEach(el => io.observe(el));
 
-    // Nav shadow on scroll
+    // Nav glass on scroll
     const nav = document.querySelector('.lp-nav') as HTMLElement | null;
-    const onScroll = () => nav?.classList.toggle('scrolled', window.scrollY > 10);
+    const onScroll = () => nav?.classList.toggle('scrolled', window.scrollY > 20);
     window.addEventListener('scroll', onScroll, { passive: true });
 
     // Counter animation
@@ -52,9 +44,9 @@ export default function Landing() {
         const el = e.target as HTMLElement;
         const target = parseFloat(el.dataset.count || '0');
         const suffix = el.dataset.suffix || '';
-        const isFloat = el.dataset.count?.includes('.');
+        const isFloat = !!el.dataset.float;
         let start: number | null = null;
-        const dur = 1400;
+        const dur = 1600;
         const step = (ts: number) => {
           if (!start) start = ts;
           const p = Math.min((ts - start) / dur, 1);
@@ -68,13 +60,51 @@ export default function Landing() {
       });
     }, { threshold: 0.5 });
     counters.forEach(c => cio.observe(c));
-    return () => { io.disconnect(); cio.disconnect(); window.removeEventListener('scroll', onScroll); };
+
+    // Typing animation in terminal
+    const terminal = document.querySelector('.lp-terminal-text') as HTMLElement | null;
+    if (terminal) {
+      const lines = [
+        '$ provenode upload model.onnx --name "ResNet-v2"',
+        '  ✓ SHA-256: 9e4a7c81d2bf…b82f',
+        '  ✓ Shelby object: shelby://testnet/models/resnet-v2',
+        '  ✓ Registered on Aptos testnet · block 10356365905',
+        '',
+        '$ provenode deploy --model resnet-v2 --region Global',
+        '  → Pushing to 248 devices…',
+        '  ✓ 248/248 verified',
+      ];
+      let li = 0, ci = 0;
+      terminal.textContent = '';
+      const type = () => {
+        if (li >= lines.length) return;
+        const line = lines[li];
+        if (ci <= line.length) {
+          terminal.textContent = lines.slice(0, li).join('\n') + (li > 0 ? '\n' : '') + line.slice(0, ci);
+          ci++;
+          setTimeout(type, ci === 1 && li > 0 ? 180 : 22);
+        } else {
+          li++; ci = 0;
+          setTimeout(type, 320);
+        }
+      };
+      const tio = new IntersectionObserver(([e]) => {
+        if (e.isIntersecting) { type(); tio.disconnect(); }
+      }, { threshold: 0.5 });
+      tio.observe(terminal);
+    }
+
+    return () => {
+      io.disconnect();
+      cio.disconnect();
+      window.removeEventListener('scroll', onScroll);
+    };
   }, []);
 
   return (
     <div className="lp" ref={ref}>
 
-      {/* ── Nav ───────────────────────────────── */}
+      {/* Nav */}
       <header className="lp-nav">
         <div className="lp-shell lp-nav-inner">
           <Link to="/" className="lp-brand">
@@ -98,26 +128,26 @@ export default function Landing() {
 
       <main>
 
-        {/* ── Hero ──────────────────────────────── */}
+        {/* Hero */}
         <section className="lp-hero">
           <div className="lp-shell">
-            <div className="lp-badge">
+            <div className="lp-badge lp-anim-fade-up" style={{ animationDelay: '0ms' }}>
               <span className="lp-badge-dot" />
-              Live on Shelby shelbynet
+              Live on Shelby testnet
               <span className="lp-badge-arrow">→</span>
               <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer" className="lp-badge-link">View source</a>
             </div>
-            <h1 className="lp-h1">
+            <h1 className="lp-h1 lp-anim-fade-up" style={{ animationDelay: '80ms' }}>
               Your fleet runs what<br />
               <span className="lp-accent">you approved.</span><br />
               <span className="lp-scribble">Provably.</span>
             </h1>
-            <p className="lp-sub">
+            <p className="lp-sub lp-anim-fade-up" style={{ animationDelay: '160ms' }}>
               Provenode gives every AI model a SHA-256 identity, publishes it as an immutable Shelby
               object, and enforces hash verification on every device before activation. No match
               means no load — the previous model stays running.
             </p>
-            <div className="lp-hero-cta">
+            <div className="lp-hero-cta lp-anim-fade-up" style={{ animationDelay: '240ms' }}>
               <Link to="/app/dashboard" className="lp-btn lp-btn-primary">
                 Open console <i className="hgi-stroke hgi-arrow-right-01" />
               </Link>
@@ -125,13 +155,13 @@ export default function Landing() {
                 See how it works
               </a>
             </div>
-            <div className="lp-hero-note">
-              Free · Open source · Built on Shelby shelbynet
+            <div className="lp-hero-note lp-anim-fade-up" style={{ animationDelay: '320ms' }}>
+              Free · Open source · Built on Shelby testnet + Aptos
             </div>
           </div>
         </section>
 
-        {/* ── Product board ─────────────────────── */}
+        {/* Product board */}
         <div className="lp-board-wrap lp-shell lp-reveal">
           <div className="lp-board">
             <div className="lp-wbar">
@@ -184,7 +214,7 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* ── Stats ─────────────────────────────── */}
+        {/* Stats */}
         <section className="lp-stats-section lp-reveal">
           <div className="lp-shell lp-stats">
             <div className="lp-stat">
@@ -203,13 +233,26 @@ export default function Landing() {
             </div>
             <div className="lp-stat-div" />
             <div className="lp-stat">
-              <span className="lp-stat-n" data-count="24">0</span>
-              <span className="lp-stat-l">features shipped</span>
+              <span className="lp-stat-n" data-count="25">0</span>
+              <span className="lp-stat-l">API endpoints</span>
             </div>
           </div>
         </section>
 
-        {/* ── Problem ───────────────────────────── */}
+        {/* Terminal animation */}
+        <section className="lp-terminal-section lp-reveal" id="terminal">
+          <div className="lp-shell">
+            <div className="lp-terminal-wrap">
+              <div className="lp-terminal-bar">
+                <div className="lp-dots lp-dots-dark"><span/><span/><span/></div>
+                <span className="lp-terminal-title">provenode cli</span>
+              </div>
+              <pre className="lp-terminal-body"><code className="lp-terminal-text"></code><span className="lp-cursor">▋</span></pre>
+            </div>
+          </div>
+        </section>
+
+        {/* Problem */}
         <section className="lp-problem" id="problem">
           <div className="lp-shell">
             <div className="lp-problem-inner lp-reveal">
@@ -247,9 +290,9 @@ export default function Landing() {
                 <div className="lp-proof-body">
                   {[
                     ['Model', 'vision-edge-v2.4.1.onnx'],
-                    ['Shelby object', 'shelby://shelbynet/models/vision/2.4.1'],
+                    ['Shelby object', 'shelby://testnet/models/vision/2.4.1'],
                     ['SHA-256', '9e4a7c81d2bf…b82f'],
-                    ['Commitment', '0x73ab91c4…20f1'],
+                    ['Aptos contract', '0x77f8cb3d…87cb'],
                     ['Activation rule', 'Digest must match manifest'],
                   ].map(([k, v]) => (
                     <div className="lp-proof-row" key={k}>
@@ -263,7 +306,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ── Features ──────────────────────────── */}
+        {/* Features */}
         <section className="lp-section lp-section-light" id="features">
           <div className="lp-shell">
             <div className="lp-sec-head lp-reveal">
@@ -272,12 +315,12 @@ export default function Landing() {
             </div>
             <div className="lp-features-6">
               {[
-                { icon:'hgi-fingerprint-scan', title:'SHA-256 identity',      desc:'Every model is content-addressed before deployment. Hash is the identity, not the filename.',      bg:'var(--lp-paper)' },
-                { icon:'hgi-route-01',         title:'Canary rollouts',       desc:'10% → 50% → 100% with automatic rollback if error rate exceeds your threshold.',                   bg:'#fff3ca' },
-                { icon:'hgi-shield-energy',    title:'Activation enforcement',desc:'Devices re-hash the download and compare it to the signed manifest. No match = no load.',          bg:'#e8e0ff' },
-                { icon:'hgi-blockchain-01',    title:'On-chain manifests',    desc:'Deployment decisions are uploaded to Shelby as immutable objects. Auditors go to the chain, not your DB.', bg:'#d4eafe' },
-                { icon:'hgi-analytics-01',     title:'A/B model testing',     desc:'Split fleet traffic between two model versions, measure real latency and error rate per device.',   bg:'#e7f5ea' },
-                { icon:'hgi-git-branch',       title:'Model lineage',         desc:'Track parent → child relationships. Catch when a recalled base model is still in production.',       bg:'#fce7e7' },
+                { icon:'hgi-fingerprint-scan', title:'SHA-256 identity',       desc:'Every model is content-addressed before deployment. Hash is the identity, not the filename.',        bg:'var(--lp-paper)' },
+                { icon:'hgi-route-01',         title:'Canary rollouts',        desc:'10% → 50% → 100% with automatic rollback if error rate exceeds your threshold.',                    bg:'#fff3ca' },
+                { icon:'hgi-shield-energy',    title:'Activation enforcement', desc:'Devices re-hash the download and compare it to the signed manifest. No match = no load.',           bg:'#e8e0ff' },
+                { icon:'hgi-blockchain-01',    title:'On-chain manifests',     desc:'Deployment decisions uploaded to Shelby as immutable objects. Auditors go to the chain, not your DB.', bg:'#d4eafe' },
+                { icon:'hgi-analytics-01',     title:'A/B model testing',      desc:'Split fleet traffic between two model versions, measure real latency and error rate per device.',    bg:'#e7f5ea' },
+                { icon:'hgi-git-branch',       title:'Model lineage',          desc:'Track parent → child relationships. Catch when a recalled base model is still in production.',       bg:'#fce7e7' },
               ].map((f, i) => (
                 <article className={`lp-feat lp-reveal lp-d${i % 3}`} key={f.title} style={{background:f.bg}}>
                   <div className="lp-feat-icon"><i className={`hgi-stroke ${f.icon}`}/></div>
@@ -289,7 +332,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ── Code demo ─────────────────────────── */}
+        {/* Code demo */}
         <section className="lp-section lp-section-dark" id="code">
           <div className="lp-shell">
             <div className="lp-code-inner lp-reveal">
@@ -318,25 +361,24 @@ export default function Landing() {
                   <div className="lp-dots lp-dots-dark"><span/><span/><span/></div>
                   <span className="lp-code-lang">Python</span>
                 </div>
-                                <pre className="lp-pre"><code>{CODE_SAMPLE}</code></pre>
-
+                <pre className="lp-pre"><code>{CODE_SAMPLE}</code></pre>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ── Integrations ──────────────────────── */}
+        {/* Integrations */}
         <section className="lp-integrations lp-reveal">
           <div className="lp-shell">
             <p className="lp-int-label">Integrates with</p>
             <div className="lp-int-row">
               {[
-                { icon: 'hgi-github',      label: 'GitHub Actions' },
-                { icon: 'hgi-blockchain-01', label: 'Shelby shelbynet' },
-                { icon: 'hgi-ai-brain-01', label: 'HuggingFace Hub' },
-                { icon: 'hgi-shield-01',   label: 'Aptos Move' },
-                { icon: 'hgi-zap',         label: 'Webhooks' },
-                { icon: 'hgi-analytics-02',label: 'Prometheus' },
+                { icon: 'hgi-github',         label: 'GitHub Actions' },
+                { icon: 'hgi-blockchain-01',  label: 'Shelby testnet' },
+                { icon: 'hgi-ai-brain-01',    label: 'HuggingFace Hub' },
+                { icon: 'hgi-shield-01',      label: 'Aptos Move' },
+                { icon: 'hgi-notification-02',label: 'Webhooks' },
+                { icon: 'hgi-analytics-01',   label: 'Prometheus' },
               ].map(({ icon, label }) => (
                 <div className="lp-int-item" key={label}>
                   <i className={`hgi-stroke ${icon}`} />
@@ -347,7 +389,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ── CTA ───────────────────────────────── */}
+        {/* CTA */}
         <section className="lp-cta">
           <div className="lp-shell">
             <div className="lp-cta-card lp-reveal">
@@ -375,13 +417,13 @@ export default function Landing() {
             <span className="lp-footer-dot" />
             <b>Provenode</b>
           </div>
-          <span className="lp-footer-tag">Verified AI model delivery · Shelby shelbynet</span>
+          <span className="lp-footer-tag">Verified AI model delivery · Shelby testnet + Aptos</span>
           <div className="lp-footer-links">
             <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer">
               <i className="hgi-stroke hgi-github"/> GitHub
             </a>
             <Link to="/app/dashboard">Console</Link>
-            <a href="/api/docs" target="_blank" rel="noreferrer">API docs</a>
+            <a href="https://explorer.aptoslabs.com/account/0x77f8cb3dde7d8347cbaa1043889e79077489af6ed828e273f0283bfeccd39d18?network=testnet" target="_blank" rel="noreferrer">Contract</a>
           </div>
         </div>
       </footer>
