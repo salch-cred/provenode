@@ -1351,8 +1351,7 @@ export default async function handler(req, res) {
 
         // Batch into Shelby blob (in production: real upload)
         const blobName = `telemetry/${Date.now()}.jsonl`;
-        const blobData = Buffer.from(validated.map(e => JSON.stringify(e)).join('
-'));
+        const blobData = Buffer.from(validated.map(e => JSON.stringify(e)).join('\n'));
         const shelbyResult = await shelbyUpload({ blobData, blobName, apiKey: process.env.SHELBY_API_KEY });
 
         // Also store lightweight summary in KV for fast API queries
