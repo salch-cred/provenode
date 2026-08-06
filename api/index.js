@@ -1129,7 +1129,7 @@ export default async function handler(req, res) {
         const round = JSON.parse(rawRound);
         if (!round.rawContributions || round.rawContributions.length < 2) return json(res, 400, { error: 'Need at least 2 gradient submissions to aggregate.' });
 
-        const gradients = round.rawContributions.map(c => new Float32Array(Buffer.from(c.gradientBuffer)));
+        const gradients = round.rawContributions.map(c => new Float32Array(Buffer.from(Array.isArray(c.gradientBuffer) ? c.gradientBuffer : Buffer.from(c.gradientBuffer))));
         const sampleCounts = round.rawContributions.map(c => c.sampleCount || 100);
         const aggregated = weightedFedAvg(gradients, sampleCounts);
 
