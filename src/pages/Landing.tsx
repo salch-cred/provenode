@@ -7,7 +7,7 @@ client = ProvenodeClient(
     api_url="https://provenode-git-main-teams16.vercel.app"
 )
 
-# Upload to Shelby testnet, SHA-256 registered on Aptos
+# Upload to Shelbynet, SHA-256 registered on Aptos
 model = client.upload("model.onnx", name="ResNet-v2")
 print(model.sha256)
 
@@ -133,7 +133,7 @@ export default function Landing() {
           <div className="lp-shell">
             <div className="lp-badge lp-anim-fade-up" style={{ animationDelay: '0ms' }}>
               <span className="lp-badge-dot" />
-              Live on Shelby testnet
+              Live on Shelbynet
               <span className="lp-badge-arrow">→</span>
               <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer" className="lp-badge-link">View source</a>
             </div>
@@ -156,7 +156,7 @@ export default function Landing() {
               </a>
             </div>
             <div className="lp-hero-note lp-anim-fade-up" style={{ animationDelay: '320ms' }}>
-              Free · Open source · Built on Shelby testnet + Aptos
+              Free · Open source · Built on Shelbynet + Aptos
             </div>
           </div>
         </section>
@@ -374,7 +374,7 @@ export default function Landing() {
             <div className="lp-int-row">
               {[
                 { icon: 'hgi-github',         label: 'GitHub Actions' },
-                { icon: 'hgi-blockchain-01',  label: 'Shelby testnet' },
+                { icon: 'hgi-blockchain-01',  label: 'Shelbynet' },
                 { icon: 'hgi-ai-brain-01',    label: 'HuggingFace Hub' },
                 { icon: 'hgi-shield-01',      label: 'Aptos Move' },
                 { icon: 'hgi-notification-02',label: 'Webhooks' },
@@ -417,7 +417,7 @@ export default function Landing() {
             <span className="lp-footer-dot" />
             <b>Provenode</b>
           </div>
-          <span className="lp-footer-tag">Verified AI model delivery · Shelby testnet + Aptos</span>
+          <span className="lp-footer-tag">Verified AI model delivery · Shelbynet + Aptos</span>
           <div className="lp-footer-links">
             <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer">
               <i className="hgi-stroke hgi-github"/> GitHub
