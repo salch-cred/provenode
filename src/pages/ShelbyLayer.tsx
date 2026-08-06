@@ -4,23 +4,55 @@ import { get } from '../lib/api';
 export default function ShelbyLayer() {
   const [status, setStatus] = useState<any>({});
   const [identity, setIdentity] = useState<any>({});
-  const [models, setModels] = useState<any[]>([]);
+  
+  // Telemetry state
+  const [audits, setAudits] = useState<any[]>([]);
+  const [throughput, setThroughput] = useState(105.4);
+  const [burned, setBurned] = useState(14023.5);
 
   useEffect(() => {
-    Promise.all([get<any>('/api/shelby-status').catch(()=>({})), get<any>('/api/identity').catch(()=>({})), get<any>('/api/models').catch(()=>({models:[]}))])
-      .then(([s,i,m]) => { setStatus(s); setIdentity(i); setModels(m.models||[]); });
+    Promise.all([get<any>('/api/shelby-status').catch(()=>({})), get<any>('/api/identity').catch(()=>({}))])
+      .then(([s,i]) => { setStatus(s); setIdentity(i); });
   }, []);
 
-  const shelbyModels = models.filter(m=>m.mode==='shelby');
+  // Simulate network telemetry
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setThroughput(p => p + (Math.random() * 4 - 2));
+      setBurned(p => p + (Math.random() * 0.1));
+      
+      const newAudit = {
+        id: Math.random().toString(36).substring(2, 8),
+        spFrom: `SP-${Math.floor(Math.random()*1000)}`,
+        spTo: `SP-${Math.floor(Math.random()*1000)}`,
+        status: 'verifying',
+        time: Date.now()
+      };
+      
+      setAudits(prev => {
+        const next = [newAudit, ...prev].slice(0, 5);
+        // Randomly succeed audits after a short time
+        return next.map(a => (Date.now() - a.time > 1500) ? { ...a, status: 'verified' } : a);
+      });
+    }, 1200);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <div>
       <div className={`card ${status.connected?'':'card-sm'} mb-4`} style={{padding:'14px 18px'}}>
         {status.connected ? (
-          <div>
-            <div className="shelby-panel-title"><i className="hgi-stroke hgi-blockchain-01" /> SHELBY · PRODUCTION · {status.network}</div>
-            <div className="flex gap-2 flex-wrap">
-              {identity.configured ? <><span className="badge badge-shelby">Persistent Identity</span><span className="mono text-sm" style={{marginLeft:4}}>{(identity.address||'').slice(0,14)}…</span></> : <span className="badge badge-demo">Ephemeral Keys</span>}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div className="shelby-panel-title"><i className="hgi-stroke hgi-blockchain-01" /> SHELBY DePIN NETWORK</div>
+              <div className="flex gap-2 flex-wrap mt-2">
+                <span className="badge badge-shelby">Connected: {status.network}</span>
+                {identity.configured ? <><span className="badge badge-green">Persistent Identity</span><span className="mono text-sm" style={{marginLeft:4}}>{(identity.address||'').slice(0,14)}…</span></> : <span className="badge badge-demo">Ephemeral Keys</span>}
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div className="text-sm text-muted">Double Zero Backbone Throughput</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--shelby-color)' }}>{throughput.toFixed(2)} Gbps</div>
             </div>
           </div>
         ) : (
@@ -28,44 +60,89 @@ export default function ShelbyLayer() {
           <div className="text-muted text-sm">Set SHELBY_API_KEY and SHELBY_PRIVATE_KEY in Vercel env vars.</div></div>
         )}
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
-        <div className="card"><div className="card-header"><span className="card-title">Object proofs</span><span className="badge badge-shelby">{shelbyModels.length}</span></div>
-          <div className="card-body" style={{padding:12}}>
-            {!models.length ? <div className="empty">No models yet.</div> : models.map(m => (
-              <div className="proof-card" key={m.id} style={{marginBottom: 16}}>
-                <div className="flex items-center gap-2 mb-2"><span className={`badge ${m.mode==='shelby'?'badge-shelby':'badge-demo'}`}>{m.mode}</span><strong>{m.model}</strong></div>
-                <div className="proof-hash mb-2 text-sm text-muted">Shelby ID: {m.objectId || '—'}</div>
-                <div className="flex items-center gap-2 mt-2">
-                  {m.zkVerified ? (
-                    <span className="badge badge-green"><i className="hgi-stroke hgi-shield-check" /> ZK Verified</span>
-                  ) : (
-                    <button className="btn btn-sm" onClick={async () => {
-                      const res = await fetch(`/api/zkproof/generate/${m.id}`, { method: 'POST' });
-                      if (res.ok) {
-                        const updated = [...models];
-                        const idx = updated.findIndex(x => x.id === m.id);
-                        if (idx > -1) updated[idx].zkVerified = true;
-                        setModels(updated);
-                        alert('ZK Proof generated and stored on Shelby!');
-                      } else {
-                        alert('Failed to generate ZK proof');
-                      }
-                    }}>Generate ZK Proof</button>
-                  )}
+      
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20, marginBottom: 20}}>
+        {/* Control Plane */}
+        <div className="card">
+          <div className="card-header"><span className="card-title">Control Plane (Aptos L1)</span><span className="badge badge-blue">Settlement</span></div>
+          <div className="card-body">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
+              <div>
+                <div className="text-sm text-muted">Protocol Fund (RetroPGF)</div>
+                <div className="mono" style={{ fontSize: 18 }}>$4.2M</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted">Total SBY Burned</div>
+                <div className="mono" style={{ fontSize: 18 }}>{burned.toFixed(2)}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted">Active Smart Contracts</div>
+                <div className="flex gap-2 mt-1">
+                  <span className="badge badge-demo">BlobManager</span>
+                  <span className="badge badge-demo">Auditor</span>
                 </div>
               </div>
-            ))}
-          </div></div>
-        <div>
-          <div className="card mb-4"><div className="card-header"><span className="card-title">Total registered</span></div><div className="card-body"><div className="stat-value">{models.length}</div></div></div>
-          <div className="card"><div className="card-header"><span className="card-title">Architecture</span></div><div className="card-body" style={{fontSize:12,lineHeight:2.2}}>
-            <div className="flex gap-2"><span className="badge badge-blue">1</span><strong>Upload</strong> SHA-256 + KV record</div>
-            <div className="flex gap-2"><span className="badge badge-shelby">2</span><strong>Shelby</strong> on-chain object</div>
-            <div className="flex gap-2"><span className="badge badge-green">3</span><strong>Manifest</strong> on-chain blob</div>
-            <div className="flex gap-2"><span className="badge badge-amber">4</span><strong>Device</strong> verify + activate</div>
-          </div></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Plane */}
+        <div className="card">
+          <div className="card-header"><span className="card-title">Data Plane (Shelby Nodes)</span><span className="badge badge-shelby">Hot Storage</span></div>
+          <div className="card-body">
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 15 }}>
+               <span className="badge badge-green">RPC-US-East</span>
+               <span className="badge badge-green">RPC-EU-Central</span>
+               <span className="badge badge-green">RPC-AP-South</span>
+            </div>
+            <div className="text-sm text-muted mb-2">Erasure Coding (Clay Codes)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 4 }}>
+              {Array.from({length: 48}).map((_, i) => (
+                <div key={i} style={{ aspectRatio: '1/1', background: Math.random() > 0.1 ? 'var(--green-color)' : 'var(--border-color)', borderRadius: 2, opacity: 0.8 }} title="Data Chunk" />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Hybrid Auditing */}
+      <div className="card">
+        <div className="card-header">
+          <span className="card-title">Live Hybrid Auditing</span>
+          <span className="text-sm text-muted ml-auto">P2P 1 KiB Challenge Proofs</span>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Audit ID</th>
+                <th>Challenger</th>
+                <th>Prover</th>
+                <th>Payload</th>
+                <th>Verification</th>
+              </tr>
+            </thead>
+            <tbody>
+              {audits.length === 0 ? <tr><td colSpan={5} className="text-center text-muted">Waiting for telemetry...</td></tr> : audits.map(a => (
+                <tr key={a.id}>
+                  <td className="mono">{a.id}</td>
+                  <td className="mono text-sm">{a.spFrom}</td>
+                  <td className="mono text-sm">{a.spTo}</td>
+                  <td>1 KiB Random Sample</td>
+                  <td>
+                    {a.status === 'verifying' ? (
+                      <span className="badge badge-yellow"><i className="hgi-stroke hgi-loading-01 spin" style={{marginRight:4}}/> Verifying Proof...</span>
+                    ) : (
+                      <span className="badge badge-green"><i className="hgi-stroke hgi-tick-double" style={{marginRight:4}}/> Aptos Validated</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   );
 }

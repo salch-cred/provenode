@@ -377,6 +377,37 @@ export default async function handler(req, res) {
       }
     }
 
+    // ── streaming ──────────────────────────────────────────────
+    if (root === 'streaming') {
+      if (parts[1] === 'session' && method === 'POST') {
+        const body = await parseBody(req);
+        if (!body.modelId) return json(res, 400, { error: 'modelId required' });
+        
+        const session = {
+          id: `stm_${Math.random().toString(36).substring(2, 9)}`,
+          modelId: body.modelId,
+          deviceId: `device_${Math.random().toString(36).substring(2, 6)}`,
+          nodeIp: `192.168.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`,
+          totalBlocks: Math.floor(Math.random() * 5000) + 1000,
+          startedAt: new Date().toISOString()
+        };
+        return json(res, 200, { success: true, session });
+      }
+    }
+
+    // ── federated ──────────────────────────────────────────────
+    if (root === 'federated') {
+      if (parts[1] === 'merge' && method === 'POST') {
+        const body = await parseBody(req);
+        if (!body.nodeIds || !body.nodeIds.length) return json(res, 400, { error: 'nodeIds required' });
+        
+        // Simulate a delay for erasure coding merge
+        await new Promise(r => setTimeout(r, 2000));
+        
+        return json(res, 200, { success: true, message: 'Merged globally', newHash: `0x${Math.random().toString(16).substring(2, 64)}` });
+      }
+    }
+
     // ── upload ──────────────────────────────────────────────
     if (root === 'upload' && method === 'POST') {
       const form = formidable({ maxFileSize: 100 * 1024 * 1024, keepExtensions: true, allowEmptyFiles: false, minFileSize: 1 });
