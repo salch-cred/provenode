@@ -66,7 +66,7 @@ export default function Layout() {
           <div className="sidebar-section" key={sec.section}>
             <div className="sidebar-label">{sec.section}</div>
             {sec.items.map(item => item.to === 'docs' ? (
-              <a key={item.to} href="https://www.provenodes.xyz/docs" target="_blank" rel="noreferrer" className="nav-item">
+              <a key={item.to} href="/docs/" target="_blank" rel="noreferrer" className="nav-item">
                 <span className="icon"><i className={`hgi-stroke ${item.icon}`} /></span>
                 {item.label} ↗
               </a>

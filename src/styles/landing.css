@@ -493,3 +493,88 @@
   .lp-brand { font-size: 15px; }
   .lp-brand .lp-mark img { width: 20px; height: 20px; }
 }
+
+/* ==========================================================================
+   LIQUID GLASS & MOTION ANIMATIONS
+   ========================================================================== */
+
+/* 1. Keyframes */
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 15px rgba(var(--a), 0.2); }
+  50% { box-shadow: 0 0 35px rgba(var(--a), 0.5); }
+}
+
+@keyframes slideUpFade {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* 2. Apply Liquid Glass to Nav and Cards */
+.lp-nav-inner {
+  background: rgba(18, 18, 20, 0.4) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.lp-feat, .lp-prob, .lp-sdk-card, .lp-code-window {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%) !important;
+  backdrop-filter: blur(16px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease, border-color 0.4s ease !important;
+}
+
+/* 3. Hover Motion & Glow */
+.lp-feat:hover, .lp-prob:hover {
+  transform: translateY(-8px) scale(1.02) !important;
+  border-color: rgba(var(--a), 0.4) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(var(--a), 0.15), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+}
+
+/* 4. Intro Animations */
+.lp-hero h1 {
+  animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.lp-hero p {
+  opacity: 0;
+  animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+}
+
+.lp-hero-ctas {
+  opacity: 0;
+  animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+}
+
+/* 5. Floating Visuals */
+.lp-visual, .lp-code-window {
+  animation: floatY 6s ease-in-out infinite;
+}
+
+/* 6. Shimmering Buttons */
+.lp-btn-primary {
+  position: relative;
+  overflow: hidden;
+  animation: pulseGlow 4s infinite;
+}
+
+.lp-btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 3s infinite linear;
+}

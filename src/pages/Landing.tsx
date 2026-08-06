@@ -118,7 +118,7 @@ export default function Landing() {
             <a href="#problem" className="lp-navlink">Why</a>
             <a href="#features" className="lp-navlink">Features</a>
             <a href="#code" className="lp-navlink">SDK</a>
-            <a href="https://www.provenodes.xyz/docs" target="_blank" rel="noreferrer" className="lp-navlink">Docs</a>
+            <a href="/docs/" target="_blank" rel="noreferrer" className="lp-navlink">Docs</a>
             <a href="https://x.com/provenode" target="_blank" rel="noreferrer" className="lp-navlink lp-gh" aria-label="X (Twitter)">
               <i className="hgi-stroke hgi-twitter" />
             </a>
@@ -148,7 +148,7 @@ export default function Landing() {
         <a href="#problem" onClick={() => setMenuOpen(false)}>Why Provenode</a>
         <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
         <a href="#code" onClick={() => setMenuOpen(false)}>SDK</a>
-        <a href="https://www.provenodes.xyz/docs" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>
+        <a href="/docs/" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>
           <i className="hgi-stroke hgi-book-open-01" style={{marginRight:6}} />Docs
         </a>
         <a href="https://x.com/provenode" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>
@@ -459,7 +459,7 @@ export default function Landing() {
           </div>
           <span className="lp-footer-tag">Verified AI model delivery · Shelbynet + Aptos</span>
           <div className="lp-footer-links">
-            <a href="https://www.provenodes.xyz/docs" target="_blank" rel="noreferrer">
+            <a href="/docs/" target="_blank" rel="noreferrer">
               <i className="hgi-stroke hgi-book-open-01"/> Docs
             </a>
             <a href="https://x.com/provenode" target="_blank" rel="noreferrer">
