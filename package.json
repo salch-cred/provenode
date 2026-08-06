@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && cd ../provenode-docs && npm install && npm run build && node -e \"require('fs').cpSync('build', '../provenode/dist/docs', {recursive:true})\"",
     "preview": "vite preview"
   },
   "dependencies": {

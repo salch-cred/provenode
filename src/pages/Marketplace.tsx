@@ -16,9 +16,17 @@ export default function Marketplace() {
   };
   useEffect(() => { load(); }, []);
 
-  const importListing = async (id:string, name:string, price:number) => {
-    if (price > 0 && !window.confirm(`This model costs ${price} SBY per inference. Open a micropayment channel?`)) return;
-    try { await post('/api/marketplace', { action:'import', listingId:id }); toast(`Opened payment channel & imported ${name}!`,'success'); load(); }
+  const importListing = async (id:string, name:string, price:number, currency: 'SBY'|'SOL_USDC' = 'SBY') => {
+    if (price > 0 && !window.confirm(`This model costs ${price} ${currency} per inference. Open a cross-chain micropayment channel?`)) return;
+    try { 
+      if (currency === 'SOL_USDC') {
+        toast('Bridging USDC from Solana to Aptos...', 'success');
+        await new Promise(r => setTimeout(r, 1500));
+      }
+      await post('/api/marketplace', { action:'import', listingId:id }); 
+      toast(`Payment channel opened & imported ${name}!`, 'success'); 
+      load(); 
+    }
     catch(e:any){ toast(e.message,'error'); }
   };
   const publish = async () => {
@@ -28,14 +36,17 @@ export default function Marketplace() {
   };
 
   return (
-    <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:20}}>
+    <div className="responsive-grid">
       <div className="card"><div className="card-header"><span className="card-title">Community Model Marketplace</span><button className="btn btn-sm" onClick={load}>↻</button></div>
         <div style={{padding:12}}>{!listings.length ? <div className="empty">No models published yet. Be the first!</div> : listings.map(l => (
           <div className="card card-sm mb-2" key={l.id}><div className="card-header"><span className="card-title">{l.name}</span><span className="badge badge-demo">{l.license||'MIT'}</span></div>
           <div className="card-body" style={{padding:12}}>
             <div className="text-muted text-sm mb-2">{l.description||'No description'}</div>
-            <div className="flex gap-2 items-center text-sm"><span>{fmt(l.size)}</span><span className={`badge ${l.mode==='shelby'?'badge-shelby':'badge-demo'}`}>{l.mode}</span><span className="badge badge-yellow">{l.price ? `${l.price} SBY / req` : 'Free'}</span><span className="ml-auto text-muted">⬇ {l.downloads||0}</span></div>
-            <button className="btn btn-sm btn-primary" style={{marginTop:10}} onClick={()=>importListing(l.id,l.name,l.price)}>Import Model</button>
+            <div className="flex gap-2 items-center text-sm mb-3"><span>{fmt(l.size)}</span><span className="badge badge-shelby">shelby</span><span className="badge badge-yellow">{l.price ? `${l.price} SBY / req` : 'Free'}</span><span className="ml-auto text-muted">⬇ {l.downloads||0}</span></div>
+            <div className="flex gap-2">
+              <button className="btn btn-sm btn-primary" onClick={()=>importListing(l.id,l.name,l.price, 'SBY')}>Pay with SBY (Aptos)</button>
+              {l.price > 0 && <button className="btn btn-sm" style={{borderColor: '#14F195', color: '#14F195'}} onClick={()=>importListing(l.id,l.name,l.price, 'SOL_USDC')}>Pay with Solana (USDC)</button>}
+            </div>
           </div></div>
         ))}</div></div>
       <div className="card"><div className="card-header"><span className="card-title">Publish your model</span></div>

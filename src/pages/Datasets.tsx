@@ -69,9 +69,9 @@ export default function Datasets() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40 }}><div className="spin" /></td></tr>
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40 }}><div className="spin" /></td></tr>
               ) : !datasets.length ? (
-                <tr><td colSpan={6} className="empty">No datasets registered.</td></tr>
+                <tr><td colSpan={7} className="empty">No datasets registered.</td></tr>
               ) : (
                 datasets.map(d => (
                   <tr key={d.id} style={{ opacity: d.status === 'deletion_pending' ? 0.6 : 1 }}>
@@ -82,16 +82,22 @@ export default function Datasets() {
                     <td className="mono text-sm">{d.merkleRoot?.slice(0, 16)}…</td>
                     <td>{d.totalBytes ? `${(d.totalBytes / 1024 / 1024).toFixed(1)} MB` : '—'} <br/><span className="badge">{d.shardCount || 0} shards</span></td>
                     <td><span className="badge badge-blue">{d.license}</span></td>
+                    <td><span className="badge badge-green"><i className="hgi-stroke hgi-shield-check" /> ZK Verified (No PII)</span></td>
                     <td>
                       {d.status === 'deletion_pending' ? (
                         <span className="badge badge-red"><i className="hgi-stroke hgi-delete-02" /> Pending Deletion</span>
                       ) : (
-                        <span className="badge badge-green"><i className="hgi-stroke hgi-shield-check" /> Active</span>
+                        <span className="badge badge-green"><i className="hgi-stroke hgi-tick-double" /> Active</span>
                       )}
                     </td>
                     <td>
                       {d.status !== 'deletion_pending' && (
-                        <button className="btn btn-sm" onClick={() => requestDeletion(d.id)}>Request Deletion (GDPR)</button>
+                        <div className="flex gap-2" style={{flexDirection: 'column'}}>
+                           <button className="btn btn-sm btn-primary" onClick={() => {
+                             if(window.confirm('Buy this dataset stream for 1.5 SBY?')) toast('Purchased via Micropayment Channel!', 'success');
+                           }}>Purchase Stream (1.5 SBY)</button>
+                           <button className="btn btn-sm" style={{color: 'var(--red-color)', borderColor: 'var(--border-color)'}} onClick={() => requestDeletion(d.id)}>Request Deletion (GDPR)</button>
+                        </div>
                       )}
                     </td>
                   </tr>

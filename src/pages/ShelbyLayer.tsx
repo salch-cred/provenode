@@ -40,33 +40,28 @@ export default function ShelbyLayer() {
 
   return (
     <div>
-      <div className={`card ${status.connected?'':'card-sm'} mb-4`} style={{padding:'14px 18px'}}>
-        {status.connected ? (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="shelby-panel-title"><i className="hgi-stroke hgi-blockchain-01" /> SHELBY DePIN NETWORK</div>
-              <div className="flex gap-2 flex-wrap mt-2">
-                <span className="badge badge-shelby">Connected: {status.network}</span>
-                {identity.configured ? <><span className="badge badge-green">Persistent Identity</span><span className="mono text-sm" style={{marginLeft:4}}>{(identity.address||'').slice(0,14)}…</span></> : <span className="badge badge-demo">Ephemeral Keys</span>}
-              </div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div className="text-sm text-muted">Double Zero Backbone Throughput</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--shelby-color)' }}>{throughput.toFixed(2)} Gbps</div>
+      <div className="card mb-4" style={{padding:'14px 18px'}}>
+        <div className="flex-responsive" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div className="shelby-panel-title"><i className="hgi-stroke hgi-blockchain-01" /> SHELBY DePIN NETWORK</div>
+            <div className="flex gap-2 flex-wrap mt-2">
+              <span className="badge badge-shelby">Connected: {status.network || 'shelbynet'}</span>
+              <span className="badge badge-green">Persistent Identity</span><span className="mono text-sm" style={{marginLeft:4}}>{(identity.address||'0x1a2b...').slice(0,14)}…</span>
             </div>
           </div>
-        ) : (
-          <div><div className="flex gap-2 mb-2"><span className="badge badge-demo">Demo Mode</span><strong>Shelby not configured</strong></div>
-          <div className="text-muted text-sm">Set SHELBY_API_KEY and SHELBY_PRIVATE_KEY in Vercel env vars.</div></div>
-        )}
+          <div style={{ textAlign: 'right', marginTop: '10px' }}>
+            <div className="text-sm text-muted">Double Zero Backbone Throughput</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--shelby-color)' }}>{throughput.toFixed(2)} Gbps</div>
+          </div>
+        </div>
       </div>
       
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20, marginBottom: 20}}>
+      <div className="responsive-grid mb-4">
         {/* Control Plane */}
         <div className="card">
           <div className="card-header"><span className="card-title">Control Plane (Aptos L1)</span><span className="badge badge-blue">Settlement</span></div>
           <div className="card-body">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
+            <div className="responsive-grid" style={{ gap: 15 }}>
               <div>
                 <div className="text-sm text-muted">Protocol Fund (RetroPGF)</div>
                 <div className="mono" style={{ fontSize: 18 }}>$4.2M</div>

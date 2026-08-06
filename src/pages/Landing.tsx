@@ -20,7 +20,7 @@ export default function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Scroll reveal
+    // Scroll reveal with smoother pacing
     const io = new IntersectionObserver(
       (es) => es.forEach(e => {
         if (e.isIntersecting) {
@@ -28,7 +28,7 @@ export default function Landing() {
           io.unobserve(e.target);
         }
       }),
-      { threshold: 0.07, rootMargin: '0px 0px -40px 0px' }
+      { threshold: 0.1, rootMargin: '0px 0px -60px 0px' }
     );
     ref.current?.querySelectorAll('.lp-reveal').forEach(el => io.observe(el));
 
@@ -118,6 +118,10 @@ export default function Landing() {
             <a href="#problem" className="lp-navlink">Why</a>
             <a href="#features" className="lp-navlink">Features</a>
             <a href="#code" className="lp-navlink">SDK</a>
+            <a href="https://www.provenodes.xyz/docs" target="_blank" rel="noreferrer" className="lp-navlink">Docs</a>
+            <a href="https://x.com/provenode" target="_blank" rel="noreferrer" className="lp-navlink lp-gh" aria-label="X (Twitter)">
+              <i className="hgi-stroke hgi-twitter" />
+            </a>
             <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer" className="lp-navlink lp-gh" aria-label="GitHub">
               <i className="hgi-stroke hgi-github" />
             </a>
@@ -144,6 +148,12 @@ export default function Landing() {
         <a href="#problem" onClick={() => setMenuOpen(false)}>Why Provenode</a>
         <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
         <a href="#code" onClick={() => setMenuOpen(false)}>SDK</a>
+        <a href="https://www.provenodes.xyz/docs" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>
+          <i className="hgi-stroke hgi-book-open-01" style={{marginRight:6}} />Docs
+        </a>
+        <a href="https://x.com/provenode" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>
+          <i className="hgi-stroke hgi-twitter" style={{marginRight:6}} />X @provenode
+        </a>
         <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>
           <i className="hgi-stroke hgi-github" style={{marginRight:6}} />GitHub
         </a>
@@ -449,6 +459,12 @@ export default function Landing() {
           </div>
           <span className="lp-footer-tag">Verified AI model delivery · Shelbynet + Aptos</span>
           <div className="lp-footer-links">
+            <a href="https://www.provenodes.xyz/docs" target="_blank" rel="noreferrer">
+              <i className="hgi-stroke hgi-book-open-01"/> Docs
+            </a>
+            <a href="https://x.com/provenode" target="_blank" rel="noreferrer">
+              <i className="hgi-stroke hgi-twitter"/> X @provenode
+            </a>
             <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer">
               <i className="hgi-stroke hgi-github"/> GitHub
             </a>

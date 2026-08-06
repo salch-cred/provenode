@@ -775,6 +775,27 @@ input:focus, select:focus, textarea:focus { border-color: var(--coral); }
 .lineage-node.root { border-color:var(--coral); box-shadow:var(--shadow); }
 .lineage-node.ancestor { opacity:.8; }
 .lineage-node.descendant { border-color:var(--green); }
+
+/* Mobile fixes */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media(min-width: 768px) {
+  .responsive-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.flex-responsive {
+  display: flex;
+  flex-direction: column;
+}
+@media(min-width: 768px) {
+  .flex-responsive {
+    flex-direction: row;
+  }
+}
 .lineage-arrow { font-size:20px; color:var(--text-muted); line-height:1; padding:2px 0; }
 .proof-card { background:var(--surface); border:2px solid var(--border); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; box-shadow:var(--shadow-sm); }
 .proof-hash { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); word-break:break-all; }
