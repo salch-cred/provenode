@@ -1,0 +1,47 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #ff5e3a;
+  --ifm-color-primary-dark: #e04b2b;
+  --ifm-color-primary-darker: #d44728;
+  --ifm-color-primary-darkest: #af3a21;
+  --ifm-color-primary-light: #ff7859;
+  --ifm-color-primary-lighter: #ff8568;
+  --ifm-color-primary-lightest: #ffad98;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --ifm-font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+  --ifm-background-color: #f7f9fa;
+}
+
+/* For dark mode */
+[data-theme='dark'] {
+  --ifm-color-primary: #ff5e3a;
+  --ifm-color-primary-dark: #e04b2b;
+  --ifm-color-primary-darker: #d44728;
+  --ifm-color-primary-darkest: #af3a21;
+  --ifm-color-primary-light: #ff7859;
+  --ifm-color-primary-lighter: #ff8568;
+  --ifm-color-primary-lightest: #ffad98;
+  --ifm-background-color: #0b0f19;
+  --ifm-background-surface-color: #121826;
+  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
+}
+
+body {
+  font-family: var(--ifm-font-family-base);
+}
+
+.navbar {
+  box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1),0 1px 2px 0 rgba(0,0,0,0.06);
+}
+
+[data-theme='dark'] .navbar {
+  box-shadow: 0 1px 0 0 rgba(255,255,255,0.05);
+  background-color: rgba(11, 15, 25, 0.8) !important;
+  backdrop-filter: blur(12px);
+}
