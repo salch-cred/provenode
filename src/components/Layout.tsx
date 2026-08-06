@@ -9,13 +9,18 @@ const NAV = [
     { to: 'registry',    label: 'Registry',     icon: 'hgi-database-01' },
   ]},
   { section: 'Intelligence', items: [
+    { to: 'integrity',   label: 'Integrity Monitor', icon: 'hgi-shield-tick' },
+    { to: 'datasets',    label: 'Datasets',      icon: 'hgi-database-02' },
     { to: 'lineage',     label: 'Lineage',      icon: 'hgi-git-branch' },
     { to: 'abtest',      label: 'A/B Tests',    icon: 'hgi-analytics-01' },
+    { to: 'federated',   label: 'Federated',    icon: 'hgi-share-01' },
+    { to: 'distillation',label: 'Distillation', icon: 'hgi-flask' },
   ]},
   { section: 'Fleet', items: [
     { to: 'devices',     label: 'Devices',      icon: 'hgi-cpu' },
     { to: 'fleet',       label: 'OTA + Canary', icon: 'hgi-rotate-01' },
     { to: 'groups',      label: 'Groups',       icon: 'hgi-folder-01' },
+    { to: 'streaming',   label: 'Streaming',    icon: 'hgi-wifi-01' },
   ]},
   { section: 'Blockchain', items: [
     { to: 'objects',     label: 'Shelby Objects', icon: 'hgi-package-open' },
@@ -27,6 +32,9 @@ const NAV = [
     { to: 'marketplace', label: 'Marketplace',  icon: 'hgi-store-01' },
     { to: 'analytics',   label: 'Analytics',    icon: 'hgi-analytics-02' },
     { to: 'schedule',    label: 'Scheduled',    icon: 'hgi-calendar-01' },
+  ]},
+  { section: 'Resources', items: [
+    { to: 'docs',        label: 'Documentation', icon: 'hgi-book-open-01' },
   ]},
   { section: 'Config', items: [
     { to: 'webhooks',    label: 'Webhooks',     icon: 'hgi-flash' },
@@ -55,7 +63,12 @@ export default function Layout() {
         {NAV.map(sec => (
           <div className="sidebar-section" key={sec.section}>
             <div className="sidebar-label">{sec.section}</div>
-            {sec.items.map(item => (
+            {sec.items.map(item => item.to === 'docs' ? (
+              <a key={item.to} href="http://localhost:3001" target="_blank" rel="noreferrer" className="nav-item">
+                <span className="icon"><i className={`hgi-stroke ${item.icon}`} /></span>
+                {item.label} ↗
+              </a>
+            ) : (
               <NavLink key={item.to} to={`/app/${item.to}`} className={({isActive}) => `nav-item ${isActive ? 'active' : ''}`}>
                 <span className="icon"><i className={`hgi-stroke ${item.icon}`} /></span>
                 {item.label}

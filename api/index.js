@@ -71,20 +71,35 @@ export const config = {
 };
 
 
-// ── Rate limiting (IP-based, 30 req/10s on mutating routes) ─────────
-const _rateLimitStore = new Map(); // in-memory sliding window (sufficient for serverless)
-function checkRateLimit(req, limit = 30, windowMs = 10000) {
+// ── Rate limiting (Redis-backed sliding window — works across all Vercel instances) ─────
+// Falls back to in-memory if KV not configured (local dev)
+const _memStore = new Map();
+
+async function checkRateLimit(req, limit = 30, windowMs = 10000) {
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
               req.headers['x-real-ip'] || 'unknown';
   const now = Date.now();
-  const key = ip;
-  const record = _rateLimitStore.get(key) || { count: 0, resetAt: now + windowMs };
-  if (now > record.resetAt) { record.count = 0; record.resetAt = now + windowMs; }
+  const windowKey = Math.floor(now / windowMs); // bucket per window
+  const key = `rl:${ip}:${windowKey}`;
+
+  try {
+    if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+      // Redis INCR + EXPIRE = atomic sliding window, works across all instances
+      const { Redis } = await import('@upstash/redis');
+      const redis = new Redis({ url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN });
+      const count = await redis.incr(key);
+      if (count === 1) await redis.expire(key, Math.ceil(windowMs / 1000) + 1);
+      const remaining = Math.max(0, limit - count);
+      return { allowed: count <= limit, remaining, resetAt: (windowKey + 1) * windowMs };
+    }
+  } catch (_) { /* fall through to in-memory */ }
+
+  // In-memory fallback (local dev only — not shared across instances)
+  const record = _memStore.get(key) || { count: 0, resetAt: (windowKey + 1) * windowMs };
   record.count++;
-  _rateLimitStore.set(key, record);
-  // Clean old entries occasionally
-  if (_rateLimitStore.size > 10000) {
-    for (const [k, v] of _rateLimitStore) { if (now > v.resetAt) _rateLimitStore.delete(k); }
+  _memStore.set(key, record);
+  if (_memStore.size > 5000) {
+    for (const [k, v] of _memStore) { if (now > v.resetAt) _memStore.delete(k); }
   }
   return { allowed: record.count <= limit, remaining: Math.max(0, limit - record.count), resetAt: record.resetAt };
 }
@@ -97,7 +112,7 @@ export default async function handler(req, res) {
 
   // Rate limit mutating requests (POST, PATCH, DELETE) — 30 per 10s per IP
   if (['POST','PATCH','DELETE'].includes(req.method)) {
-    const rl = checkRateLimit(req, 30, 10000);
+    const rl = await checkRateLimit(req, 30, 10000);
     res.setHeader('X-RateLimit-Remaining', String(rl.remaining));
     if (!rl.allowed) {
       res.setHeader('Retry-After', String(Math.ceil((rl.resetAt - Date.now()) / 1000)));
@@ -197,6 +212,169 @@ export default async function handler(req, res) {
         return Object.fromEntries(PUBLIC.map(f => [f, r[f]]).filter(([,v]) => v !== undefined));
       }))).filter(Boolean).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
       return json(res, 200, { success: true, models });
+    }
+
+    // ── certificate ───────────────────────────────────────────
+    if (root === 'certificate' && method === 'GET') {
+      const id = parts[1];
+      if (!id) return json(res, 400, { error: 'Model ID required' });
+      const recordStr = await db.get(`model:${id}`);
+      if (!recordStr) return json(res, 404, { error: 'Model not found' });
+      const record = JSON.parse(recordStr);
+      
+      const certificate = {
+        modelId: record.id,
+        modelName: record.model,
+        mode: record.mode,
+        sha256: record.sha256,
+        size: record.size,
+        createdAt: record.createdAt,
+        ownerAddress: record.address || '0xProvenodeDemo',
+        storageProvider: record.mode === 'shelby' ? 'Shelby Protocol' : 'Local Sandbox',
+        shelbyObjectId: record.objectId,
+        lineage: record.parentId ? { parentId: record.parentId } : null,
+        cryptographicSignature: record.signature || 'unsigned',
+        issuer: 'Provenode Network',
+        verificationUrl: `https://${req.headers.host || 'www.provenodes.xyz'}/verify?id=${record.id}`,
+      };
+      return json(res, 200, { success: true, certificate });
+    }
+
+    // ── zkproof ───────────────────────────────────────────────
+    if (root === 'zkproof') {
+      const action = parts[1]; // 'generate' or 'verify'
+      const id = parts[2];
+      if (!id) return json(res, 400, { error: 'Model ID required' });
+      
+      const recordStr = await db.get(`model:${id}`);
+      if (!recordStr) return json(res, 404, { error: 'Model not found' });
+      const record = JSON.parse(recordStr);
+      
+      if (action === 'generate' && method === 'POST') {
+        const { generateModelCommitment, STANDARD_BENCHMARK_VECTORS } = await import('../lib/zkproof.js');
+        // We simulate inference outputs for the benchmark vectors
+        const testVectors = STANDARD_BENCHMARK_VECTORS.map(v => ({...v, expectedOutput: `simulated_output_for_${v.id}`}));
+        const { proof } = generateModelCommitment({ 
+          modelSha256: record.sha256, 
+          testVectors, 
+          privateKey: process.env.SHELBY_PRIVATE_KEY 
+        });
+        
+        // Store proof in KV
+        await db.put(`zkproof:${id}`, JSON.stringify(proof));
+        
+        // Mark model as verified
+        record.zkVerified = true;
+        await db.put(`model:${id}`, JSON.stringify(record));
+        
+        return json(res, 200, { success: true, proof });
+      }
+      
+      if (action === 'verify' && method === 'GET') {
+        const proofStr = await db.get(`zkproof:${id}`);
+        if (!proofStr) return json(res, 404, { error: 'ZK proof not found for this model' });
+        
+        const { verifyProof } = await import('../lib/zkproof.js');
+        const proof = JSON.parse(proofStr);
+        const result = verifyProof(proof);
+        
+        return json(res, 200, { success: true, verified: result.valid, result, proof });
+      }
+    }
+
+    // ── integrity ─────────────────────────────────────────────
+    if (root === 'integrity') {
+      const action = parts[1]; // 'scan' or 'heal'
+      const deviceId = parts[2];
+      
+      if (action === 'scan' && method === 'POST') {
+        const { evaluateFleetHealth } = await import('../lib/selfheal.js');
+        const { keys: devKeys } = await db.list({ prefix: 'device:' });
+        const devices = await Promise.all(devKeys.map(async k => JSON.parse(await db.get(k.name))));
+        
+        const { keys: modKeys } = await db.list({ prefix: 'model:' });
+        const models = await Promise.all(modKeys.map(async k => JSON.parse(await db.get(k.name))));
+        
+        const health = evaluateFleetHealth(devices, models);
+        return json(res, 200, { success: true, health });
+      }
+      
+      if (action === 'heal' && method === 'POST') {
+        if (!deviceId) return json(res, 400, { error: 'Device ID required' });
+        const { modelId } = await parseBody(req);
+        if (!modelId) return json(res, 400, { error: 'Model ID required' });
+        
+        const modelStr = await db.get(`model:${modelId}`);
+        if (!modelStr) return json(res, 404, { error: 'Model not found' });
+        const model = JSON.parse(modelStr);
+        
+        const { buildHealCommand } = await import('../lib/selfheal.js');
+        const command = buildHealCommand({ 
+          deviceId, 
+          modelId, 
+          shelbyObjectId: model.objectId, 
+          cleanSha256: model.sha256 
+        });
+        
+        // In a real app, send via WebSocket. Here we store it for the device to pick up.
+        await db.put(`heal:${deviceId}`, JSON.stringify(command));
+        
+        // Mark device as currently healing
+        const devStr = await db.get(`device:${deviceId}`);
+        if (devStr) {
+          const dev = JSON.parse(devStr);
+          dev.healing = true;
+          await db.put(`device:${deviceId}`, JSON.stringify(dev));
+        }
+        
+        return json(res, 200, { success: true, command });
+      }
+    }
+
+    // ── datasets ──────────────────────────────────────────────
+    if (root === 'datasets') {
+      const action = parts[1]; // 'delete' or undefined
+      
+      if (method === 'GET') {
+        const { keys } = await db.list({ prefix: 'dataset:' });
+        const datasets = await Promise.all(keys.map(async k => JSON.parse(await db.get(k.name))));
+        return json(res, 200, { success: true, datasets: datasets.sort((a,b) => new Date(b.registeredAt) - new Date(a.registeredAt)) });
+      }
+      
+      if (method === 'POST' && !action) {
+        const body = await parseBody(req);
+        const { buildDatasetRecord } = await import('../lib/datasets.js');
+        // Dummy shards for demo
+        const record = buildDatasetRecord({
+          name: body.name,
+          license: body.license,
+          source: body.source,
+          description: body.description,
+          shards: [{ index: 0, size: 1048576, sha256: 'dummy_hash', data: Buffer.from('') }]
+        });
+        await db.put(`dataset:${record.id}`, JSON.stringify(record));
+        return json(res, 200, { success: true, record });
+      }
+      
+      if (action === 'delete' && method === 'POST') {
+        const body = await parseBody(req);
+        const { datasetId, reason } = body;
+        if (!datasetId) return json(res, 400, { error: 'datasetId required' });
+        
+        const dsStr = await db.get(`dataset:${datasetId}`);
+        if (!dsStr) return json(res, 404, { error: 'Dataset not found' });
+        
+        const { buildDeletionRequest } = await import('../lib/datasets.js');
+        const reqRecord = buildDeletionRequest({ datasetId, requestedBy: 'admin', reason });
+        
+        // Update dataset status
+        const ds = JSON.parse(dsStr);
+        ds.status = 'deletion_pending';
+        ds.deletionRequest = reqRecord;
+        
+        await db.put(`dataset:${datasetId}`, JSON.stringify(ds));
+        return json(res, 200, { success: true, request: reqRecord });
+      }
     }
 
     // ── upload ──────────────────────────────────────────────

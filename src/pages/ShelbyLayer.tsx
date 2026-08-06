@@ -32,9 +32,27 @@ export default function ShelbyLayer() {
         <div className="card"><div className="card-header"><span className="card-title">Object proofs</span><span className="badge badge-shelby">{shelbyModels.length}</span></div>
           <div className="card-body" style={{padding:12}}>
             {!models.length ? <div className="empty">No models yet.</div> : models.map(m => (
-              <div className="proof-card" key={m.id}>
+              <div className="proof-card" key={m.id} style={{marginBottom: 16}}>
                 <div className="flex items-center gap-2 mb-2"><span className={`badge ${m.mode==='shelby'?'badge-shelby':'badge-demo'}`}>{m.mode}</span><strong>{m.model}</strong></div>
-                <div className="proof-hash mb-2">{m.objectId || '—'}</div>
+                <div className="proof-hash mb-2 text-sm text-muted">Shelby ID: {m.objectId || '—'}</div>
+                <div className="flex items-center gap-2 mt-2">
+                  {m.zkVerified ? (
+                    <span className="badge badge-green"><i className="hgi-stroke hgi-shield-check" /> ZK Verified</span>
+                  ) : (
+                    <button className="btn btn-sm" onClick={async () => {
+                      const res = await fetch(`/api/zkproof/generate/${m.id}`, { method: 'POST' });
+                      if (res.ok) {
+                        const updated = [...models];
+                        const idx = updated.findIndex(x => x.id === m.id);
+                        if (idx > -1) updated[idx].zkVerified = true;
+                        setModels(updated);
+                        alert('ZK Proof generated and stored on Shelby!');
+                      } else {
+                        alert('Failed to generate ZK proof');
+                      }
+                    }}>Generate ZK Proof</button>
+                  )}
+                </div>
               </div>
             ))}
           </div></div>

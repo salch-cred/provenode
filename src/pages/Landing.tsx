@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const CODE_SAMPLE = `from provenode import ProvenodeClient
@@ -17,6 +17,7 @@ print(dep.status)  # "verified"`;
 
 export default function Landing() {
   const ref = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     // Scroll reveal
@@ -34,6 +35,8 @@ export default function Landing() {
     // Nav glass on scroll
     const nav = document.querySelector('.lp-nav') as HTMLElement | null;
     const onScroll = () => nav?.classList.toggle('scrolled', window.scrollY > 20);
+    // Apply immediately on mount too
+    onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
 
     // Counter animation
@@ -106,7 +109,7 @@ export default function Landing() {
 
       {/* Nav */}
       <header className="lp-nav">
-        <div className="lp-shell lp-nav-inner">
+        <div className="lp-nav-inner">
           <Link to="/" className="lp-brand">
             <span className="lp-mark"><img src="/provenode-logo.svg" alt="" /></span>
             Provenode
@@ -118,13 +121,40 @@ export default function Landing() {
             <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer" className="lp-navlink lp-gh" aria-label="GitHub">
               <i className="hgi-stroke hgi-github" />
             </a>
+            <span className="lp-nav-sep" aria-hidden="true" />
             <Link to="/login" className="lp-btn lp-btn-ghost">Sign in</Link>
             <Link to="/app/dashboard" className="lp-btn lp-btn-orange">
               <i className="hgi-stroke hgi-rocket-01" /> Deploy now
             </Link>
           </nav>
+          {/* Hamburger — mobile only */}
+          <button
+            className={`lp-hamburger${menuOpen ? ' open' : ''}`}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(o => !o)}
+          >
+            <span /><span /><span />
+          </button>
         </div>
       </header>
+
+      {/* Mobile nav drawer */}
+      <div className={`lp-mobile-nav${menuOpen ? ' open' : ''}`} aria-hidden={!menuOpen}>
+        <a href="#problem" onClick={() => setMenuOpen(false)}>Why Provenode</a>
+        <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
+        <a href="#code" onClick={() => setMenuOpen(false)}>SDK</a>
+        <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}>
+          <i className="hgi-stroke hgi-github" style={{marginRight:6}} />GitHub
+        </a>
+        <div className="lp-mobile-divider" />
+        <div className="lp-mobile-ctas">
+          <Link to="/login" className="lp-btn lp-btn-ghost" onClick={() => setMenuOpen(false)}>Sign in</Link>
+          <Link to="/app/dashboard" className="lp-btn lp-btn-orange" onClick={() => setMenuOpen(false)}>
+            <i className="hgi-stroke hgi-rocket-01" /> Deploy now
+          </Link>
+        </div>
+      </div>
 
       <main>
 

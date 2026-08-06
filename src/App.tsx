@@ -23,6 +23,11 @@ import Schedule from './pages/Schedule';
 import Groups from './pages/Groups';
 import Bluegreen from './pages/Bluegreen';
 import Audit from './pages/Audit';
+import Integrity from './pages/Integrity';
+import Datasets from './pages/Datasets';
+import Federated from './pages/Federated';
+import Streaming from './pages/Streaming';
+import Distillation from './pages/Distillation';
 
 // Only mounted when PrivyProvider is guaranteed present in the tree (noAuth=false)
 function PrivyGuard({ children }: { children: React.ReactNode }) {
@@ -63,6 +68,11 @@ export default function App({ noAuth }: { noAuth?: boolean }) {
         <Route path="groups"        element={<Groups />} />
         <Route path="bluegreen"     element={<Bluegreen />} />
         <Route path="audit"         element={<Audit />} />
+        <Route path="integrity"     element={<Integrity />} />
+        <Route path="datasets"      element={<Datasets />} />
+        <Route path="federated"     element={<Federated />} />
+        <Route path="streaming"     element={<Streaming />} />
+        <Route path="distillation"  element={<Distillation />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
