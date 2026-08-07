@@ -773,6 +773,21 @@ input:focus, select:focus, textarea:focus { border-color: var(--coral); }
 .lineage-tree { display:flex; flex-direction:column; align-items:center; gap:4px; }
 .lineage-node { width:100%; max-width:420px; background:var(--surface); border:2px solid var(--border); border-radius:var(--radius); padding:12px 14px; box-shadow:var(--shadow-sm); }
 .lineage-node.root { border-color:var(--coral); box-shadow:var(--shadow); }
+
+/* Fix overflow from long unbroken text (e.g. malicious model names) */
+.feed-desc, .feed-desc strong, td, th, .card {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+.table-wrap {
+  max-width: 100vw;
+}
+.feed-desc {
+  max-width: 100%;
+}
+@media (max-width: 768px) {
+  td { white-space: normal !important; word-break: break-all; }
+}
 .lineage-node.ancestor { opacity:.8; }
 .lineage-node.descendant { border-color:var(--green); }
 

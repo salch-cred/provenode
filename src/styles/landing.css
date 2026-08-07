@@ -462,8 +462,8 @@
 .lp-footer-brand { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .lp-footer-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--coral); display: inline-block; }
 .lp-footer-tag { font-size: 12px; color: var(--text-muted); }
-.lp-footer-links { display: flex; gap: 16px; }
-.lp-footer-links a { font-size: 12px; color: var(--text-muted); text-decoration: none; display: flex; align-items: center; gap: 4px; transition: color .15s; }
+.lp-footer-links { display: flex; flex-wrap: wrap; gap: 16px; }
+.lp-footer-links a { font-size: 12px; color: var(--text-muted); text-decoration: none; display: flex; align-items: center; gap: 4px; transition: color .15s; white-space: nowrap; }
 .lp-footer-links a:hover { color: var(--text-primary); }
 
 /* ── Responsive board floats ─────────────────────────────────────────── */
