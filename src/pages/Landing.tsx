@@ -97,10 +97,38 @@ export default function Landing() {
       tio.observe(terminal);
     }
 
+    // 3D Tilt effect on feature cards
+    const cards = ref.current?.querySelectorAll('.lp-feat');
+    const handleMouseMove = (e: MouseEvent) => {
+      const el = e.currentTarget as HTMLElement;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const tiltX = ((y - cy) / cy) * -10;
+      const tiltY = ((x - cx) / cx) * 10;
+      el.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale3d(1.02, 1.02, 1.02)`;
+      el.style.zIndex = '10';
+    };
+    const handleMouseLeave = (e: MouseEvent) => {
+      const el = e.currentTarget as HTMLElement;
+      el.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+      el.style.zIndex = '1';
+    };
+    cards?.forEach(card => {
+      card.addEventListener('mousemove', handleMouseMove as EventListener);
+      card.addEventListener('mouseleave', handleMouseLeave as EventListener);
+    });
+
     return () => {
       io.disconnect();
       cio.disconnect();
       window.removeEventListener('scroll', onScroll);
+      cards?.forEach(card => {
+        card.removeEventListener('mousemove', handleMouseMove as EventListener);
+        card.removeEventListener('mouseleave', handleMouseLeave as EventListener);
+      });
     };
   }, []);
 
@@ -200,6 +228,21 @@ export default function Landing() {
             </div>
           </div>
         </section>
+
+        {/* Marquee */}
+        <div className="lp-marquee-container">
+          <div className="lp-marquee-content">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="lp-marquee-track">
+                <span>✦ Powered by Aptos</span>
+                <span>✦ Secured by Shelby Protocol</span>
+                <span>✦ Built for EU AI Act</span>
+                <span>✦ Zero-Knowledge Verified</span>
+                <span>✦ Autonomous Edge Healing</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Product board */}
         <div className="lp-board-wrap lp-shell lp-reveal">
