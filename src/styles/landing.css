@@ -671,26 +671,26 @@ body::before {
   content: '';
   position: fixed;
   top: -20vh; right: -10vw; width: 60vw; height: 60vw;
-  background: radial-gradient(circle, rgba(255, 107, 53, 0.12) 0%, rgba(255, 107, 53, 0) 60%);
+  background: radial-gradient(circle, rgba(255, 107, 53, 0.3) 0%, rgba(255, 107, 53, 0) 65%);
   border-radius: 50%;
   z-index: -1;
   pointer-events: none;
   animation: blobFloat 15s ease-in-out infinite;
-  filter: blur(40px);
+  filter: blur(80px);
 }
 body::after {
   content: '';
   position: fixed;
   bottom: -20vh; left: -10vw; width: 70vw; height: 70vw;
-  background: radial-gradient(circle, rgba(162, 107, 255, 0.1) 0%, rgba(162, 107, 255, 0) 60%);
+  background: radial-gradient(circle, rgba(162, 107, 255, 0.3) 0%, rgba(162, 107, 255, 0) 65%);
   border-radius: 50%;
   z-index: -1;
   pointer-events: none;
   animation: blobFloat 20s ease-in-out infinite reverse;
-  filter: blur(40px);
+  filter: blur(80px);
 }
 
-/* Moving Grid Background & Noise Overlay */
+/* 3rd blob for extra glassmorphism pop / Moving Grid Background & Noise Overlay */
 .lp-hero::before {
   content: '';
   position: absolute;
