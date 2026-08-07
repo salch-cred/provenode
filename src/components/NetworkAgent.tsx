@@ -41,16 +41,18 @@ export default function NetworkAgent() {
   const panelStyle: React.CSSProperties = isMobile
     ? {
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        height: '70vh', borderRadius: '16px 16px 0 0',
-        background: 'var(--card-bg)', border: '1px solid var(--border-color)',
-        boxShadow: '0 -8px 32px rgba(0,0,0,0.25)', zIndex: 10000,
-        display: 'flex', flexDirection: 'column'
+        height: '55vh', borderRadius: '20px 20px 0 0',
+        background: '#fff', border: '1px solid rgba(0,0,0,0.1)',
+        boxShadow: '0 -12px 40px rgba(0,0,0,0.18)', zIndex: 10000,
+        display: 'flex', flexDirection: 'column',
+        animation: 'slideUp 0.25s ease'
       }
     : {
-        position: 'fixed', bottom: 110, right: 30, width: 350, height: 450,
-        background: 'var(--card-bg)', border: '1px solid var(--border-color)',
-        borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.3)', zIndex: 10000,
-        display: 'flex', flexDirection: 'column'
+        position: 'fixed', bottom: 110, right: 30, width: 360, height: 460,
+        background: '#fff', border: '1px solid rgba(0,0,0,0.1)',
+        borderRadius: 14, boxShadow: '0 16px 48px rgba(0,0,0,0.18)', zIndex: 10000,
+        display: 'flex', flexDirection: 'column',
+        animation: 'fadeInUp 0.2s ease'
       };
 
   return (
