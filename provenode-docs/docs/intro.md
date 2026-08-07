@@ -6,17 +6,15 @@ slug: /
 
 # Introduction
 
-Welcome to the **Provenode** documentation!
+**Provenode** is an AI infrastructure orchestration platform built for cryptographic model verification and decentralized fleet management. It uses the Shelby Protocol for immutable object storage and the Aptos blockchain to anchor model states, ensuring edge device execution complies with strict regulatory frameworks like the **EU AI Act**.
 
-Provenode is an enterprise-grade AI infrastructure platform designed to deploy, monitor, and certify AI models securely. It combines robust deployment pipelines with cutting-edge blockchain capabilities to ensure regulatory compliance, specifically targeting the **EU AI Act** and **GDPR**.
+## System Architecture
 
-## Core Philosophy
+1. **Serverless Orchestration**: Manages model uploads, OTA deployments, and dataset sharding via Vercel Edge functions.
+2. **Cryptographic Verification**: Models and datasets are hashed using SHA-256 and anchored to Shelby objects.
+3. **On-Chain State**: Deployment manifests are written to Aptos smart contracts to create an unforgeable public ledger of what is running in production.
+4. **Autonomous Edge Security**: Devices mathematically verify payload digests against the on-chain manifest before execution, rejecting tampered models.
 
-1. **Frictionless Onboarding**: Deploy large language models (LLMs) with zero cold starts, leveraging our serverless architecture.
-2. **AI-First Design**: Built specifically for managing complex AI models, datasets, and federated learning hubs.
-3. **Immutable Provenance**: Every model and dataset is anchored to the **Shelby Protocol**, generating unforgeable cryptographic certificates of authenticity.
-4. **Self-Healing Fleet**: Autonomous monitoring ensures edge devices are running untampered models, with automatic self-healing capabilities.
+## Reference
 
-## Getting Started
-
-To dive right in, learn how to secure your models with [Zero-Knowledge Integrity Badges](/zk-proofs) or see how we handle [Dataset Provenance](/datasets).
+Review the technical implementation of [Zero-Knowledge Integrity Verification](/zk-proofs) and [Dataset Merkle Roots](/datasets).
