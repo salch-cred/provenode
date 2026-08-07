@@ -18,7 +18,7 @@ const NAV = [
     { to: 'distillation',label: 'Distillation', icon: 'hgi-ai-brain-01' },
   ]},
   { section: 'Fleet', items: [
-    { to: 'devices',     label: 'Devices',      icon: 'hgi-cpu-01' },
+    { to: 'devices',     label: 'Devices',      icon: 'hgi-cpu' },
     { to: 'fleet',       label: 'OTA + Canary', icon: 'hgi-refresh' },
     { to: 'groups',      label: 'Groups',       icon: 'hgi-folder-01' },
     { to: 'streaming',   label: 'Streaming',    icon: 'hgi-wifi-01' },
