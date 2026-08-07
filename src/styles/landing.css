@@ -589,3 +589,85 @@
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
   animation: shimmer 3s infinite linear;
 }
+
+/* 8. Extra Motion & Flare */
+@keyframes textShimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes iconBounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-5px) scale(1.1); color: var(--primary); }
+}
+
+@keyframes blobFloat {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+@keyframes spinBorder {
+  100% { transform: rotate(360deg); }
+}
+
+/* Hero text gradient animation */
+.lp-hero h1 {
+  background: linear-gradient(270deg, #111 0%, #FF6B35 35%, #111 50%, #FF6B35 75%, #111 100%);
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards, textShimmer 6s linear infinite 0.8s forwards !important;
+}
+
+/* Feature Icon Bounce on Hover */
+.lp-feat:hover .lp-feat-icon i {
+  display: inline-block;
+  animation: iconBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Racing Border Glow */
+.lp-feat {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+.lp-feat::before {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%; width: 200%; height: 200%;
+  background: conic-gradient(transparent, rgba(255, 107, 53, 0.15), transparent 30%);
+  animation: spinBorder 4s linear infinite;
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+  z-index: -1;
+}
+.lp-feat:hover::before {
+  opacity: 1;
+}
+
+/* Animated Ambient Blobs */
+body::before {
+  content: '';
+  position: fixed;
+  top: -10vw; right: -10vw; width: 40vw; height: 40vw;
+  background: radial-gradient(circle, rgba(255, 107, 53, 0.04) 0%, transparent 70%);
+  border-radius: 50%;
+  z-index: -1;
+  pointer-events: none;
+  animation: blobFloat 15s ease-in-out infinite;
+}
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -10vw; left: -10vw; width: 50vw; height: 50vw;
+  background: radial-gradient(circle, rgba(162, 107, 255, 0.03) 0%, transparent 70%);
+  border-radius: 50%;
+  z-index: -1;
+  pointer-events: none;
+  animation: blobFloat 20s ease-in-out infinite reverse;
+}
