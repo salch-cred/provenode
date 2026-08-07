@@ -11,14 +11,14 @@ const NAV = [
   ]},
   { section: 'Intelligence', items: [
     { to: 'integrity',   label: 'Integrity Monitor', icon: 'hgi-shield-02' },
-    { to: 'datasets',    label: 'Datasets',      icon: 'hgi-server-01' },
+    { to: 'datasets',    label: 'Datasets',     icon: 'hgi-folder-library' },
     { to: 'lineage',     label: 'Lineage',      icon: 'hgi-git-branch' },
     { to: 'abtest',      label: 'A/B Tests',    icon: 'hgi-analytics-01' },
     { to: 'federated',   label: 'Federated',    icon: 'hgi-share-01' },
-    { to: 'distillation',label: 'Distillation', icon: 'hgi-flask' },
+    { to: 'distillation',label: 'Distillation', icon: 'hgi-ai-brain-01' },
   ]},
   { section: 'Fleet', items: [
-    { to: 'devices',     label: 'Devices',      icon: 'hgi-cpu' },
+    { to: 'devices',     label: 'Devices',      icon: 'hgi-cpu-01' },
     { to: 'fleet',       label: 'OTA + Canary', icon: 'hgi-refresh' },
     { to: 'groups',      label: 'Groups',       icon: 'hgi-folder-01' },
     { to: 'streaming',   label: 'Streaming',    icon: 'hgi-wifi-01' },
@@ -26,7 +26,7 @@ const NAV = [
   { section: 'Blockchain', items: [
     { to: 'objects',     label: 'Shelby Objects', icon: 'hgi-package' },
     { to: 'shelby',      label: 'Shelby Layer',   icon: 'hgi-blockchain-01' },
-    { to: 'compliance',  label: 'Compliance',     icon: 'hgi-shield-01' },
+    { to: 'compliance',  label: 'Compliance',     icon: 'hgi-license' },
     { to: 'bluegreen',   label: 'Blue-Green',     icon: 'hgi-exchange-01' },
   ]},
   { section: 'Growth', items: [
@@ -38,7 +38,7 @@ const NAV = [
     { to: 'docs',        label: 'Documentation', icon: 'hgi-book-open-01' },
   ]},
   { section: 'Config', items: [
-    { to: 'webhooks',    label: 'Webhooks',     icon: 'hgi-flash' },
+    { to: 'webhooks',    label: 'Webhooks',     icon: 'hgi-plug-01' },
     { to: 'audit',       label: 'Audit Log',    icon: 'hgi-note-01' },
   ]},
 ];
