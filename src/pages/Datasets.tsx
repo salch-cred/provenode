@@ -71,7 +71,13 @@ export default function Datasets() {
               {loading ? (
                 <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40 }}><div className="spin" /></td></tr>
               ) : !datasets.length ? (
-                <tr><td colSpan={7} className="empty">No datasets registered.</td></tr>
+                <tr><td colSpan={7}>
+                  <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
+                    <i className="hgi-stroke hgi-folder-library" style={{fontSize:40, opacity:0.2}} />
+                    <div style={{fontWeight:700, fontSize:15}}>No datasets registered</div>
+                    <div style={{fontSize:13, opacity:0.55}}>Register a dataset to anchor its Merkle provenance hash on-chain</div>
+                  </div>
+                </td></tr>
               ) : (
                 datasets.map(d => (
                   <tr key={d.id} style={{ opacity: d.status === 'deletion_pending' ? 0.6 : 1 }}>

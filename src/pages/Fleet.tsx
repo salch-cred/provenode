@@ -22,13 +22,25 @@ export default function Fleet() {
     <div style={{display:'grid',gridTemplateColumns:'1fr 360px',gap:20}}>
       <div className="card"><div className="card-header"><span className="card-title">Fleet OTA status</span><button className="btn btn-sm" onClick={load}>↻</button></div>
         <div className="table-wrap"><table><thead><tr><th>Device</th><th>Location</th><th>Status</th><th>Last seen</th></tr></thead>
-        <tbody>{!devices.length ? <tr><td colSpan={4} className="empty">No devices.</td></tr> :
+        <tbody>{!devices.length ? <tr><td colSpan={4}>
+          <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
+            <i className="hgi-stroke hgi-wifi-off-01" style={{fontSize:40, opacity:0.2}} />
+            <div style={{fontWeight:700, fontSize:15}}>No devices in fleet</div>
+            <div style={{fontSize:13, opacity:0.55}}>Register edge devices first to track OTA deployment status</div>
+          </div>
+        </td></tr> :
           devices.map(d=><tr key={d.id}><td className="mono fw-700">{d.id}</td><td>{d.location}</td>
             <td><span className={`badge ${d.status==='online'?'badge-green':'badge-amber'}`}>{d.status}</span></td><td>{ago(d.lastSeenAt)}</td></tr>)}
         </tbody></table></div></div>
       <div className="card"><div className="card-header"><span className="card-title">Active canary deployments</span></div>
         <div style={{padding:12}}>
-          {!canaryDeps.length ? <div className="empty">No active canary deployments.</div> : canaryDeps.map(d => {
+          {!canaryDeps.length ? (
+            <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
+              <i className="hgi-stroke hgi-git-branch" style={{fontSize:40, opacity:0.2}} />
+              <div style={{fontWeight:700, fontSize:15}}>No active canary deployments</div>
+              <div style={{fontSize:13, opacity:0.55}}>Start a canary rollout from the deploy page to see staged traffic here</div>
+            </div>
+          ) : canaryDeps.map(d => {
             const stages = d.canary.stages; const cur = d.canary.currentStage;
             return <div className="card card-sm" style={{marginBottom:12}} key={d.id}>
               <div className="card-header"><span className="card-title">{d.model}</span><span className="badge badge-blue">canary {stages[cur]}%</span></div>

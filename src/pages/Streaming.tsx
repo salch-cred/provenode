@@ -45,14 +45,26 @@ export default function Streaming() {
 
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header"><span className="card-title">Establish Streaming Session</span></div>
-        <div className="card-body" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <select className="form-input" style={{ width: 300 }} value={modelId} onChange={e => setModelId(e.target.value)}>
-            <option value="">Select an active model...</option>
-            {models.map(m => <option key={m.id} value={m.id}>{m.model}</option>)}
-          </select>
-          <button className="btn btn-primary" onClick={startStream} disabled={!!(session && progress < 100)}>
-            {session && progress < 100 ? 'Streaming...' : 'Init Stream (0 Cold Start)'}
-          </button>
+        <div className="card-body">
+          <div className="form-group">
+            <label className="form-label">Select Model</label>
+            <select className="form-input" style={{ width: 300 }} value={modelId} onChange={e => setModelId(e.target.value)}>
+              <option value="">Select an active model...</option>
+              {models.map(m => <option key={m.id} value={m.id}>{m.model}</option>)}
+            </select>
+          </div>
+          {!models.length && (
+            <div className="empty" style={{padding:'32px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12, marginTop:8}}>
+              <i className="hgi-stroke hgi-wifi-01" style={{fontSize:36, opacity:0.2}} />
+              <div style={{fontWeight:700, fontSize:15}}>No models available to stream</div>
+              <div style={{fontSize:13, opacity:0.55}}>Register and deploy a model in Shelby mode to enable CDN streaming</div>
+            </div>
+          )}
+          {models.length > 0 && (
+            <button className="btn btn-primary" onClick={startStream} disabled={!!(session && progress < 100)}>
+              {session && progress < 100 ? 'Streaming...' : 'Init Stream (0 Cold Start)'}
+            </button>
+          )}
         </div>
       </div>
 

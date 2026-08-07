@@ -20,7 +20,13 @@ export default function Registry() {
       <div className="card-header"><span className="card-title">Model registry</span>
         <div className="flex gap-2"><button className="btn btn-sm" onClick={load}>↻</button></div></div>
       <div className="table-wrap"><table><thead><tr><th>Model (Provenance QR)</th><th>Mode</th><th>SHA-256</th><th>Size</th><th>Object ID</th><th>Actions</th></tr></thead>
-      <tbody>{!models.length ? <tr><td colSpan={6} className="empty">No models yet.</td></tr> :
+      <tbody>{!models.length ? <tr><td colSpan={6}>
+        <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
+          <i className="hgi-stroke hgi-database-01" style={{fontSize:40, opacity:0.2}} />
+          <div style={{fontWeight:700, fontSize:15}}>No models registered</div>
+          <div style={{fontSize:13, opacity:0.55}}>Upload and deploy your first model to populate the registry</div>
+        </div>
+      </td></tr> :
         models.map(m => (
           <tr key={m.id}>
             <td>

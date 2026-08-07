@@ -82,7 +82,15 @@ export default function Federated() {
               </tr>
             </thead>
             <tbody>
-              {nodes.map(n => (
+              {!nodes.length ? (
+                <tr><td colSpan={5}>
+                  <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
+                    <i className="hgi-stroke hgi-server-04" style={{fontSize:40, opacity:0.2}} />
+                    <div style={{fontWeight:700, fontSize:15}}>No edge nodes connected</div>
+                    <div style={{fontSize:13, opacity:0.55}}>Connect federated training nodes to begin distributed weight aggregation</div>
+                  </div>
+                </td></tr>
+              ) : nodes.map(n => (
                 <tr key={n.id}>
                   <td className="mono">{n.id}</td>
                   <td>{n.location}</td>

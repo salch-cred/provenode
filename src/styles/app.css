@@ -41,10 +41,10 @@ body {
 .app-shell { display: flex; height: 100vh; overflow: hidden; }
 
 .sidebar {
-  width: 220px;
+  width: 240px;
   flex-shrink: 0;
-  background: var(--surface);
-  border-right: 2px solid var(--border);
+  background: #fff;
+  border-right: 1px solid rgba(0,0,0,0.08);
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -52,13 +52,13 @@ body {
   overflow-y: auto;
   position: sticky;
   top: 0;
-  /* custom slim scrollbar */
+  box-shadow: 2px 0 12px rgba(0,0,0,0.04);
   scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  scrollbar-color: #e5e5e5 transparent;
 }
-.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar { width: 3px; }
 .sidebar::-webkit-scrollbar-track { background: transparent; }
-.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: #e5e5e5; border-radius: 4px; }
 
 .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
 
@@ -77,91 +77,111 @@ body {
 
 .content { padding: 24px; flex: 1; }
 
-/* ── Sidebar ────────────────────────────────────────────────── */
+/* ── Sidebar — Clay.com inspired ────────────────────────────── */
 .sidebar-logo {
-  padding: 20px 16px 16px;
-  border-bottom: 2px solid var(--border);
-  font-weight: 700;
-  font-size: 16px;
-  letter-spacing: -0.3px;
+  padding: 18px 16px 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.5px;
+  color: #0a0a0a;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
 }
 
 .sidebar-logo .dot {
   width: 8px; height: 8px;
   background: var(--coral);
   border-radius: 50%;
-  border: 2px solid var(--border);
 }
 
-.sidebar-section { padding: 12px 0; }
+.sidebar-section { padding: 6px 0; }
 
 .sidebar-label {
-  padding: 4px 16px;
+  padding: 10px 14px 4px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text-muted);
+  letter-spacing: 1.2px;
+  color: #aaa;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 16px;
+  padding: 8px 10px;
+  margin: 1px 8px;
   cursor: pointer;
-  border-radius: 0;
-  transition: background 0.1s;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-muted);
-  border-left: 3px solid transparent;
+  border-radius: 8px;
+  transition: background 0.12s, color 0.12s;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #555;
   text-decoration: none;
+  border-left: none;
 }
 
-.nav-item:hover { background: var(--bg); color: var(--text-primary); }
+.nav-item:hover {
+  background: #f4f4f4;
+  color: #111;
+}
 
 .nav-item.active {
-  background: var(--bg);
-  color: var(--text-primary);
-  border-left-color: var(--coral);
+  background: #f0ece8;
+  color: #111;
+  font-weight: 700;
 }
 
-.nav-item .icon { width: 16px; text-align: center; opacity: 0.7; }
-.nav-item.active .icon { opacity: 1; }
+.nav-item.active .icon {
+  color: var(--coral);
+}
+
+.nav-item .icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.nav-item.active .icon { color: var(--coral); }
 
 .sidebar-bottom {
   margin-top: auto;
   padding: 12px 16px;
-  border-top: 2px solid var(--border);
+  border-top: 1px solid rgba(0,0,0,0.07);
 }
 
 .shelby-badge {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  background: var(--shelby-light);
-  border: 2px solid var(--shelby);
-  border-radius: var(--radius);
+  padding: 9px 12px;
+  background: linear-gradient(135deg, rgba(108,51,255,.08) 0%, rgba(56,182,255,.06) 100%);
+  border: 1.5px solid rgba(108,51,255,.25);
+  border-radius: 10px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--shelby);
+  letter-spacing: .3px;
 }
 
 .shelby-badge .dot-live {
   width: 7px; height: 7px;
-  background: var(--shelby);
+  background: #22c55e;
   border-radius: 50%;
+  box-shadow: 0 0 6px #22c55e;
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  50% { opacity: 0.4; }
 }
 
 /* ── Cards / surfaces ───────────────────────────────────────── */
