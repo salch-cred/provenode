@@ -456,11 +456,20 @@
 .lp-spark.a { top: 24px; right: 40px; animation: lp-spark 3s ease-in-out infinite; }
 .lp-spark.b { bottom: 24px; left: 40px; animation: lp-spark 4s ease-in-out infinite reverse; }
 
-/* ── Footer ──────────────────────────────────────────────────────────── */
-.lp-footer { border-top: 2px solid var(--border); padding: 28px 0; }
-.lp-footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-.lp-footer-brand { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-.lp-footer-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--coral); display: inline-block; }
+/* ── Footer ─────────────────────────────────────────────────────────── */
+.lp-footer { 
+  border-top: 1px solid rgba(255,255,255,0.05); 
+  padding: 40px 0 60px; 
+  background: linear-gradient(to bottom, rgba(162, 107, 255, 0.02) 0%, transparent 100%);
+  position: relative;
+}
+.lp-footer::before {
+  content: ''; position: absolute; top: -1px; left: 10%; width: 80%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 107, 53, 0.3), transparent);
+}
+.lp-footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+.lp-footer-brand { display: flex; align-items: center; gap: 10px; font-size: 16px; letter-spacing: -0.02em; }
+.lp-footer-logo { width: 22px; height: 22px; }
 .lp-footer-tag { font-size: 12px; color: var(--text-muted); }
 .lp-footer-links { display: flex; flex-wrap: wrap; gap: 16px; }
 .lp-footer-links a { font-size: 12px; color: var(--text-muted); text-decoration: none; display: flex; align-items: center; gap: 4px; transition: color .15s; white-space: nowrap; }

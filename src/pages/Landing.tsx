@@ -500,7 +500,7 @@ export default function Landing() {
       <footer className="lp-footer">
         <div className="lp-shell lp-footer-inner">
           <div className="lp-footer-brand">
-            <span className="lp-footer-dot" />
+            <img src="/provenode-logo.svg" alt="Provenode" className="lp-footer-logo" />
             <b>Provenode</b>
           </div>
           <span className="lp-footer-tag">Verified AI model delivery · Shelbynet + Aptos</span>
