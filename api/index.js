@@ -418,7 +418,7 @@ export default async function handler(req, res) {
         const mergedBuffer = fedAvg(simulatedDeviceGradients);
         const mergedHash = crypto.createHash('sha256').update(mergedBuffer).digest('hex');
         
-        return json(res, 200, { success: true, message: 'Merged globally', newHash: \`0x\${mergedHash}\` });
+        return json(res, 200, { success: true, message: 'Merged globally', newHash: `0x${mergedHash}` });
       }
     }
 
