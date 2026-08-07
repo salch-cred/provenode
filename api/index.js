@@ -2,7 +2,7 @@
  * Provenode mega-router — single serverless function for all /api/* routes
  * Hobby plan limit: max 12 functions. This + 2 crons = 3 total.
  */
-import { createHash, createHmac } from 'node:crypto';
+import crypto, { createHash, createHmac } from 'node:crypto';
 import formidable from 'formidable';
 import { getDB } from '../lib/kv.js';
 import { shelbyUpload, makeBlobName } from '../lib/shelby.js';
@@ -301,7 +301,8 @@ export default async function handler(req, res) {
       
       if (action === 'heal' && method === 'POST') {
         if (!deviceId) return json(res, 400, { error: 'Device ID required' });
-        const { modelId } = await parseBody(req);
+        const body = await readBody(req);
+        const { modelId } = body;
         if (!modelId) return json(res, 400, { error: 'Model ID required' });
         
         const modelStr = await db.get(`model:${modelId}`);
@@ -342,7 +343,7 @@ export default async function handler(req, res) {
       }
       
       if (method === 'POST' && !action) {
-        const body = await parseBody(req);
+        const body = await readBody(req);
         const { buildDatasetRecord, shardDataset } = await import('../lib/datasets.js');
         
         // Execute REAL Dataset Sharding & Merkle tree calculation
@@ -362,7 +363,7 @@ export default async function handler(req, res) {
       }
       
       if (action === 'delete' && method === 'POST') {
-        const body = await parseBody(req);
+        const body = await readBody(req);
         const { datasetId, reason } = body;
         if (!datasetId) return json(res, 400, { error: 'datasetId required' });
         
@@ -385,7 +386,7 @@ export default async function handler(req, res) {
     // ── streaming ──────────────────────────────────────────────
     if (root === 'streaming') {
       if (parts[1] === 'session' && method === 'POST') {
-        const body = await parseBody(req);
+        const body = await readBody(req);
         if (!body.modelId) return json(res, 400, { error: 'modelId required' });
         
         const session = {
@@ -403,7 +404,7 @@ export default async function handler(req, res) {
     // ── federated ──────────────────────────────────────────────
     if (root === 'federated') {
       if (parts[1] === 'merge' && method === 'POST') {
-        const body = await parseBody(req);
+        const body = await readBody(req);
         if (!body.nodeIds || !body.nodeIds.length) return json(res, 400, { error: 'nodeIds required' });
         
         // Execute REAL Federated Learning Math (Float32Array Averaging)
