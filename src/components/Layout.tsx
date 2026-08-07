@@ -61,7 +61,10 @@ export default function Layout() {
       {open && <div className="sidebar-overlay show" onClick={() => setOpen(false)} />}
 
       <nav className={`sidebar ${open ? 'open' : ''}`}>
-        <div className="sidebar-logo"><div className="dot" />Provenode</div>
+        <div className="sidebar-logo">
+          <img src="/provenode-logo.svg" alt="Provenode" style={{ width: 22, height: 22 }} />
+          Provenode
+        </div>
         {NAV.map(sec => (
           <div className="sidebar-section" key={sec.section}>
             <div className="sidebar-label">{sec.section}</div>
