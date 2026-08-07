@@ -520,12 +520,23 @@
 }
 
 /* 2. Apply Liquid Glass to Nav and Cards */
+.lp-nav {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
 .lp-nav-inner {
   background: rgba(255, 255, 255, 0.7) !important;
   backdrop-filter: blur(24px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
   border: 1px solid rgba(0, 0, 0, 0.05) !important;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  border-radius: 99px !important;
+  margin-top: 16px !important;
+  padding: 0 24px !important;
 }
 
 .lp-feat, .lp-prob, .lp-sdk-card {
