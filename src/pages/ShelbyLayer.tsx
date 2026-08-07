@@ -118,7 +118,15 @@ export default function ShelbyLayer() {
               </tr>
             </thead>
             <tbody>
-              {audits.length === 0 ? <tr><td colSpan={5} className="text-center text-muted">Waiting for telemetry...</td></tr> : audits.map(a => (
+              {audits.length === 0 ? (
+                <tr><td colSpan={5}>
+                  <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
+                    <i className="hgi-stroke hgi-signal-01" style={{fontSize:40, opacity:0.2}} />
+                    <div style={{fontWeight:700, fontSize:15}}>Awaiting telemetry stream</div>
+                    <div style={{fontSize:13, opacity:0.55}}>P2P challenge proofs will appear here once the network begins emitting audit events</div>
+                  </div>
+                </td></tr>
+              ) : audits.map(a => (
                 <tr key={a.id}>
                   <td className="mono">{a.id}</td>
                   <td className="mono text-sm">{a.spFrom}</td>
