@@ -58,6 +58,13 @@
   font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
   --lp-paper: #fdfaf6;
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+}
+.lp > * {
+  position: relative;
+  z-index: 10;
 }
 
 /* ── Nav ─────────────────────────────────────────────────────────────── */
@@ -667,24 +674,25 @@
 }
 
 /* Animated Ambient Blobs */
-body::before {
+/* Animated Ambient Blobs */
+.lp::before {
   content: '';
   position: fixed;
   top: -20vh; right: -10vw; width: 60vw; height: 60vw;
   background: radial-gradient(circle, rgba(255, 107, 53, 0.3) 0%, rgba(255, 107, 53, 0) 65%);
   border-radius: 50%;
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
   animation: blobFloat 15s ease-in-out infinite;
   filter: blur(80px);
 }
-body::after {
+.lp::after {
   content: '';
   position: fixed;
   bottom: -20vh; left: -10vw; width: 70vw; height: 70vw;
   background: radial-gradient(circle, rgba(162, 107, 255, 0.3) 0%, rgba(162, 107, 255, 0) 65%);
   border-radius: 50%;
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
   animation: blobFloat 20s ease-in-out infinite reverse;
   filter: blur(80px);
