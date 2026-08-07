@@ -18,10 +18,16 @@ export default function Compliance() {
       <div className="card mb-4"><div className="card-header"><span className="card-title">Compliance report</span>
         <div className="flex gap-2"><button className="btn btn-sm btn-primary" onClick={generate}>Generate</button><button className="btn btn-sm" onClick={exportCSV}>Export CSV ↓</button></div></div>
         <div className="card-body"><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-          <div className="form-group"><label className="form-label">From</label><input type="date" value={from} onChange={e=>setFrom(e.target.value)} /></div>
-          <div className="form-group"><label className="form-label">To</label><input type="date" value={to} onChange={e=>setTo(e.target.value)} /></div>
+          <div className="form-group"><label className="form-label">From</label><input className="form-input" type="date" value={from} onChange={e=>setFrom(e.target.value)} /></div>
+          <div className="form-group"><label className="form-label">To</label><input className="form-input" type="date" value={to} onChange={e=>setTo(e.target.value)} /></div>
         </div></div></div>
-      {report && <>
+      {!report ? (
+        <div className="empty" style={{padding:'48px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
+          <i className="hgi-stroke hgi-license" style={{fontSize:44, opacity:0.2}} />
+          <div style={{fontWeight:700, fontSize:15}}>No report generated</div>
+          <div style={{fontSize:13, opacity:0.55}}>Select a date range and click Generate to produce an EU AI Act compliance summary</div>
+        </div>
+      ) : <>
         <div className="stat-grid mb-4" style={{gridTemplateColumns:'repeat(4,1fr)'}}>
           <div className="stat-card"><div className="stat-label">Models</div><div className="stat-value">{report.summary?.models||0}</div></div>
           <div className="stat-card"><div className="stat-label">Deployments</div><div className="stat-value">{report.summary?.deployments||0}</div></div>

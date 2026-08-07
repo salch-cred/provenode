@@ -72,7 +72,7 @@ export default function Integrity() {
           </div>
 
           <div className="card">
-            <div className="card-header"><span className="card-title">Active Alerts & Healing</span></div>
+            <div className="card-header"><span className="card-title">Active Alerts &amp; Healing</span></div>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -87,7 +87,13 @@ export default function Integrity() {
                 </thead>
                 <tbody>
                   {!health.needsHealing?.length ? (
-                    <tr><td colSpan={6} className="empty"><div style={{ padding: 20 }}><i className="hgi-stroke hgi-shield-check" style={{ fontSize: 24, color: 'var(--color-green)', marginBottom: 8 }} /><br/>All devices passed integrity checks.</div></td></tr>
+                    <tr><td colSpan={6}>
+                      <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
+                        <i className="hgi-stroke hgi-shield-check" style={{fontSize:40, opacity:0.3, color:'var(--color-green)'}} />
+                        <div style={{fontWeight:700, fontSize:15}}>All devices passed integrity checks</div>
+                        <div style={{fontSize:13, opacity:0.55}}>No SHA-256 mismatches detected across the fleet</div>
+                      </div>
+                    </td></tr>
                   ) : (
                     health.needsHealing.map((d: any) => (
                       <tr key={d.id} style={{ background: 'rgba(255, 0, 0, 0.05)' }}>

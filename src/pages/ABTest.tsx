@@ -27,7 +27,13 @@ export default function ABTest() {
     <div style={{display:'grid',gridTemplateColumns:'1fr 340px',gap:20}}>
       <div className="card"><div className="card-header"><span className="card-title">Active A/B tests</span><button className="btn btn-sm" onClick={load}>↻</button></div>
         <div style={{padding:12}}>
-          {!tests.length ? <div className="empty">No A/B tests yet.</div> : tests.map(t => (
+          {!tests.length ? (
+            <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
+              <i className="hgi-stroke hgi-chart-bar-01" style={{fontSize:40, opacity:0.2}} />
+              <div style={{fontWeight:700, fontSize:15}}>No A/B tests running</div>
+              <div style={{fontSize:13, opacity:0.55}}>Create a test to compare inference accuracy across two model versions</div>
+            </div>
+          ) : tests.map(t => (
             <div className="card card-sm" style={{marginBottom:12}} key={t.id}>
               <div className="card-header"><span className="card-title">{t.name}</span><span className={`badge ${t.status==='running'?'badge-green':'badge-demo'}`}>{t.status}</span></div>
               <div className="card-body" style={{padding:12}}>
@@ -39,12 +45,12 @@ export default function ABTest() {
         </div></div>
       <div className="card"><div className="card-header"><span className="card-title">New A/B test</span></div>
         <div className="card-body">
-          <div className="form-group"><label className="form-label">Test name</label><input value={name} onChange={e=>setName(e.target.value)} /></div>
-          <div className="form-group"><label className="form-label">Model A</label><select value={a} onChange={e=>setA(e.target.value)}><option value="">—</option>{models.map(m=><option key={m.id} value={m.id}>{m.model}</option>)}</select></div>
-          <div className="form-group"><label className="form-label">Model B</label><select value={b} onChange={e=>setB(e.target.value)}><option value="">—</option>{models.map(m=><option key={m.id} value={m.id}>{m.model}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">Test name</label><input className="form-input" value={name} onChange={e=>setName(e.target.value)} placeholder="v2-vs-v3-accuracy" /></div>
+          <div className="form-group"><label className="form-label">Model A</label><select className="form-input" value={a} onChange={e=>setA(e.target.value)}><option value="">—</option>{models.map(m=><option key={m.id} value={m.id}>{m.model}</option>)}</select></div>
+          <div className="form-group"><label className="form-label">Model B</label><select className="form-input" value={b} onChange={e=>setB(e.target.value)}><option value="">—</option>{models.map(m=><option key={m.id} value={m.id}>{m.model}</option>)}</select></div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-            <div className="form-group"><label className="form-label">Split A%</label><input type="number" value={split} onChange={e=>setSplit(+e.target.value)} /></div>
-            <div className="form-group"><label className="form-label">Duration (h)</label><input type="number" value={hours} onChange={e=>setHours(+e.target.value)} /></div>
+            <div className="form-group"><label className="form-label">Split A%</label><input className="form-input" type="number" value={split} onChange={e=>setSplit(+e.target.value)} /></div>
+            <div className="form-group"><label className="form-label">Duration (h)</label><input className="form-input" type="number" value={hours} onChange={e=>setHours(+e.target.value)} /></div>
           </div>
           <button className="btn btn-primary" onClick={create}>Create Test</button>
         </div></div>

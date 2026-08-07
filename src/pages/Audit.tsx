@@ -15,17 +15,23 @@ export default function Audit() {
     <div className="card">
       <div className="card-header"><span className="card-title">Immutable audit log</span>
         <div className="flex gap-2">
-          <select value={action} onChange={e=>setAction(e.target.value)} style={{width:220,padding:'5px 8px',border:'2px solid var(--border)',borderRadius:6,fontSize:12}}>
+          <select className="form-input" value={action} onChange={e=>setAction(e.target.value)} style={{width:220}}>
             <option value="">All events</option>
             <option>model.registered</option><option>deployment.started</option><option>deployment.verified</option>
             <option>deployment.rolled_back</option><option>canary.advanced</option><option>bluegreen.switched</option>
             <option>marketplace.published</option><option>schedule.created</option><option>integrity.mismatch</option>
           </select>
-          <input type="number" value={limit} onChange={e=>setLimit(+e.target.value)} style={{width:70,padding:'5px 8px',border:'2px solid var(--border)',borderRadius:6,fontSize:12}} />
+          <input className="form-input" type="number" value={limit} onChange={e=>setLimit(+e.target.value)} style={{width:70}} />
           <button className="btn btn-sm btn-primary" onClick={load}>Load</button>
         </div></div>
       <div className="table-wrap"><table><thead><tr><th>Timestamp</th><th>Event</th><th>Actor</th><th>Target</th></tr></thead>
-      <tbody>{!records.length ? <tr><td colSpan={4} className="empty">Click "Load" to fetch audit records.</td></tr> :
+      <tbody>{!records.length ? <tr><td colSpan={4}>
+        <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
+          <i className="hgi-stroke hgi-file-audit" style={{fontSize:40, opacity:0.2}} />
+          <div style={{fontWeight:700, fontSize:15}}>No audit records loaded</div>
+          <div style={{fontSize:13, opacity:0.55}}>Select an event filter and click Load to fetch immutable on-chain records</div>
+        </div>
+      </td></tr> :
         records.map((r,i)=><tr key={i}><td className="mono text-sm">{new Date(r.timestamp).toLocaleString()}</td><td><span className="tag">{r.action}</span></td><td className="text-sm">{r.actor}</td><td className="mono text-sm">{r.target||'—'}</td></tr>)}
       </tbody></table></div>
     </div>

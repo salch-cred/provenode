@@ -21,20 +21,28 @@ export default function Groups() {
   return (
     <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:20}}>
       <div className="card"><div className="card-header"><span className="card-title">Fleet groups</span><button className="btn btn-sm" onClick={load}>↻</button></div>
-        <div style={{padding:12}}>{!groups.length ? <div className="empty">No fleet groups yet.</div> : groups.map(g => (
-          <div className="card card-sm mb-2" style={{borderLeft:`4px solid ${g.color||'var(--shelby)'}`}} key={g.id}>
-            <div className="card-header"><span className="card-title">{g.name}</span></div>
-            <div className="card-body" style={{padding:'10px 14px'}}>
-              <div className="text-muted text-sm mb-2">{g.description||'No description'}</div>
-              {g.selector?.tags && <div>{g.selector.tags.map((t:string)=><span key={t} className="tag">{t}</span>)}</div>}
-              <button className="btn btn-sm btn-danger" style={{marginTop:8}} onClick={()=>remove(g.id)}>Delete</button>
-            </div></div>
-        ))}</div></div>
+        <div style={{padding:12}}>
+          {!groups.length ? (
+            <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
+              <i className="hgi-stroke hgi-user-group" style={{fontSize:40, opacity:0.2}} />
+              <div style={{fontWeight:700, fontSize:15}}>No fleet groups defined</div>
+              <div style={{fontSize:13, opacity:0.55}}>Create groups to batch-target OTA updates and canary deployments by device tag</div>
+            </div>
+          ) : groups.map(g => (
+            <div className="card card-sm mb-2" style={{borderLeft:`4px solid ${g.color||'var(--shelby)'}`}} key={g.id}>
+              <div className="card-header"><span className="card-title">{g.name}</span></div>
+              <div className="card-body" style={{padding:'10px 14px'}}>
+                <div className="text-muted text-sm mb-2">{g.description||'No description'}</div>
+                {g.selector?.tags && <div>{g.selector.tags.map((t:string)=><span key={t} className="tag">{t}</span>)}</div>}
+                <button className="btn btn-sm btn-danger" style={{marginTop:8}} onClick={()=>remove(g.id)}>Delete</button>
+              </div></div>
+          ))}
+        </div></div>
       <div className="card"><div className="card-header"><span className="card-title">Create group</span></div>
         <div className="card-body">
-          <div className="form-group"><label className="form-label">Group name</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Production Cameras" /></div>
-          <div className="form-group"><label className="form-label">Description</label><input value={desc} onChange={e=>setDesc(e.target.value)} /></div>
-          <div className="form-group"><label className="form-label">Match tags</label><input value={tags} onChange={e=>setTags(e.target.value)} placeholder="production,camera" /></div>
+          <div className="form-group"><label className="form-label">Group name</label><input className="form-input" value={name} onChange={e=>setName(e.target.value)} placeholder="Production Cameras" /></div>
+          <div className="form-group"><label className="form-label">Description</label><input className="form-input" value={desc} onChange={e=>setDesc(e.target.value)} /></div>
+          <div className="form-group"><label className="form-label">Match tags</label><input className="form-input" value={tags} onChange={e=>setTags(e.target.value)} placeholder="production,camera" /></div>
           <div className="form-group"><label className="form-label">Color</label><input type="color" value={color} onChange={e=>setColor(e.target.value)} style={{width:60,height:36,padding:2}} /></div>
           <button className="btn btn-primary" onClick={create}>Create group</button>
         </div></div>

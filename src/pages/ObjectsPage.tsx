@@ -17,7 +17,13 @@ export default function ObjectsPage() {
       </div>
       <div className="card"><div className="card-header"><span className="card-title">Shelby object registry</span><button className="btn btn-sm" onClick={load}>↻</button></div>
         <div className="table-wrap"><table><thead><tr><th>Model</th><th>Object ID</th><th>Size</th><th>Expiry</th><th>Created</th></tr></thead>
-        <tbody>{!objects.length ? <tr><td colSpan={5} className="empty">No Shelby objects yet.</td></tr> :
+        <tbody>{!objects.length ? <tr><td colSpan={5}>
+          <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
+            <i className="hgi-stroke hgi-cloud-01" style={{fontSize:40, opacity:0.2}} />
+            <div style={{fontWeight:700, fontSize:15}}>No objects in Shelby storage</div>
+            <div style={{fontSize:13, opacity:0.55}}>Deploy a model in Shelby mode to create persisted object blobs with provenance tracking</div>
+          </div>
+        </td></tr> :
           objects.map(o=><tr key={o.id}><td><strong>{o.model}</strong></td><td className="mono text-sm">{(o.objectId||'').slice(0,40)}…</td><td>{fmt(o.size)}</td>
             <td><span className={`badge ${o.status==='healthy'?'badge-green':o.status==='expiring_soon'?'badge-amber':'badge-red'}`}>{o.daysLeft!=null?`${o.daysLeft}d left`:'unknown'}</span></td><td>{ago(o.createdAt)}</td></tr>)}
         </tbody></table></div></div>
