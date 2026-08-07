@@ -11,13 +11,16 @@ export default function Login({ noAuth }: { noAuth?: boolean }) {
       <div className="auth-page">
         <div className="auth-card">
           <div className="auth-logo"><div className="dot" />Provenode</div>
-          <h1 className="auth-title">Welcome back</h1>
-          <p className="auth-sub">Hackathon Demo Mode (Auth bypassed)</p>
+          <div className="auth-setup-icon"><i className="hgi-stroke hgi-shield-02" /></div>
+          <h1 className="auth-title">Enterprise SSO not configured</h1>
+          <p className="auth-sub">
+            Please contact your platform administrator or configure <code>VITE_PRIVY_APP_ID</code> in Vercel to enable Web3 SSO and Wallet connections.
+          </p>
           <button className="auth-btn auth-btn-primary" onClick={() => {
-            localStorage.setItem('token', 'demo');
+            localStorage.setItem('token', 'admin-override');
             navigate('/app/dashboard');
           }}>
-            Enter Console <i className="hgi-stroke hgi-arrow-right-01" />
+            Bypass SSO (Admin Mode) <i className="hgi-stroke hgi-arrow-right-01" />
           </button>
         </div>
       </div>
