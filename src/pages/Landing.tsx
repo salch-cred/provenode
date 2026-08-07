@@ -361,6 +361,9 @@ export default function Landing() {
                 { icon:'hgi-blockchain-01',    title:'On-chain manifests',     desc:'Deployment decisions uploaded to Shelby as immutable objects. Auditors go to the chain, not your DB.', bg:'#d4eafe' },
                 { icon:'hgi-analytics-01',     title:'A/B model testing',      desc:'Split fleet traffic between two model versions, measure real latency and error rate per device.',    bg:'#e7f5ea' },
                 { icon:'hgi-git-branch',       title:'Model lineage',          desc:'Track parent → child relationships. Catch when a recalled base model is still in production.',       bg:'#fce7e7' },
+                { icon:'hgi-shield-tick',      title:'ZK Execution Proofs',    desc:'Generates NIZKPoK benchmark proofs to verify model execution without exposing proprietary weights.', bg:'#e6f2ff' },
+                { icon:'hgi-cpu',              title:'Autonomous Self-Healing',desc:'If an edge device detects tampering, it instantly halts, logs the breach, and requests a clean OTA payload.', bg:'#ffebe6' },
+                { icon:'hgi-network',          title:'Federated Learning',     desc:'Aggregates local device gradients via Float32 tensor math without exposing sensitive end-user data.', bg:'#f5e6ff' },
               ].map((f, i) => (
                 <article className={`lp-feat lp-reveal lp-d${i % 3}`} key={f.title} style={{background:f.bg}}>
                   <div className="lp-feat-icon"><i className={`hgi-stroke ${f.icon}`}/></div>
