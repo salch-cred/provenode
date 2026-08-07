@@ -105,9 +105,9 @@ export default function Layout() {
             {TITLES[current] || 'Dashboard'}
           </h1>
           <div className="flex gap-2 items-center">
-            <a href="/" className="btn btn-sm desktop-only"><i className="hgi-stroke hgi-home-01" /> Home</a>
-            <a href="/api/health" target="_blank" rel="noreferrer" className="btn btn-sm desktop-only"><i className="hgi-stroke hgi-activity-01" /> Health</a>
-            <a href="/" className="btn btn-sm mobile-only"><i className="hgi-stroke hgi-home-01" /></a>
+            <NavLink to="/app/dashboard" className="btn btn-sm desktop-only"><i className="hgi-stroke hgi-home-01" /> Home</NavLink>
+            <NavLink to="/app/health" className="btn btn-sm desktop-only"><i className="hgi-stroke hgi-activity-01" /> Health</NavLink>
+            <NavLink to="/app/dashboard" className="btn btn-sm mobile-only"><i className="hgi-stroke hgi-home-01" /></NavLink>
           </div>
         </div>
         <div className="content">

@@ -28,6 +28,7 @@ import Datasets from './pages/Datasets';
 import Federated from './pages/Federated';
 import Streaming from './pages/Streaming';
 import Distillation from './pages/Distillation';
+import Health from './pages/Health';
 
 // Only mounted when PrivyProvider is guaranteed present in the tree (noAuth=false)
 function PrivyGuard({ children }: { children: React.ReactNode }) {
@@ -78,6 +79,7 @@ export default function App({ noAuth }: { noAuth?: boolean }) {
         <Route path="federated"     element={<Federated />} />
         <Route path="streaming"     element={<Streaming />} />
         <Route path="distillation"  element={<Distillation />} />
+        <Route path="health"        element={<Health />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
