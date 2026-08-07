@@ -11,14 +11,13 @@ export default function Login({ noAuth }: { noAuth?: boolean }) {
       <div className="auth-page">
         <div className="auth-card">
           <div className="auth-logo"><div className="dot" />Provenode</div>
-          <div className="auth-setup-icon"><i className="hgi-stroke hgi-settings-02" /></div>
-          <h1 className="auth-title">Login not configured yet</h1>
-          <p className="auth-sub">
-            Add <code>VITE_PRIVY_APP_ID</code> in Vercel → Environment Variables.<br/>
-            Free at <a href="https://dashboard.privy.io" target="_blank" rel="noreferrer">dashboard.privy.io</a>
-          </p>
-          <button className="auth-btn auth-btn-primary" onClick={() => navigate('/app/dashboard')}>
-            Continue to console <i className="hgi-stroke hgi-arrow-right-01" />
+          <h1 className="auth-title">Welcome back</h1>
+          <p className="auth-sub">Hackathon Demo Mode (Auth bypassed)</p>
+          <button className="auth-btn auth-btn-primary" onClick={() => {
+            localStorage.setItem('token', 'demo');
+            navigate('/app/dashboard');
+          }}>
+            Enter Console <i className="hgi-stroke hgi-arrow-right-01" />
           </button>
         </div>
       </div>
