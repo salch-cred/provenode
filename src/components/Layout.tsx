@@ -23,6 +23,10 @@ const NAV = [
     { to: 'groups',      label: 'Groups',       icon: 'hgi-folder-01' },
     { to: 'streaming',   label: 'Streaming',    icon: 'hgi-wifi-01' },
   ]},
+  { section: 'Enterprise', items: [
+    { to: 'governance',  label: 'Governance',   icon: 'hgi-signature' },
+    { to: 'zkvalidator', label: 'ZK Validator', icon: 'hgi-shield-02' },
+  ]},
   { section: 'Blockchain', items: [
     { to: 'objects',     label: 'Shelby Objects', icon: 'hgi-package' },
     { to: 'shelby',      label: 'Shelby Layer',   icon: 'hgi-blockchain-01' },

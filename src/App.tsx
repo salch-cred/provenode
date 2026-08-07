@@ -29,6 +29,8 @@ import Federated from './pages/Federated';
 import Streaming from './pages/Streaming';
 import Distillation from './pages/Distillation';
 import Health from './pages/Health';
+import Governance from './pages/Governance';
+import ZKValidator from './pages/ZKValidator';
 
 // Only mounted when PrivyProvider is guaranteed present in the tree (noAuth=false)
 function PrivyGuard({ children }: { children: React.ReactNode }) {
@@ -80,6 +82,8 @@ export default function App({ noAuth }: { noAuth?: boolean }) {
         <Route path="streaming"     element={<Streaming />} />
         <Route path="distillation"  element={<Distillation />} />
         <Route path="health"        element={<Health />} />
+        <Route path="governance"    element={<Governance />} />
+        <Route path="zkvalidator"   element={<ZKValidator />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
