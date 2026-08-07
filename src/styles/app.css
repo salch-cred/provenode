@@ -48,7 +48,17 @@ body {
   display: flex;
   flex-direction: column;
   padding: 0;
+  height: 100vh;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+  /* custom slim scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
 }
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
 .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
 
