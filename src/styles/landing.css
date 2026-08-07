@@ -485,6 +485,13 @@
 
   /* Hero clears 60px mobile nav */
   .lp-hero { padding-top: 100px; }
+  
+  /* Fix stats flexbox on mobile */
+  .lp-stats { flex-direction: column; gap: 0; }
+  .lp-stat-div { width: 100%; height: 1px; }
+  
+  /* Fix marquee padding on mobile */
+  .lp-marquee-track span { font-size: 11px; }
 }
 
 @media(max-width:480px){
