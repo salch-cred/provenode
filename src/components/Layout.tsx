@@ -78,8 +78,18 @@ export default function Layout() {
             ))}
           </div>
         ))}
-        <div className="sidebar-bottom">
-          <div className="shelby-badge"><div className="dot-live" /><span id="sb-badge">SHELBY · LIVE</span></div>
+        <div className="sidebar-bottom" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <button 
+            className="btn" 
+            style={{ width: '100%', justifyContent: 'center', background: 'transparent', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+            onClick={() => {
+              localStorage.removeItem('token');
+              window.location.href = '/';
+            }}
+          >
+            <i className="hgi-stroke hgi-logout-01" /> Sign Out
+          </button>
+          <div className="shelby-badge" style={{ marginTop: 0 }}><div className="dot-live" /><span id="sb-badge">SHELBY · LIVE</span></div>
         </div>
       </nav>
 
