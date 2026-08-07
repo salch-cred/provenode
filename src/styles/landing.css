@@ -53,7 +53,7 @@
 /* ── Reset / base ────────────────────────────────────────────────────── */
 .lp * { box-sizing: border-box; }
 .lp {
-  background: var(--bg);
+  background: var(--lp-paper);
   color: var(--text-primary);
   font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
