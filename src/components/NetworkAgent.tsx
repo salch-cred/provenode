@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { post } from '../lib/api';
 
 export default function NetworkAgent() {
   const [open, setOpen] = useState(false);
@@ -7,6 +8,7 @@ export default function NetworkAgent() {
     {role: 'agent', content: 'Network telemetry agent connected. Monitoring Shelby Protocol via MCP.'}
   ]);
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
@@ -22,19 +24,20 @@ export default function NetworkAgent() {
   }, [open, isMobile]);
 
   const send = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
     const msg = input.trim();
     setInput('');
     setMessages(p => [...p, {role: 'user', content: msg}]);
-    setTimeout(() => {
-      let response = "Unrecognized command. Try 'rebalance nodes' or 'status'.";
-      if (msg.toLowerCase().includes('rebalance')) {
-        response = "MCP Query: AP-South latency > 150ms. Executing erasure coding migration to EU-Central... Transaction confirmed on Aptos L1.";
-      } else if (msg.toLowerCase().includes('status')) {
-        response = "The Double Zero backbone is operating at 105 Gbps. No pending audits failed.";
-      }
+    setLoading(true);
+    
+    try {
+      const { response } = await post<{response: string}>('/api/agent', { message: msg });
       setMessages(p => [...p, {role: 'agent', content: response}]);
-    }, 1500);
+    } catch (e: any) {
+      setMessages(p => [...p, {role: 'agent', content: "Error contacting agent endpoint: " + e.message}]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   /* ── panel geometry ──────────────────────────────────────── */
@@ -68,22 +71,25 @@ export default function NetworkAgent() {
         />
       )}
 
-      {/* Floating Button */}
-      <button
-        onClick={() => setOpen(!open)}
-        style={{
-          position: 'fixed', bottom: 30, right: 20,
-          width: 52, height: 52,
-          borderRadius: '50%', background: 'var(--shelby-color, #7c3aed)',
-          color: '#fff', border: 'none',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-          cursor: 'pointer', zIndex: 10001,
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}
-        aria-label="Open Autonomous Network Agent"
-      >
-        <i className="hgi-stroke hgi-bot" style={{fontSize: 24}} />
-      </button>
+      {/* Floating Button - Only show when closed */}
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          style={{
+            position: 'fixed', bottom: 30, right: 20,
+            width: 52, height: 52,
+            borderRadius: '50%', background: 'var(--shelby)',
+            color: '#fff', border: 'none',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+            cursor: 'pointer', zIndex: 10001,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            animation: 'pulse 3s infinite'
+          }}
+          aria-label="Open Autonomous Network Agent"
+        >
+          <i className="hgi-stroke hgi-bot" style={{fontSize: 24}} />
+        </button>
+      )}
 
       {/* Chat Window */}
       {open && (

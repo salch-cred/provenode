@@ -422,6 +422,50 @@ export default async function handler(req, res) {
       }
     }
 
+    // ── agent (Mistral AI / Bot) ──────────────────────────────
+    if (root === 'agent' && method === 'POST') {
+      const body = await readBody(req);
+      const msg = (body.message || '').trim().toLowerCase();
+      
+      const apiKey = process.env.MISTRAL_API_KEY;
+      if (apiKey) {
+        try {
+          const mRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model: 'mistral-small-latest',
+              messages: [
+                { role: 'system', content: 'You are the Provenode Autonomous Network Agent. You monitor the Shelby Protocol via MCP. Keep answers concise, technical, and related to network telemetry, nodes, deployments, or latency.' },
+                { role: 'user', content: msg }
+              ]
+            })
+          });
+          if (mRes.ok) {
+            const data = await mRes.json();
+            return json(res, 200, { response: data.choices[0].message.content });
+          }
+        } catch (e) {
+          console.error('Mistral API error:', e);
+        }
+      }
+      
+      // Deterministic fallback if no API key or API fails
+      let response = "Unrecognized command. Try 'rebalance nodes' or 'status'.";
+      if (msg.includes('rebalance')) {
+        response = "MCP Query: AP-South latency > 150ms. Executing erasure coding migration to EU-Central... Transaction confirmed on Aptos L1.";
+      } else if (msg.includes('status')) {
+        response = "The Double Zero backbone is operating at 105 Gbps. No pending audits failed.";
+      }
+      
+      // Artificial delay for local effect
+      await new Promise(r => setTimeout(r, 600));
+      return json(res, 200, { response });
+    }
+
     // ── upload ──────────────────────────────────────────────
     if (root === 'upload' && method === 'POST') {
       const form = formidable({ maxFileSize: 100 * 1024 * 1024, keepExtensions: true, allowEmptyFiles: false, minFileSize: 1 });
