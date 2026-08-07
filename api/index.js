@@ -123,7 +123,7 @@ export default async function handler(req, res) {
   const path = pathOf(req);
   const q = queryOf(req);
   const method = req.method || 'GET';
-  const db = getDB();
+  const db = getDB(req.headers['x-tenant-id']);
 
   try {
     // Normalize: strip /api prefix if present

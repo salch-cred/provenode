@@ -31,7 +31,12 @@ import Distillation from './pages/Distillation';
 
 // Only mounted when PrivyProvider is guaranteed present in the tree (noAuth=false)
 function PrivyGuard({ children }: { children: React.ReactNode }) {
-  const { ready, authenticated } = usePrivy();
+  const { ready, authenticated, user } = usePrivy();
+  React.useEffect(() => {
+    if (ready && authenticated && user) {
+      localStorage.setItem('tenant', user.id);
+    }
+  }, [ready, authenticated, user]);
   if (!ready) return <div className="loading-screen"><div className="spin" /></div>;
   if (!authenticated) return <Navigate to="/login" replace />;
   return <>{children}</>;

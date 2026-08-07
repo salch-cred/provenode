@@ -1,5 +1,7 @@
 export async function apiFetch<T = any>(method: string, path: string, body?: unknown, isForm = false): Promise<T> {
   const opts: RequestInit = { method, headers: {} };
+  const tenant = localStorage.getItem('tenant');
+  if (tenant) (opts.headers as any)['X-Tenant-Id'] = tenant;
   if (body) {
     if (isForm) opts.body = body as FormData;
     else { (opts.headers as any)['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
