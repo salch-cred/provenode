@@ -1286,6 +1286,16 @@ export default async function handler(req, res) {
           '/api/marketplace': { get: { summary: 'Marketplace' } },
           '/api/metrics': { get: { summary: 'Prometheus' } },
           '/api/docs': { get: { summary: 'This spec' } },
+          '/api/earnings': { get: { summary: 'Real-time monetization metrics' } },
+          '/api/threats': { get: { summary: 'Global threat map data' } },
+          '/api/autoscaling': { get: { summary: 'Dynamic node provisioning status' } },
+          '/api/stream-inference': { get: { summary: 'Stream model chunks' }, post: { summary: 'Create stream manifest' } },
+          '/api/federated': { get: { summary: 'Get FL rounds' }, post: { summary: 'Submit FL gradient' }, patch: { summary: 'Aggregate round' } },
+          '/api/delta': { get: { summary: 'Get delta versions' }, post: { summary: 'Upload new delta version' } },
+          '/api/zkproof': { get: { summary: 'Get ZK proof' }, post: { summary: 'Generate ZK proof' } },
+          '/api/datasets': { get: { summary: 'List datasets' }, post: { summary: 'Register dataset' } },
+          '/api/agent': { get: { summary: 'Check agent status' }, post: { summary: 'Spawn autonomous agent' } },
+          '/api/abtest-lock': { get: { summary: 'List cryptographic A/B locks' }, post: { summary: 'Create lock' }, patch: { summary: 'Record test results' } },
         },
       });
     }
