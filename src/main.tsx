@@ -45,8 +45,7 @@ function Root() {
       appId={PRIVY_APP_ID}
       config={{
         loginMethods: ['email', 'wallet', 'passkey'],
-        appearance: { theme: 'light', accentColor: '#ff5733', logo: '/provenode-logo.svg' },
-        embeddedWallets: { createOnLogin: 'users-without-wallets' },
+        appearance: { theme: 'light', accentColor: '#ff5733', logo: '/provenode-logo.svg' }
       }}
     >
       <QueryClientProvider client={queryClient}>

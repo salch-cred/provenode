@@ -57,10 +57,10 @@ function AuthGuard({ children, noAuth }: { children: React.ReactNode; noAuth?: b
   return <>{children}</>;
 }
 
-export default function App() {
+export default function App({ noAuth: externalNoAuth }: { noAuth?: boolean }) {
   // Read NO_AUTH from environment (Vite exposes it as import.meta.env.VITE_NO_AUTH)
   // For standard React/Webpack setups, use process.env.REACT_APP_NO_AUTH
-  const noAuth = true; // Hardcoded true for local offline testing if needed, or read from env.
+  const noAuth = externalNoAuth !== undefined ? externalNoAuth : true;
 
   return (
     <Routes>
