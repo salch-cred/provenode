@@ -134,6 +134,7 @@ function AutoScalingGraph() {
             </div>
           </div>
         ) : (
+          <div style={{ color: 'var(--text-muted)', padding: 24, textAlign: 'center' }}>Connecting to Auto-Scaling Coordinator...</div>
         )}
       </div>
     </div>
