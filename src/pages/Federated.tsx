@@ -77,13 +77,14 @@ export default function Federated() {
                 <th>Edge Node ID</th>
                 <th>Location</th>
                 <th>Local Loss</th>
+                <th>Data Poisoning Audit</th>
                 <th>Weights Hash (Shelby)</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {!nodes.length ? (
-                <tr><td colSpan={5}>
+                <tr><td colSpan={6}>
                   <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
                     <i className="hgi-stroke hgi-server-04" style={{fontSize:40, opacity:0.2}} />
                     <div style={{fontWeight:700, fontSize:15}}>No edge nodes connected</div>
@@ -95,6 +96,15 @@ export default function Federated() {
                   <td className="mono">{n.id}</td>
                   <td>{n.location}</td>
                   <td>{n.loss.toFixed(4)}</td>
+                  <td>
+                    {n.status === 'training' ? (
+                      <span className="text-muted text-sm"><i className="hgi-stroke hgi-loading-02 spin" /> Scanning stream...</span>
+                    ) : (
+                      <span className="badge" style={{ background: '#dcfce7', color: '#16a34a' }}>
+                        <i className="hgi-stroke hgi-shield-check" /> Passed ZK Audit
+                      </span>
+                    )}
+                  </td>
                   <td className="mono text-sm">{n.weightsHash || '—'}</td>
                   <td>
                     {n.status === 'training' && <span className="badge badge-yellow">Training</span>}

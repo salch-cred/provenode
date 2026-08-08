@@ -16,6 +16,8 @@ const NAV = [
     { to: 'abtest',      label: 'A/B Tests',    icon: 'hgi-analytics-01' },
     { to: 'federated',   label: 'Federated',    icon: 'hgi-share-01' },
     { to: 'distillation',label: 'Distillation', icon: 'hgi-ai-brain-01' },
+    { to: 'agents',      label: 'Agent Swarm',  icon: 'hgi-bot' },
+    { to: 'threats',     label: 'Threat Map',   icon: 'hgi-maps-location-01' },
   ]},
   { section: 'Fleet', items: [
     { to: 'devices',     label: 'Devices',      icon: 'hgi-cpu' },
@@ -26,6 +28,7 @@ const NAV = [
   { section: 'Enterprise', items: [
     { to: 'governance',  label: 'Governance',   icon: 'hgi-signature' },
     { to: 'zkvalidator', label: 'ZK Validator', icon: 'hgi-shield-02' },
+    { to: 'earnings',    label: 'Monetization', icon: 'hgi-bitcoin-04' },
   ]},
   { section: 'Blockchain', items: [
     { to: 'objects',     label: 'Shelby Objects', icon: 'hgi-package' },

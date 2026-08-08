@@ -2051,14 +2051,57 @@ export default async function handler(req, res) {
       }
     }
 
-if (root === 'slack' && method === 'POST') {
+    if (root === 'slack' && method === 'POST') {
       return json(res, 200, {
         response_type: 'ephemeral',
         text: 'Provenode bot online. Commands: status | fleet | rollback <id>',
       });
     }
 
-    const _kp=['/api/health','/api/config','/api/models','/api/metrics','/api/docs','/api/objects','/api/audit','/api/analytics','/api/schedule','/api/groups','/api/bluegreen','/api/webhooks','/api/marketplace','/api/compliance','/api/lineage','/api/sign','/api/notifications','/api/stream','/api/inference-cache','/api/checkpoints','/api/distillation','/api/fingerprint','/api/abtest-lock'];
+    // ── #1 TOP FOREVER: EARNINGS ────────────────────────────
+    if (root === 'earnings' && method === 'GET') {
+      // Simulate real-time Aptos crypto streaming for edge nodes
+      const nodes = Array.from({ length: 5 }, (_, i) => ({
+        id: `node-${Math.random().toString(36).substring(2,6)}`,
+        inferences: Math.floor(Math.random() * 1000) + 100,
+        earnedApt: (Math.random() * 5).toFixed(4),
+        status: 'streaming'
+      }));
+      const totalEarned = nodes.reduce((acc, n) => acc + parseFloat(n.earnedApt), 0).toFixed(4);
+      return json(res, 200, { success: true, nodes, totalEarned, tokenVelocity: '42.1 APT/hr' });
+    }
+
+    // ── #4 TOP FOREVER: THREAT MAP ─────────────────────────
+    if (root === 'threats' && method === 'GET') {
+      // Simulate global threat events (DDOS blocks, node re-routes)
+      const events = Array.from({ length: 4 }, () => {
+        const types = ['ddos_blocked', 'node_rerouted', 'zk_proof_failed'];
+        const regions = ['us-east-1', 'eu-central-1', 'ap-south-1', 'sa-east-1'];
+        return {
+          id: `evt-${crypto.randomUUID().slice(0,6)}`,
+          type: types[Math.floor(Math.random() * types.length)],
+          region: regions[Math.floor(Math.random() * regions.length)],
+          ip: `${Math.floor(Math.random()*255)}.x.x.x`,
+          timestamp: new Date().toISOString()
+        };
+      });
+      return json(res, 200, { success: true, events, activeThreatLevel: 'elevated' });
+    }
+
+    // ── #5 TOP FOREVER: AUTOSCALING ─────────────────────────
+    if (root === 'autoscaling' && method === 'GET') {
+      // Simulate dynamic node provisioning
+      const metrics = {
+        currentLoad: Math.floor(Math.random() * 40) + 60, // 60-100%
+        activeNodes: Math.floor(Math.random() * 50) + 200,
+        provisioningNodes: Math.floor(Math.random() * 10),
+        status: 'scaling_up',
+        nextEvaluation: new Date(Date.now() + 30000).toISOString() // 30s from now
+      };
+      return json(res, 200, { success: true, metrics });
+    }
+
+    const _kp=['/api/health','/api/config','/api/models','/api/metrics','/api/docs','/api/objects','/api/audit','/api/analytics','/api/schedule','/api/groups','/api/bluegreen','/api/webhooks','/api/marketplace','/api/compliance','/api/lineage','/api/sign','/api/notifications','/api/stream','/api/inference-cache','/api/checkpoints','/api/distillation','/api/fingerprint','/api/abtest-lock','/api/earnings','/api/threats','/api/autoscaling'];
     return json(res, _kp.some(k=>path.startsWith(k)) ? 405 : 404, { error: `Method ${method} not allowed on ${path}.`, tip:'See GET /api/docs' });
   } catch (err) {
     console.error('[api]', err);
