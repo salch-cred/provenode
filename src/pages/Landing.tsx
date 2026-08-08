@@ -223,9 +223,6 @@ export default function Landing() {
                 See how it works
               </a>
             </div>
-            <div className="lp-hero-note lp-anim-fade-up" style={{ animationDelay: '320ms' }}>
-              Free · Open source · Built on Shelbynet + Aptos
-            </div>
           </div>
         </section>
 
