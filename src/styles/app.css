@@ -800,8 +800,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--coral); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Page sections */
-.page { display: none; }
+/* Page sections (managed by React Router, always visible when mounted) */
+.page { display: block; }
 .page.active { display: block; }
 
 /* ── Extra styles for new features ───────────────────────── */

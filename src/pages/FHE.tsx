@@ -30,24 +30,24 @@ export default function FHE() {
           
           <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(16, 185, 129, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(16, 185, 129, 0.05) 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
 
-          <div style={{ zIndex: 10, display: 'flex', gap: 40, alignItems: 'center', color: '#10b981', fontFamily: 'var(--font-mono)' }}>
-            <div style={{ padding: 20, border: '1px solid #10b981', borderRadius: 8, background: 'rgba(16, 185, 129, 0.1)', textAlign: 'center' }}>
+          <div style={{ zIndex: 10, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 20, alignItems: 'center', color: '#10b981', fontFamily: 'var(--font-mono)' }}>
+            <div style={{ padding: 20, border: '1px solid #10b981', borderRadius: 8, background: 'rgba(16, 185, 129, 0.1)', textAlign: 'center', flex: '1 1 200px' }}>
               <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8, textTransform: 'uppercase' }}>User Device</div>
               <div style={{ fontSize: 24, fontWeight: 700 }}>Encrypted Input</div>
               <div style={{ fontSize: 12, marginTop: 8, color: '#34d399' }}>Ciphertext (LWE)</div>
             </div>
 
-            <i className="hgi-stroke hgi-arrow-right-01" style={{ fontSize: 32, opacity: 0.5 }} />
+            <i className="hgi-stroke hgi-arrow-right-01 desktop-only" style={{ fontSize: 32, opacity: 0.5 }} />
 
-            <div style={{ padding: 30, border: '2px solid #3b82f6', borderRadius: 8, background: 'rgba(59, 130, 246, 0.1)', textAlign: 'center', color: '#3b82f6', boxShadow: '0 0 20px rgba(59, 130, 246, 0.2)' }}>
+            <div style={{ padding: 30, border: '2px solid #3b82f6', borderRadius: 8, background: 'rgba(59, 130, 246, 0.1)', textAlign: 'center', color: '#3b82f6', boxShadow: '0 0 20px rgba(59, 130, 246, 0.2)', flex: '1 1 200px' }}>
               <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8, textTransform: 'uppercase' }}>Provenode Network</div>
               <div style={{ fontSize: 24, fontWeight: 700 }}>Blind Inference</div>
               <div style={{ fontSize: 12, marginTop: 8, color: '#60a5fa' }}>{data ? data.pipelineStatus : 'Computing FHE...'}</div>
             </div>
 
-            <i className="hgi-stroke hgi-arrow-right-01" style={{ fontSize: 32, opacity: 0.5 }} />
+            <i className="hgi-stroke hgi-arrow-right-01 desktop-only" style={{ fontSize: 32, opacity: 0.5 }} />
 
-            <div style={{ padding: 20, border: '1px solid #10b981', borderRadius: 8, background: 'rgba(16, 185, 129, 0.1)', textAlign: 'center' }}>
+            <div style={{ padding: 20, border: '1px solid #10b981', borderRadius: 8, background: 'rgba(16, 185, 129, 0.1)', textAlign: 'center', flex: '1 1 200px' }}>
               <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8, textTransform: 'uppercase' }}>User Device</div>
               <div style={{ fontSize: 24, fontWeight: 700 }}>Encrypted Output</div>
               <div style={{ fontSize: 12, marginTop: 8, color: '#34d399' }}>Decrypted Locally</div>
