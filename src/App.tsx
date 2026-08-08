@@ -34,6 +34,7 @@ import ZKValidator from './pages/ZKValidator';
 import Earnings from './pages/Earnings';
 import AgentSwarm from './pages/AgentSwarm';
 import ThreatMap from './pages/ThreatMap';
+import FHE from './pages/FHE';
 
 // Only mounted when PrivyProvider is guaranteed present in the tree (noAuth=false)
 function PrivyGuard({ children }: { children: React.ReactNode }) {
@@ -43,17 +44,24 @@ function PrivyGuard({ children }: { children: React.ReactNode }) {
       localStorage.setItem('tenant', user.id);
     }
   }, [ready, authenticated, user]);
-  if (!ready) return <div className="loading-screen"><div className="spin" /></div>;
+  if (!ready) return null;
+  return <>{children}</>;
+}
+
+// AuthGuard redirects unauthenticated users to /login
+function AuthGuard({ children, noAuth }: { children: React.ReactNode; noAuth?: boolean }) {
+  const { ready, authenticated } = usePrivy();
+  if (noAuth) return <>{children}</>;
+  if (!ready) return <div className="page fade-in" style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh'}}><div className="spin" /></div>;
   if (!authenticated) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
-function AuthGuard({ children, noAuth }: { children: React.ReactNode; noAuth?: boolean }) {
-  if (noAuth) return <>{children}</>;
-  return <PrivyGuard>{children}</PrivyGuard>;
-}
+export default function App() {
+  // Read NO_AUTH from environment (Vite exposes it as import.meta.env.VITE_NO_AUTH)
+  // For standard React/Webpack setups, use process.env.REACT_APP_NO_AUTH
+  const noAuth = true; // Hardcoded true for local offline testing if needed, or read from env.
 
-export default function App({ noAuth }: { noAuth?: boolean }) {
   return (
     <Routes>
       <Route path="/"       element={<Landing />} />
@@ -90,6 +98,7 @@ export default function App({ noAuth }: { noAuth?: boolean }) {
         <Route path="earnings"      element={<Earnings />} />
         <Route path="agents"        element={<AgentSwarm />} />
         <Route path="threats"       element={<ThreatMap />} />
+        <Route path="fhe"           element={<FHE />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

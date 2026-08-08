@@ -29,6 +29,7 @@ const NAV = [
     { to: 'governance',  label: 'Governance',   icon: 'hgi-signature' },
     { to: 'zkvalidator', label: 'ZK Validator', icon: 'hgi-shield-02' },
     { to: 'earnings',    label: 'Monetization', icon: 'hgi-bitcoin-04' },
+    { to: 'fhe',         label: 'FHE Enclaves', icon: 'hgi-lock-key' },
   ]},
   { section: 'Blockchain', items: [
     { to: 'objects',     label: 'Shelby Objects', icon: 'hgi-package' },
