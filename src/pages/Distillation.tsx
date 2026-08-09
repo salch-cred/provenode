@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { post } from '../lib/api';
+import { get, post } from '../lib/api';
 import { useToast } from '../contexts/AppContext';
 
 export default function Distillation() {
@@ -11,23 +11,18 @@ export default function Distillation() {
   const [running, setRunning] = useState(false);
   const [jobs, setJobs] = useState<any[]>([]);
 
-  // Simulate progress for running jobs
+  const fetchJobs = async () => {
+    try {
+      const res = await get<{jobs: any[]}>('/api/distillation');
+      if (res.jobs) {
+        setJobs(res.jobs.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      }
+    } catch(e) {}
+  };
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      setJobs(prev => prev.map(j => {
-        if (j.status === 'running') {
-          const np = j.progress + Math.random() * 5;
-          if (np >= 100) return { ...j, progress: 100, status: 'verifying' };
-          return { ...j, progress: np };
-        }
-        if (j.status === 'verifying') {
-          if (Math.random() > 0.8) {
-            return { ...j, status: 'done', zkHash: '0x' + Math.random().toString(16).substring(2, 14) + '...' };
-          }
-        }
-        return j;
-      }));
-    }, 1000);
+    fetchJobs();
+    const interval = setInterval(fetchJobs, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -35,10 +30,10 @@ export default function Distillation() {
     if (!teacherId) { toast('Teacher model ID required', 'error'); return; }
     setRunning(true);
     try {
-      const res = await post<any>('/api/distillation', { teacherId, studentArch, temperature, epochs });
-      setJobs(prev => [{ id: res.jobId || Math.random().toString(36).slice(2,8), teacherId, studentArch, temperature, epochs, status: 'running', progress: 0, createdAt: new Date().toISOString() }, ...prev]);
+      await post<any>('/api/distillation', { studentId: 'usr-1', teacherModelId: teacherId, studentArch, temperature, epochs, inputSamples: [{img: 'xyz'}] });
       toast('ZK-Distillation job started on Shelby network', 'success');
       setTeacherId('');
+      fetchJobs();
     } catch (e: any) {
       toast(e.message, 'error');
     }

@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
+import { get } from '../lib/api';
 
 // Basic regional centers (percentages on a 100x100 canvas)
 const regions = [
@@ -23,42 +24,25 @@ export default function Replication() {
   });
 
   useEffect(() => {
-    // Simulate replication bursts
-    const interval = setInterval(() => {
-      // Pick random source and multiple destinations
-      const source = regions[Math.floor(Math.random() * regions.length)];
-      
-      const numDests = Math.floor(Math.random() * 3) + 1;
-      const dests = [];
-      for (let i=0; i<numDests; i++) {
-        let d = regions[Math.floor(Math.random() * regions.length)];
-        if (d.id !== source.id) dests.push(d);
-      }
-
-      if (dests.length > 0) {
-        const id = Math.random().toString(36);
-        const newLines = dests.map((d, i) => ({
-          id: id + i,
-          x1: source.x, y1: source.y,
-          x2: d.x, y2: d.y,
-        }));
-        
-        setActiveLines(prev => [...prev, ...newLines].slice(-15)); // keep last 15
-        
-        setActiveNodes(prev => {
-           const nodes = new Set(prev);
-           nodes.add(source.id);
-           dests.forEach(d => nodes.add(d.id));
-           return Array.from(nodes).slice(-6);
-        });
-
+    const fetchState = async () => {
+      try {
+        const res = await get<{lines: any[], nodes: string[], activeBlobs: number, throughput: number}>('/api/replication');
+        if (res.lines && res.lines.length) {
+          setActiveLines(prev => [...prev, ...res.lines].slice(-15));
+        }
+        setActiveNodes(res.nodes || []);
         setMetrics(m => ({
-          ...m,
-          activeBlobs: m.activeBlobs + Math.floor(Math.random() * 10),
-          throughput: +(Math.random() * 2 + 1).toFixed(1)
+           ...m,
+           activeBlobs: res.activeBlobs || m.activeBlobs,
+           throughput: res.throughput || m.throughput
         }));
+      } catch (e) {
+        // silently fail on network error
       }
-    }, 1500);
+    };
+
+    const interval = setInterval(fetchState, 1500);
+    fetchState();
     return () => clearInterval(interval);
   }, []);
 

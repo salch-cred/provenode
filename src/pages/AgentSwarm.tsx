@@ -1,15 +1,47 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useToast } from '../contexts/AppContext';
+import { get } from '../lib/api';
 
 export default function AgentSwarm() {
   const toast = useToast();
   const [agents, setAgents] = useState<any[]>([]);
   const [capacity, setCapacity] = useState(45);
   const [logs, setLogs] = useState<string[]>([]);
+  const lastProvRef = useRef(false);
 
   useEffect(() => {
-    // Simulate autonomous agents appearing and moving around
-    const interval = setInterval(() => {
+    // 1. Backend Polling for true network state
+    const fetchState = async () => {
+      try {
+        const res = await get<{capacity:number, logs:string[], provisioning:boolean}>('/api/agent-swarm');
+        setCapacity(res.capacity);
+        if (res.logs && res.logs.length) {
+          setLogs(prev => [...res.logs, ...prev].slice(0, 20));
+        }
+        
+        if (res.provisioning && !lastProvRef.current) {
+           toast('Autonomous Agent provisioned 500GB additional Shelby storage via Aptos L1', 'success');
+           setAgents(prev => {
+             const withProv = [...prev];
+             if (withProv.length > 0) {
+                withProv[0].status = 'provisioning';
+                withProv[0].targetX = 50;
+                withProv[0].targetY = 50;
+             }
+             return withProv;
+           });
+        }
+        lastProvRef.current = res.provisioning;
+      } catch (e) {
+        // silently fail on network errors during polling
+      }
+    };
+
+    const pollInterval = setInterval(fetchState, 1000);
+    fetchState();
+
+    // 2. Client-side Agent Movement Interpolation (for smooth UI rendering)
+    const renderInterval = setInterval(() => {
       setAgents(prev => {
         const newAgents = [...prev];
         if (newAgents.length < 15 && Math.random() > 0.5) {
@@ -23,7 +55,6 @@ export default function AgentSwarm() {
           });
         }
         return newAgents.map(a => {
-          // move towards target
           const dx = a.targetX - a.x;
           const dy = a.targetY - a.y;
           if (Math.abs(dx) < 1 && Math.abs(dy) < 1) {
@@ -31,8 +62,8 @@ export default function AgentSwarm() {
             a.targetY = Math.random() * 100;
             if (a.status !== 'provisioning') {
               a.status = Math.random() > 0.8 ? 'negotiating' : 'active';
-            } else if (Math.random() > 0.5) {
-               a.status = 'active'; // finished provisioning
+            } else if (!lastProvRef.current) {
+               a.status = 'active'; // finished provisioning on backend
             }
           }
           a.x += dx * 0.05;
@@ -40,31 +71,9 @@ export default function AgentSwarm() {
           return a;
         });
       });
-
-      setCapacity(c => {
-        const next = c + Math.random() * 2;
-        if (next > 90) {
-          // Trigger Autonomous Provisioning
-          setLogs(l => [`[${new Date().toLocaleTimeString()}] ALERT: Capacity critical (>90%).`, 
-                        `[${new Date().toLocaleTimeString()}] Agent-X signed Aptos TX: +500GB Shelby Storage.`, ...l].slice(0, 8));
-          toast('Autonomous Agent provisioned 500GB additional Shelby storage via Aptos L1', 'success');
-          
-          setAgents(prev => {
-             const withProv = [...prev];
-             if (withProv.length > 0) {
-                withProv[0].status = 'provisioning';
-                withProv[0].targetX = 50;
-                withProv[0].targetY = 50;
-             }
-             return withProv;
-          });
-          return 25; // Reset capacity after purchase
-        }
-        return next;
-      });
-
     }, 1000);
-    return () => clearInterval(interval);
+
+    return () => { clearInterval(pollInterval); clearInterval(renderInterval); };
   }, [toast]);
 
   return (

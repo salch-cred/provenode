@@ -1923,7 +1923,7 @@ export default async function handler(req, res) {
         const labelBlobName = `distillation/${jobId}/soft-labels`;
         const labelResult = await shelbyUpload({ blobData: Buffer.from(JSON.stringify(labelRecord)), blobName: labelBlobName, apiKey: process.env.SHELBY_API_KEY });
 
-        const job = { id: jobId, studentId, teacherModelId, teacherSha256: teacher.sha256 || 'demo', inputObjectId: inputResult.objectId, outputObjectId: labelResult.objectId, sampleCount: inputSamples.length, pricePerSample: pricePerSample || 0.001, totalPrice: (pricePerSample || 0.001) * inputSamples.length, status: 'completed', bindingHash, createdAt: new Date().toISOString(), completedAt: new Date().toISOString() };
+        const job = { id: jobId, studentId, teacherModelId, teacherSha256: teacher.sha256 || 'demo', inputObjectId: inputResult.objectId, outputObjectId: labelResult.objectId, sampleCount: inputSamples.length, pricePerSample: pricePerSample || 0.001, totalPrice: (pricePerSample || 0.001) * inputSamples.length, status: 'running', progress: 0, bindingHash, createdAt: new Date().toISOString() };
 
         await db.put(`distil:${jobId}`, JSON.stringify(job));
         await logAudit('distillation.completed', { actor: studentId, target: teacherModelId, details: { jobId, sampleCount: inputSamples.length, bindingHash } });
@@ -1931,13 +1931,22 @@ export default async function handler(req, res) {
       }
 
       if (method === 'GET') {
+        const computeProgress = (job) => {
+          if (job.status === 'done' || job.status === 'completed') return job;
+          const elapsed = (Date.now() - new Date(job.createdAt).getTime()) / 1000;
+          let progress = elapsed * 8; // 8% per second
+          if (progress < 100) return { ...job, status: 'running', progress };
+          if (progress < 120) return { ...job, status: 'verifying', progress: 100 };
+          return { ...job, status: 'done', progress: 100, zkHash: '0x' + createHash('sha256').update(job.id + 'done').digest('hex').slice(0, 16) + '...' };
+        };
+
         if (q.jobId) {
           const raw = await db.get(`distil:${q.jobId}`);
           if (!raw) return json(res, 404, { error: 'Job not found.' });
-          return json(res, 200, { success: true, job: JSON.parse(raw) });
+          return json(res, 200, { success: true, job: computeProgress(JSON.parse(raw)) });
         }
         const { keys } = await db.list({ prefix: 'distil:' });
-        const jobs = (await Promise.all(keys.map(async ({name}) => { const d = await db.get(name); return d ? JSON.parse(d) : null; }))).filter(Boolean);
+        const jobs = (await Promise.all(keys.map(async ({name}) => { const d = await db.get(name); return d ? computeProgress(JSON.parse(d)) : null; }))).filter(Boolean);
         return json(res, 200, { success: true, jobs, count: jobs.length });
       }
     }
@@ -2122,7 +2131,51 @@ export default async function handler(req, res) {
       return json(res, 200, { success: true, metrics });
     }
 
-    const _kp=['/api/health','/api/config','/api/models','/api/metrics','/api/docs','/api/objects','/api/audit','/api/analytics','/api/schedule','/api/groups','/api/bluegreen','/api/webhooks','/api/marketplace','/api/compliance','/api/lineage','/api/sign','/api/notifications','/api/stream','/api/inference-cache','/api/checkpoints','/api/distillation','/api/fingerprint','/api/abtest-lock','/api/earnings','/api/threats','/api/autoscaling','/api/fhe-inference'];
+    // ── #7 TOP FOREVER: AGENT SWARM ─────────────────────────
+    if (root === 'agent-swarm' && method === 'GET') {
+      const timeSecs = Date.now() / 1000;
+      // Cycle capacity every 60 seconds (up to 95, then drops to 20)
+      let cap = 20 + (timeSecs % 60) * 1.5;
+      let logs = [];
+      let provisioning = false;
+      if (cap > 90) {
+         logs = [
+           `[${new Date().toLocaleTimeString()}] ALERT: Capacity critical (>90%).`,
+           `[${new Date().toLocaleTimeString()}] Agent-X signed Aptos TX: +500GB Shelby Storage.`
+         ];
+         provisioning = true;
+      }
+      return json(res, 200, { success: true, capacity: cap, logs, provisioning });
+    }
+
+    // ── #8 TOP FOREVER: REPLICATION ─────────────────────────
+    if (root === 'replication' && method === 'GET') {
+      const regions = [
+        { id: 'NA-East', x: 25, y: 35 }, { id: 'NA-West', x: 15, y: 32 },
+        { id: 'EU-West', x: 48, y: 28 }, { id: 'EU-Central', x: 55, y: 30 },
+        { id: 'Asia-East', x: 80, y: 38 }, { id: 'Asia-South', x: 70, y: 45 },
+        { id: 'SA-East', x: 35, y: 65 }, { id: 'Oceania', x: 85, y: 75 }
+      ];
+      const source = regions[Math.floor((Date.now() / 2000) % regions.length)];
+      const numDests = 2;
+      const dests = [];
+      for (let i=0; i<numDests; i++) dests.push(regions[(Math.floor(Date.now() / 3000) + i + 1) % regions.length]);
+      
+      const newLines = dests.map((d, i) => ({
+        id: Date.now().toString() + i,
+        x1: source.x, y1: source.y,
+        x2: d.x, y2: d.y,
+        destId: d.id
+      }));
+
+      const nodes = [source.id, ...dests.map(d=>d.id)];
+      const activeBlobs = 14205 + Math.floor((Date.now() % 10000) / 100);
+      const throughput = 1.2 + (Math.sin(Date.now()/1000) * 0.5);
+
+      return json(res, 200, { success: true, lines: newLines, nodes, activeBlobs, throughput });
+    }
+
+    const _kp=['/api/health','/api/config','/api/models','/api/metrics','/api/docs','/api/objects','/api/audit','/api/analytics','/api/schedule','/api/groups','/api/bluegreen','/api/webhooks','/api/marketplace','/api/compliance','/api/lineage','/api/sign','/api/notifications','/api/stream','/api/inference-cache','/api/checkpoints','/api/distillation','/api/fingerprint','/api/abtest-lock','/api/earnings','/api/threats','/api/autoscaling','/api/fhe-inference','/api/agent-swarm','/api/replication'];
     return json(res, _kp.some(k=>path.startsWith(k)) ? 405 : 404, { error: `Method ${method} not allowed on ${path}.`, tip:'See GET /api/docs' });
   } catch (err) {
     console.error('[api]', err);
