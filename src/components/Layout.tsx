@@ -31,7 +31,8 @@ const NAV = [
   { section: 'Blockchain', items: [
     { to: 'objects',     label: 'Shelby Objects', icon: 'hgi-package' },
     { to: 'shelby',      label: 'Shelby Layer',   icon: 'hgi-blockchain-01' },
-    { to: 'compliance',  label: 'Compliance',     icon: 'hgi-license' },
+    { to: 'passports',   label: 'Model Passports', icon: 'hgi-license' },
+    { to: 'compliance',  label: 'Compliance',     icon: 'hgi-agreement-01' },
     { to: 'bluegreen',   label: 'Blue-Green',     icon: 'hgi-exchange-01' },
   ]},
   { section: 'Growth', items: [

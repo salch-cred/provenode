@@ -1,0 +1,21 @@
+{
+  "name": "provenode-mcp",
+  "version": "1.0.0",
+  "description": "Model Context Protocol server for Provenode — deploy, verify, passport-check, and pay tools so AI agents can operate models through the platform.",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "provenode-mcp": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "http": "node src/index.js --http"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

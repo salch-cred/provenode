@@ -32,6 +32,7 @@ import Health from './pages/Health';
 import Governance from './pages/Governance';
 import ZKValidator from './pages/ZKValidator';
 import Earnings from './pages/Earnings';
+import Passports from './pages/Passports';
 
 // Only mounted when PrivyProvider is guaranteed present in the tree (noAuth=false)
 function PrivyGuard({ children }: { children: React.ReactNode }) {
@@ -94,6 +95,7 @@ export default function App({ noAuth: externalNoAuth }: { noAuth?: boolean }) {
         <Route path="health"        element={<Health />} />
         <Route path="governance"    element={<Governance />} />
         <Route path="zkvalidator"   element={<ZKValidator />} />
+        <Route path="passports"     element={<Passports />} />
         <Route path="earnings"      element={<Earnings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

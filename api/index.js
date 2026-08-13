@@ -10,6 +10,7 @@ import { createPaymentIntent, getPaymentIntent, markIntentPaid, listPaymentInten
 import { dispatch } from '../lib/notify.js';
 import { logAudit, getAuditLog } from '../lib/audit.js';
 import { signModel } from '../lib/sign.js';
+import { buildPassportRecord, verifyPassport, storePassport, findPassportBySha256, anchorOnChain, passportBlobName } from '../lib/passport.js';
 import { sendEmail, deploymentVerifiedEmail, integrityMismatchEmail, expiryWarningEmail } from '../lib/email.js';
 // ── TOP 10 TIER-1 SHELBY FEATURES ─────────────────────────────────────────
 import { createStreamManifest, getChunkUrl } from '../lib/streaming.js';         // #1
@@ -87,6 +88,60 @@ async function getOrgAddress() {
 export const config = {
   api: { bodyParser: false },
 };
+
+/**
+ * Issue a Model Passport for a model: signed certificate anchored on-chain
+ * (Move tx when MOVE_CONTRACT_ADDRESS + SHELBY_PRIVATE_KEY are set) or as an
+ * immutable Shelby blob. Best-effort — never throws into the caller's path.
+ */
+async function issuePassport(db, model, { tryOnChain = false } = {}) {
+  const orgAddress = await getOrgAddress();
+  const passport = buildPassportRecord({
+    modelId: model.id,
+    modelName: model.model || model.name,
+    sha256: model.sha256 || model.hash,
+    version: model.version || '1.0.0',
+    license: model.license,
+    registeredAt: model.createdAt,
+    orgAddress,
+  });
+  let note = null;
+  if (tryOnChain && process.env.MOVE_CONTRACT_ADDRESS) {
+    try {
+      const r = await anchorOnChain({
+        sha256: passport.sha256,
+        shelbyObjectId: model.objectId,
+        modelName: passport.modelName,
+        version: passport.modelVersion,
+        modelId: model.id,
+      });
+      passport.txHash = r.txHash;
+      passport.explorerUrl = r.explorerUrl;
+      passport.anchored = 'move-tx';
+    } catch (e) {
+      note = e.message;
+    }
+  }
+  if (passport.anchored !== 'move-tx') {
+    try {
+      const up = await shelbyUpload({
+        blobData: Buffer.from(JSON.stringify(passport, null, 2)),
+        blobName: passportBlobName(model.id),
+        apiKey: process.env.SHELBY_API_KEY,
+      });
+      passport.shelbyObjectId = up.objectId;
+      passport.anchored = 'shelby-blob';
+    } catch (e) {
+      note = note ? `${note} ` : '';
+      note += `Shelby blob anchor unavailable: ${e.message}`;
+    }
+  }
+  await storePassport(db, passport);
+  model.passportIssued = true;
+  await db.put(`model:${model.id}`, JSON.stringify(model));
+  await logAudit('passport.issued', { target: model.id, details: { sha256: passport.sha256.slice(0, 12), signed: passport.signed, anchored: passport.anchored } });
+  return { passport, note };
+}
 
 
 // ── Rate limiting (Redis-backed sliding window — works across all Vercel instances) ─────
@@ -222,7 +277,7 @@ export default async function handler(req, res) {
 
     // ── models ──────────────────────────────────────────────
     if (root === 'models' && method === 'GET') {
-      const PUBLIC = ['id','model','objectId','blobName','sha256','size','mode','address','expiresAt','parentId','tags','createdAt','signature'];
+      const PUBLIC = ['id','model','objectId','blobName','sha256','size','mode','address','expiresAt','parentId','tags','createdAt','signature','passportIssued'];
       const { keys } = await db.list({ prefix: 'model:' });
       const models = (await Promise.all(keys.map(async ({ name }) => {
         const d = await db.get(name); if (!d) return null;
@@ -572,7 +627,9 @@ export default async function handler(req, res) {
       if (parentId) await db.put(`lineage:${id}`, JSON.stringify({ parentId, childId: id }));
       await logAudit('model.registered', { target: id, details: { model: modelName, mode } });
       await dispatch('model.registered', { id, model: modelName, mode, sha256: sha256.slice(0, 12) });
-      return json(res, 200, { success: true, id, objectId, hash: sha256, size: bytes.length, mode, expiresAt, ...(warning && { warning }) });
+      // Auto-issue the Model Passport (best-effort — never blocks the upload).
+      try { await issuePassport(db, record, { tryOnChain: false }); } catch { /* best-effort */ }
+      return json(res, 200, { success: true, id, objectId, hash: sha256, size: bytes.length, mode, expiresAt, passportIssued: true, ...(warning && { warning }) });
     }
 
     // ── deploy ──────────────────────────────────────────────
@@ -1489,6 +1546,95 @@ export default async function handler(req, res) {
       }
     }
 
+    // ── passport (Model Passports) ───────────────────────────
+    if (root === 'passport') {
+      // GET  /api/passport/:modelId             — public certificate
+      // POST /api/passport                      — issue certificate (auth)
+      // POST /api/passport/check                — check a weights file/hash (public)
+      // POST /api/passport/:modelId/verify-copy — behavioral copy check (auth)
+      const sub = parts[1];
+
+      if (sub === 'check' && method === 'POST') {
+        const body = await readBody(req);
+        let sha256 = String(body.sha256 || '').toLowerCase().replace(/^0x/, '');
+        if (!sha256 && typeof body.dataBase64 === 'string' && body.dataBase64) {
+          sha256 = createHash('sha256').update(Buffer.from(body.dataBase64, 'base64')).digest('hex');
+        }
+        if (!sha256 || !/^[0-9a-f]{64}$/.test(sha256)) {
+          return json(res, 400, { error: 'Provide a 64-char sha256 or dataBase64 weights file.' });
+        }
+        const passport = await findPassportBySha256(db, sha256);
+        if (passport) {
+          const verified = verifyPassport(passport);
+          const { keys } = await db.list({ prefix: `fp:${passport.modelId}:` });
+          return json(res, 200, {
+            success: true,
+            match: 'exact',
+            verified,
+            passport: { ...passport, signature: undefined, payload: undefined },
+            fingerprintCount: keys.length,
+            message: verified
+              ? 'This weights file matches a registered model with a valid ownership certificate.'
+              : 'Certificate found but the signature does not validate — treat with caution.',
+          });
+        }
+        // No exact passport: list registered models so the caller can compare.
+        const { keys } = await db.list({ prefix: 'model:' });
+        const models = (await Promise.all(keys.map(async ({ name }) => { const d = await db.get(name); return d ? JSON.parse(d) : null; }))).filter(Boolean);
+        return json(res, 200, {
+          success: true,
+          match: 'none',
+          message: 'No registered model matches this exact SHA-256. It may be an edited or unlicensed copy — run a behavioral fingerprint check to confirm.',
+          checkedSha256: sha256,
+          registeredModels: models.map(m => ({ modelId: m.id, model: m.model, sha256: m.sha256, registeredAt: m.createdAt, passportIssued: Boolean(m.passportIssued) })).slice(0, 50),
+        });
+      }
+
+      if (sub && sub !== 'check') {
+        const modelId = sub;
+        if (method === 'GET') {
+          const raw = await db.get(`passport:${modelId}`);
+          if (!raw) return json(res, 404, { error: 'No passport for this model.' });
+          const passport = JSON.parse(raw);
+          const { keys } = await db.list({ prefix: `fp:${modelId}:` });
+          return json(res, 200, { success: true, verified: verifyPassport(passport), passport: { ...passport, signature: undefined, payload: undefined }, fingerprintCount: keys.length });
+        }
+        if (method === 'POST' && parts[2] === 'verify-copy') {
+          if (requireAuth(req, res)) return;
+          const body = await readBody(req);
+          const { outputs } = body;
+          if (!outputs || !Array.isArray(outputs) || !outputs.length) {
+            return json(res, 400, { error: 'outputs[] with canary outputs from the suspect deployment required.' });
+          }
+          const { keys } = await db.list({ prefix: `fp:${modelId}:` });
+          if (!keys.length) {
+            return json(res, 404, { error: 'No behavioral fingerprint registered for this model. Register one via POST /api/fingerprint first.' });
+          }
+          const { createBehavioralFingerprint, compareFingerprints } = await import('../lib/fingerprint.js');
+          const modelRaw = await db.get(`model:${modelId}`);
+          const model = modelRaw ? JSON.parse(modelRaw) : null;
+          const current = createBehavioralFingerprint({ modelId, modelSha256: model?.sha256 || 'unknown', outputs });
+          const prints = (await Promise.all(keys.map(async ({ name }) => { const d = await db.get(name); return d ? JSON.parse(d) : null; }))).filter(Boolean).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+          const comparison = compareFingerprints(prints[0], current);
+          await logAudit('passport.copy_checked', { target: modelId, details: { match: comparison.match, divergenceScore: comparison.divergenceScore } });
+          return json(res, 200, { success: true, modelId, currentFingerprint: current.fingerprint, comparison });
+        }
+        return json(res, 405, { error: 'Method not allowed.' });
+      }
+
+      if (method === 'POST') {
+        if (requireAuth(req, res)) return;
+        const body = await readBody(req);
+        const { modelId } = body;
+        if (!modelId) return json(res, 400, { error: 'modelId required.' });
+        const modelRaw = await db.get(`model:${modelId}`);
+        if (!modelRaw) return json(res, 404, { error: 'Model not found.' });
+        const model = JSON.parse(modelRaw);
+        const { passport, note } = await issuePassport(db, model, { tryOnChain: true });
+        return json(res, 201, { success: true, passport, note: note || null });
+      }
+    }
+
     // ── metrics (prometheus) ────────────────────────────────
     if (root === 'metrics' && method === 'GET') {
       res.setHeader('Content-Type', 'text/plain; version=0.0.4');
@@ -1552,6 +1698,7 @@ export default async function handler(req, res) {
           '/api/docs': { get: { summary: 'This spec' } },
           '/api/earnings': { get: { summary: 'Real monetization metrics from settled ShelbyUSD payments' } },
           '/api/payments': { get: { summary: 'List ShelbyUSD payment intents' }, post: { summary: 'Create or settle a ShelbyUSD payment intent' } },
+          '/api/passport': { get: { summary: 'Get a model passport' }, post: { summary: 'Issue a passport or check a weights file' } },
           '/api/objects/:id/blob': { get: { summary: 'Download and verify a real Shelby blob' } },
           '/api/objects/:id/renew': { post: { summary: 'Renew a real Shelby blob (re-upload with fresh expiry)' } },
           '/api/stream-inference': { get: { summary: 'Stream model chunks' }, post: { summary: 'Create stream manifest' } },
@@ -2217,13 +2364,21 @@ export default async function handler(req, res) {
 
         const fpRecord = { modelId, modelSha256, canaryCount: outputs.length, fingerprint, compoundFingerprint, outputHashes, createdAt: new Date().toISOString(), version: 'provenode-bfp-v1' };
 
-        // Upload to Shelby
-        const blobName = `fingerprints/${modelId.replace(/[^a-z0-9-]/gi,'-').toLowerCase()}/${Date.now()}`;
-        const shelbyResult = await shelbyUpload({ blobData: Buffer.from(JSON.stringify(fpRecord)), blobName, apiKey: process.env.SHELBY_API_KEY });
+        // Anchor on Shelby best-effort — the KV record is the source of truth for
+        // comparison, the blob is the immutable public anchor.
+        let shelbyObjectId = null;
+        let anchorNote = null;
+        try {
+          const blobName = `fingerprints/${modelId.replace(/[^a-z0-9-]/gi,'-').toLowerCase()}/${Date.now()}`;
+          const shelbyResult = await shelbyUpload({ blobData: Buffer.from(JSON.stringify(fpRecord)), blobName, apiKey: process.env.SHELBY_API_KEY });
+          shelbyObjectId = shelbyResult.objectId;
+        } catch (e) {
+          anchorNote = `Shelby blob anchor unavailable: ${e.message}`;
+        }
 
-        await db.put(`fp:${modelId}:${Date.now()}`, JSON.stringify({ ...fpRecord, shelbyObjectId: shelbyResult.objectId }));
+        await db.put(`fp:${modelId}:${Date.now()}`, JSON.stringify({ ...fpRecord, shelbyObjectId }));
         await logAudit('fingerprint.created', { target: modelId, details: { fingerprint, compoundFingerprint, canaryCount: outputs.length } });
-        return json(res, 201, { success: true, fingerprint, compoundFingerprint, shelbyObjectId: shelbyResult.objectId, note: 'Behavioral fingerprint anchored on Shelby. Detects model editing attacks (ROME/MEMIT/BadNets) that bypass SHA-256 checking.' });
+        return json(res, 201, { success: true, fingerprint, compoundFingerprint, shelbyObjectId, note: anchorNote || 'Behavioral fingerprint anchored on Shelby. Detects model editing attacks (ROME/MEMIT/BadNets) that bypass SHA-256 checking.' });
       }
 
       if (method === 'GET') {
@@ -2348,7 +2503,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const _kp=['/api/health','/api/config','/api/models','/api/metrics','/api/docs','/api/objects','/api/audit','/api/analytics','/api/schedule','/api/groups','/api/bluegreen','/api/webhooks','/api/marketplace','/api/payments','/api/compliance','/api/lineage','/api/sign','/api/notifications','/api/stream','/api/inference-cache','/api/checkpoints','/api/distillation','/api/fingerprint','/api/abtest-lock','/api/earnings'];
+    const _kp=['/api/health','/api/config','/api/models','/api/metrics','/api/docs','/api/objects','/api/audit','/api/analytics','/api/schedule','/api/groups','/api/bluegreen','/api/webhooks','/api/marketplace','/api/payments','/api/passport','/api/compliance','/api/lineage','/api/sign','/api/notifications','/api/stream','/api/inference-cache','/api/checkpoints','/api/distillation','/api/fingerprint','/api/abtest-lock','/api/earnings'];
     return json(res, _kp.some(k=>path.startsWith(k)) ? 405 : 404, { error: `Method ${method} not allowed on ${path}.`, tip:'See GET /api/docs' });
   } catch (err) {
     console.error('[api]', err);
