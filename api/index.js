@@ -11,6 +11,7 @@ import { dispatch } from '../lib/notify.js';
 import { logAudit, getAuditLog } from '../lib/audit.js';
 import { signModel } from '../lib/sign.js';
 import { buildPassportRecord, verifyPassport, storePassport, findPassportBySha256, anchorOnChain, passportBlobName } from '../lib/passport.js';
+import { getRegistryStatus, verifyModelOnChain, getModelCount, MODEL_REGISTRY_ADDRESS, SHELBY_RPC } from '../lib/registry.js';
 import { sendEmail, deploymentVerifiedEmail, integrityMismatchEmail, expiryWarningEmail } from '../lib/email.js';
 // ── TOP 10 TIER-1 SHELBY FEATURES ─────────────────────────────────────────
 import { createStreamManifest, getChunkUrl } from '../lib/streaming.js';         // #1
@@ -118,6 +119,9 @@ async function issuePassport(db, model, { tryOnChain = false } = {}) {
       passport.txHash = r.txHash;
       passport.explorerUrl = r.explorerUrl;
       passport.anchored = 'move-tx';
+      model.onChainTx = r.txHash;
+      model.onChainExplorerUrl = r.explorerUrl;
+      model.onChainAnchor = true;
     } catch (e) {
       note = e.message;
     }
@@ -243,6 +247,36 @@ export default async function handler(req, res) {
       });
     }
 
+    // ── registry (live on-chain ModelRegistry) ───────────────
+    if (root === 'registry') {
+      if (method === 'GET' && parts[1] === 'status') {
+        // Public: real on-chain state from the deployed Shelbynet contract.
+        try {
+          return json(res, 200, { success: true, registry: await getRegistryStatus() });
+        } catch (e) {
+          return json(res, 502, { error: `Cannot read on-chain registry: ${e.message}` });
+        }
+      }
+      if (method === 'GET' && parts[1] === 'verify') {
+        // Public: does this SHA-256 exist in the on-chain registry?
+        const sha256 = String(q.sha256 || '').toLowerCase().replace(/^0x/, '');
+        if (!/^[0-9a-f]{64}$/.test(sha256)) return json(res, 400, { error: 'Provide a 64-char sha256.' });
+        try {
+          const verified = await verifyModelOnChain(sha256);
+          return json(res, 200, { success: true, sha256, verified, contractAddress: MODEL_REGISTRY_ADDRESS, rpc: SHELBY_RPC });
+        } catch (e) {
+          return json(res, 502, { error: `Cannot verify on-chain: ${e.message}` });
+        }
+      }
+      if (method === 'GET' && !parts[1]) {
+        try {
+          return json(res, 200, { success: true, contractAddress: MODEL_REGISTRY_ADDRESS, modelCount: await getModelCount(), rpc: SHELBY_RPC });
+        } catch (e) {
+          return json(res, 502, { error: `Cannot read on-chain registry: ${e.message}` });
+        }
+      }
+    }
+
     // ── identity ────────────────────────────────────────────
     if (root === 'identity') {
       // FIX: identity GET now requires auth (exposes wallet address)
@@ -277,7 +311,7 @@ export default async function handler(req, res) {
 
     // ── models ──────────────────────────────────────────────
     if (root === 'models' && method === 'GET') {
-      const PUBLIC = ['id','model','objectId','blobName','sha256','size','mode','address','expiresAt','parentId','tags','createdAt','signature','passportIssued'];
+      const PUBLIC = ['id','model','objectId','blobName','sha256','size','mode','address','expiresAt','parentId','tags','createdAt','signature','passportIssued','onChainTx','onChainExplorerUrl','onChainAnchor'];
       const { keys } = await db.list({ prefix: 'model:' });
       const models = (await Promise.all(keys.map(async ({ name }) => {
         const d = await db.get(name); if (!d) return null;
@@ -1699,6 +1733,7 @@ export default async function handler(req, res) {
           '/api/earnings': { get: { summary: 'Real monetization metrics from settled ShelbyUSD payments' } },
           '/api/payments': { get: { summary: 'List ShelbyUSD payment intents' }, post: { summary: 'Create or settle a ShelbyUSD payment intent' } },
           '/api/passport': { get: { summary: 'Get a model passport' }, post: { summary: 'Issue a passport or check a weights file' } },
+          '/api/registry': { get: { summary: 'Live on-chain ModelRegistry state (status, verify by sha256)' } },
           '/api/objects/:id/blob': { get: { summary: 'Download and verify a real Shelby blob' } },
           '/api/objects/:id/renew': { post: { summary: 'Renew a real Shelby blob (re-upload with fresh expiry)' } },
           '/api/stream-inference': { get: { summary: 'Stream model chunks' }, post: { summary: 'Create stream manifest' } },
@@ -2503,8 +2538,10 @@ export default async function handler(req, res) {
       });
     }
 
-    const _kp=['/api/health','/api/config','/api/models','/api/metrics','/api/docs','/api/objects','/api/audit','/api/analytics','/api/schedule','/api/groups','/api/bluegreen','/api/webhooks','/api/marketplace','/api/payments','/api/passport','/api/compliance','/api/lineage','/api/sign','/api/notifications','/api/stream','/api/inference-cache','/api/checkpoints','/api/distillation','/api/fingerprint','/api/abtest-lock','/api/earnings'];
-    return json(res, _kp.some(k=>path.startsWith(k)) ? 405 : 404, { error: `Method ${method} not allowed on ${path}.`, tip:'See GET /api/docs' });
+    const _kp=['/api/health','/api/config','/api/models','/api/metrics','/api/docs','/api/objects','/api/audit','/api/analytics','/api/schedule','/api/groups','/api/bluegreen','/api/webhooks','/api/marketplace','/api/payments','/api/passport','/api/registry','/api/compliance','/api/lineage','/api/sign','/api/notifications','/api/stream','/api/inference-cache','/api/checkpoints','/api/distillation','/api/fingerprint','/api/abtest-lock','/api/earnings'];
+    // Boundary match (k or k + '/…') — '/api/streaming/session' must NOT match '/api/stream'.
+    const known = _kp.some(k => path === k || path.startsWith(k + '/'));
+    return json(res, known ? 405 : 404, { error: `Method ${method} not allowed on ${path}.`, tip:'See GET /api/docs' });
   } catch (err) {
     console.error('[api]', err);
     return json(res, 500, { error: err.message || 'Internal error' });

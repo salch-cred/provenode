@@ -1,49 +1,52 @@
 # Provenode
 
-An enterprise-grade AI model registry and decentralized fleet manager. Provenode ensures cryptographic integrity of artificial intelligence deployments across edge devices. By leveraging the Shelby Protocol for immutable object storage and the Aptos blockchain for state management, Provenode guarantees that edge environments execute verified models exclusively.
+**The decentralized model lifecycle platform — deploy, verify, and monetize AI models with cryptographic proof, on Shelby.**
 
-## Architecture Overview
+Provenode is an enterprise-grade AI model registry and decentralized fleet manager. Every model is anchored on the Shelby Protocol (Shelbynet), signed with Ed25519 keys, and verifiable on-chain — so edge devices execute *only* models whose integrity has been mathematically proven. No demo modes, no simulated data: every flow runs against real Shelby storage and real ShelbyUSD micropayments.
 
-Deploying AI models to decentralized edge infrastructure (cameras, autonomous vehicles, embedded systems) introduces critical security vectors. Standard orchestrators rely on mutable databases that cannot definitively prove the integrity of the executing model.
+## Why Provenode
 
-Provenode solves this through cryptographic provenance:
-1. **Immutable Storage**: Models are uploaded to the Shelby Protocol.
-2. **On-Chain Registry**: The SHA-256 hash and storage object ID are anchored on the Aptos L1 via a Move smart contract.
-3. **Cryptographic Signatures**: Deployments are signed with Ed25519 keys.
-4. **Edge Enforcement**: Devices mathematically verify the SHA-256 digest against the on-chain registry prior to initialization. Any mismatch triggers a deployment rejection and fallback sequence.
+Deploying AI to decentralized edge infrastructure (cameras, vehicles, embedded systems) creates a critical trust problem: standard orchestrators use mutable databases that cannot *prove* which model is actually running. Provenode closes that gap with cryptographic provenance at every stage of the lifecycle:
+
+1. **Immutable storage** — model weights are uploaded to Shelby Protocol blobs.
+2. **Ownership passports** — every model gets a signed certificate (SHA-256 + org + timestamp), anchored on-chain via the Move `ModelRegistry` contract or as an immutable Shelby blob.
+3. **On-chain registry** — SHA-256 digests and storage object IDs are anchored to Aptos via Move.
+4. **Edge enforcement** — devices mathematically verify the digest against the registry before initialization; any mismatch triggers tamper detection, an incident record, and an automatic heal command.
+5. **Monetization** — marketplace listings, dataset streams, and model imports settle in ShelbyUSD micropayments, verifiable on-chain.
 
 ## Core Features
 
-- **Non-Interactive Zero-Knowledge Proofs (NIZKPoK)**: Ephemeral ECDSA signatures generated across benchmark test vectors to guarantee mathematical proof of execution.
-- **Federated Learning Merging**: Real-time `Float32Array` tensor aggregation (`FedAvg`) running on serverless architecture.
-- **Dataset Sharding & Merkle Trees**: Dynamic binary dataset chunking and native `SHA-256` Merkle Root generation for EU AI Act compliance.
-- **Canary Deployments & OTA**: Phased fleet rollouts with automated rollback thresholds.
+- **Model Passports** — signed ownership certificates with SHA-256, org address, and timestamp; check any weights file by hash to see its legal origin. Behavioral fingerprinting (canary-output comparison) catches *edited* copies that hash-checking alone misses.
+- **Real Shelby mode** — blob upload/download, manifest anchoring, and checkpoint resume all run against the Shelbynet API. Unconfigured paths fail cleanly (503/402/400) — they never fabricate data.
+- **Fleet integrity & self-healing** — per-device SHA verification, tamper detection, incident records, and auto-issued heal commands.
+- **Canary deployments & OTA** — phased fleet rollouts (10/25/50/100%) with automated rollback thresholds and blue-green slot switching.
+- **Non-Interactive Zero-Knowledge Proofs (NIZKPoK)** — ephemeral ECDSA proofs generated across benchmark test vectors to mathematically demonstrate execution.
+- **Federated learning** — real-time `Float32Array` tensor aggregation (FedAvg) on serverless architecture, with per-round receipts anchored on-chain.
+- **Dataset sharding & Merkle roots** — binary chunking with native SHA-256 Merkle root generation for EU AI Act compliance; paid stream access gated by settled ShelbyUSD intents.
+- **ShelbyUSD micropayments** — payment intents priced server-side, settled on-chain via `SenderBuiltMicropayment` BCS, with receipts and audit trails.
+- **Marketplace** — publish models with per-listing prices; imports require a settled intent for that exact listing.
+- **Distillation, streaming inference, A/B test locks, lineage DAGs, compliance export, webhooks, analytics, audit log** — the full enterprise surface.
+
+## MCP Server
+
+Provenode ships a **Model Context Protocol server** (`mcp/`) so AI agents can operate the platform directly: deploy models, verify fleets, check passports, and create/settle payments. Works over stdio (Claude Desktop, Cursor) or Streamable HTTP.
+
+```bash
+cd mcp && npm install
+PROVENODE_API_URL=https://your-app.vercel.app/api PROVENODE_TOKEN=<deploy-secret> node src/index.js
+```
+
+See [`mcp/README.md`](mcp/README.md) for tools, env vars, and client configuration.
 
 ## Technology Stack
 
-- **Blockchain**: Aptos (Move Smart Contracts)
-- **Decentralized Storage**: Shelby Protocol (Shelbynet)
-- **Backend Services**: Node.js, Vercel Serverless Functions
-- **Frontend Dashboard**: React, TypeScript, Docusaurus
-- **State Management**: Upstash Redis
+- **Blockchain / settlement** — Aptos (Move), ShelbyUSD micropayments
+- **Decentralized storage** — Shelby Protocol (Shelbynet)
+- **Backend** — Node.js, Vercel Serverless Functions, Upstash Redis
+- **Frontend** — React, TypeScript, Vite, Docusaurus (docs)
+- **Auth** — Privy (wallet auth), wagmi/viem
 
-## Smart Contract Integration
-
-Network: `Aptos Testnet`
-Module: `ModelRegistry`
-
-The Move contract manages the immutable state of all models, datasets, and federated learning rounds.
-
-```bash
-# Compile the contract
-cd contract
-aptos move compile --named-addresses provenode_addr=<your_address>
-
-# Publish to network
-aptos move publish --profile default --named-addresses provenode_addr=<your_address>
-```
-
-## Local Development
+## Quick Start
 
 ```bash
 git clone https://github.com/salch-cred/provenode.git
@@ -55,7 +58,7 @@ npm run dev
 
 ### Environment Configuration
 
-Minimum required variables for local execution:
+Copy `.env.example` to `.env.local`. Minimum for local execution:
 
 ```env
 KV_REST_API_URL=<upstash_url>
@@ -64,28 +67,63 @@ DEPLOY_SECRET=<authentication_secret>
 CRON_SECRET=<cron_secret>
 ```
 
-To enable real-time Shelby Protocol uploading and cryptographic features, configure your network keys:
+For **real Shelby mode** (uploads, anchors, payments):
 
 ```env
-SHELBY_API_KEY=<shelby_api_key>
+SHELBY_API_KEY=<shelby_api_key>          # https://shelby.network
 SHELBY_PRIVATE_KEY=<ed25519_private_key_hex>
+SHELBY_NETWORK=shelbynet                 # real network (default) | testnet
 ```
+
+Optional: `MOVE_CONTRACT_ADDRESS` (after deploying `contract/sources/ModelRegistry.move`), `SIGN_KEY`, `RESEND_API_KEY`, `ALERT_EMAIL`, `VITE_PRIVY_APP_ID`, `VITE_WC_PROJECT_ID`.
+
+## Smart Contract
+
+The Move contract manages the immutable registry of models, datasets, and federated rounds.
+
+```bash
+cd contract
+aptos move compile --named-addresses provenode_addr=<your_address>
+aptos move publish --profile default --named-addresses provenode_addr=<your_address>
+```
+
+Network: **Shelbynet** (real) — testnet is an explicit opt-out via `SHELBY_NETWORK=testnet`.
 
 ## API Reference
 
-The backend exposes a comprehensive REST API for CI/CD integration and edge device communication. All administrative endpoints require the `X-Provenode-Token` authentication header.
+The backend exposes a comprehensive REST API for CI/CD and edge-device integration. All mutating endpoints require the `X-Provenode-Token` header. Full reference at `GET /api/docs`.
 
-**Model Lifecycle**
-- `POST /api/upload` - Secure model ingestion and Aptos anchoring
-- `POST /api/deploy` - Initiate fleet OTA distribution
-- `GET /api/verify` - Cryptographic verification endpoint
+**Model lifecycle**
+- `POST /api/upload` — model ingestion + Shelby blob + passport auto-issue
+- `POST /api/deploy` — fleet OTA distribution
+- `GET /api/status` — deployment progress
+- `POST /api/selfheal` — device integrity report / auto-heal
 
-**Advanced Features**
-- `POST /api/federated` - Submit gradient updates
-- `PATCH /api/federated` - Execute multi-dimensional tensor merging
-- `POST /api/datasets` - Register dataset sharding and Merkle roots
-- `POST /api/zkproof` - Generate ECDSA benchmark proofs
+**Proof & provenance**
+- `POST /api/passport/check` — weights file → provenance verdict (public)
+- `GET /api/passport/:modelId` — ownership certificate (public)
+- `POST /api/passport/:modelId/verify-copy` — behavioral copy check
+- `POST /api/zkproof/generate/:modelId` — ECDSA benchmark proofs (real test vectors)
+- `GET /api/lineage` — model provenance DAG
+
+**Data & training**
+- `POST /api/datasets` — register sharded dataset + Merkle root
+- `POST /api/federated` / `PATCH /api/federated` — gradient submission / merging
+- `POST /api/distillation` — teacher/student distillation jobs
+
+**Money**
+- `POST /api/payments` — create or settle a ShelbyUSD payment intent
+- `GET /api/marketplace` / `POST /api/marketplace` — listing + import with payment gating
+- `GET /api/earnings` — settlement history
 
 ## Documentation
 
-Comprehensive architecture documentation and integration guides are available at [provenodes.xyz/docs](https://www.provenodes.xyz/docs).
+Architecture docs and integration guides: [provenodes.xyz/docs](https://www.provenodes.xyz/docs).
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for the vulnerability disclosure policy and security posture.
+
+## License
+
+All rights reserved. Contact the maintainers for commercial licensing.
