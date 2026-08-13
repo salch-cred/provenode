@@ -88,55 +88,6 @@ export default function Health() {
           </div>
         </div>
       </div>
-
-      <AutoScalingGraph />
-    </div>
-  );
-}
-
-function AutoScalingGraph() {
-  const [scaleData, setScaleData] = useState<any>(null);
-
-  useEffect(() => {
-    const fetchScale = async () => {
-      try {
-        const res = await fetch('/api/autoscaling');
-        const json = await res.json();
-        if (json.success) setScaleData(json.metrics);
-      } catch (err) {}
-    };
-    fetchScale();
-    const interval = setInterval(fetchScale, 4000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="card" style={{ marginTop: 24 }}>
-      <div className="card-header">
-        <h2 className="card-title">Infinite Scalability (Auto-Provisioning)</h2>
-      </div>
-      <div className="card-body">
-        {scaleData ? (
-          <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 200, padding: 24, background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: 12, textAlign: 'center' }}>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Active Nodes</div>
-              <div style={{ fontSize: 36, fontWeight: 800, color: '#3b82f6', fontFamily: 'var(--font-mono)' }}>{scaleData.activeNodes}</div>
-            </div>
-            
-            <div style={{ flex: 1, minWidth: 200, padding: 24, background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 12, textAlign: 'center' }}>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Network Load</div>
-              <div style={{ fontSize: 36, fontWeight: 800, color: '#ef4444', fontFamily: 'var(--font-mono)' }}>{scaleData.currentLoad}%</div>
-            </div>
-            
-            <div style={{ flex: 1, minWidth: 200, padding: 24, background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: 12, textAlign: 'center' }}>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Provisioning Nodes</div>
-              <div style={{ fontSize: 36, fontWeight: 800, color: '#10b981', fontFamily: 'var(--font-mono)' }}>+{scaleData.provisioningNodes}</div>
-            </div>
-          </div>
-        ) : (
-          <div style={{ color: 'var(--text-muted)', padding: 24, textAlign: 'center' }}>Connecting to Auto-Scaling Coordinator...</div>
-        )}
-      </div>
     </div>
   );
 }

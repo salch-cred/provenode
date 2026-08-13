@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { get } from '../lib/api';
+import { get, post } from '../lib/api';
 import { fmt, ago } from '../lib/utils';
 import { useToast } from '../contexts/AppContext';
 
@@ -8,9 +8,42 @@ export default function ObjectsPage() {
   const [objects, setObjects] = useState<any[]>([]);
   const [stats, setStats] = useState<any>({});
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
   const load = async () => { const d = await get<any>('/api/objects').catch(()=>({objects:[],stats:{}})); setObjects(d.objects||[]); setStats(d.stats||{}); };
   useEffect(() => { load(); }, []);
+
+  // Real blob download + SHA-256 verification (streams bytes, not a demo URL).
+  const download = async (o: any) => {
+    setBusy(o.id);
+    try {
+      const res = await fetch(`/api/objects/${o.id}/blob`, { headers: { 'X-Provenode-Token': localStorage.getItem('token') || '' } });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${o.model || 'model'}.bin`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast(`Blob downloaded (${fmt(blob.size)}) and verified against SHA-256.`, 'success');
+    } catch (e: any) { toast(e.message, 'error'); }
+    finally { setBusy(null); }
+  };
+
+  // Real renewal: re-uploads the blob to Shelby with a fresh 90-day expiry.
+  const renew = async (o: any) => {
+    setBusy(o.id);
+    try {
+      const d = await post<any>(`/api/objects/${o.id}/renew`, {});
+      toast(`Renewed — expires ${new Date(d.expiresAt).toLocaleDateString()}`, 'success');
+      load();
+    } catch (e: any) { toast(e.message, 'error'); }
+    finally { setBusy(null); }
+  };
 
   const shards = [
     { id: 'node-us-east', status: 'online', type: 'Primary' },
@@ -65,9 +98,17 @@ export default function ObjectsPage() {
                       <td><span className="badge badge-shelby">RAID-5 Sharded</span></td>
                       <td><span className={`badge ${o.status==='healthy'?'badge-green':o.status==='expiring_soon'?'badge-amber':'badge-red'}`}>{o.daysLeft!=null?`${o.daysLeft}d left`:'unknown'}</span></td>
                       <td>
-                        <button className="btn btn-sm" onClick={() => setExpanded(expanded === o.id ? null : o.id)}>
-                          <i className="hgi-stroke hgi-chart-bubble-01" /> {expanded === o.id ? 'Close Map' : 'Shard Map'}
-                        </button>
+                        <div className="flex gap-1" style={{ flexWrap: 'wrap' }}>
+                          <button className="btn btn-sm" disabled={busy === o.id} onClick={() => download(o)}>
+                            <i className="hgi-stroke hgi-download-01" /> {busy === o.id ? '…' : 'Download'}
+                          </button>
+                          <button className="btn btn-sm" disabled={busy === o.id} onClick={() => renew(o)}>
+                            <i className="hgi-stroke hgi-refresh" /> Renew
+                          </button>
+                          <button className="btn btn-sm" onClick={() => setExpanded(expanded === o.id ? null : o.id)}>
+                            <i className="hgi-stroke hgi-chart-bubble-01" /> {expanded === o.id ? 'Close Map' : 'Shard Map'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                     {expanded === o.id && (

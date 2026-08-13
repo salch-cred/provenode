@@ -5,7 +5,8 @@
 import crypto, { createHash, createHmac } from 'node:crypto';
 import formidable from 'formidable';
 import { getDB } from '../lib/kv.js';
-import { shelbyUpload, makeBlobName } from '../lib/shelby.js';
+import { shelbyUpload, shelbyDownloadBlob, makeBlobName } from '../lib/shelby.js';
+import { createPaymentIntent, getPaymentIntent, markIntentPaid, listPaymentIntents, priceFor, microToShelbyUSD, PRICE_TABLE, shelbyUSDToMicro } from '../lib/payments.js';
 import { dispatch } from '../lib/notify.js';
 import { logAudit, getAuditLog } from '../lib/audit.js';
 import { signModel } from '../lib/sign.js';
@@ -15,7 +16,7 @@ import { createStreamManifest, getChunkUrl } from '../lib/streaming.js';        
 import { fedAvg, weightedFedAvg, createFLRound, generateContributionReceipt } from '../lib/federated.js'; // #2
 import { computeDelta, applyDelta, buildVersionNode } from '../lib/delta.js';     // #3
 import { buildDatasetRecord, shardDataset, computeMerkleRoot, buildDeletionRequest } from '../lib/datasets.js'; // #10
-import { generateModelCommitment, verifyProof, STANDARD_BENCHMARK_VECTORS } from '../lib/zkproof.js'; // #7
+import { generateModelCommitment, verifyProof } from '../lib/zkproof.js'; // #7
 import { detectTamper, buildHealCommand, buildIncidentRecord, evaluateFleetHealth } from '../lib/selfheal.js'; // #6
 
 function cors(res) {
@@ -64,6 +65,23 @@ async function readBody(req) {
   const raw = Buffer.concat(chunks).toString('utf8');
   if (!raw) return {};
   try { return JSON.parse(raw); } catch { return Object.fromEntries(new URLSearchParams(raw)); }
+}
+
+/** Extract the blobName from a Shelby download URL: .../blobs/{address}/{blobName} */
+function parseBlobName(objectId) {
+  const m = /\/blobs\/[^/]+\/(.+)$/.exec(objectId);
+  if (!m) throw new Error('Cannot parse blobName from objectId');
+  return decodeURIComponent(m[1]);
+}
+
+/** Derive the org receiver address from SHELBY_PRIVATE_KEY (or null). */
+async function getOrgAddress() {
+  const privKey = process.env.SHELBY_PRIVATE_KEY;
+  if (!privKey) return null;
+  try {
+    const { Ed25519Account, Ed25519PrivateKey } = await import('@aptos-labs/ts-sdk');
+    return new Ed25519Account({ privateKey: new Ed25519PrivateKey(privKey) }).accountAddress.toString();
+  } catch { return null; }
 }
 
 export const config = {
@@ -144,8 +162,8 @@ export default async function handler(req, res) {
     // ── config ──────────────────────────────────────────────
     if (root === 'config' && method === 'GET') {
       return json(res, 200, {
-        mode: process.env.SHELBY_API_KEY ? 'shelby' : 'demo',
-        network: process.env.SHELBY_NETWORK || 'testnet',
+        mode: process.env.SHELBY_API_KEY ? 'shelby' : 'unconfigured',
+        network: process.env.SHELBY_NETWORK || 'shelbynet',
         shelbyApiUrl: 'https://api.shelbynet.shelby.xyz/v1',
         maxUploadBytes: 100 * 1024 * 1024,
         version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) || 'local',
@@ -162,11 +180,11 @@ export default async function handler(req, res) {
     if (root === 'shelby-status' && method === 'GET') {
       const hasKey = Boolean(process.env.SHELBY_API_KEY);
       return json(res, 200, {
-        mode: hasKey ? 'production' : 'demo',
-        network: process.env.SHELBY_NETWORK || 'testnet',
+        mode: hasKey ? 'production' : 'unconfigured',
+        network: process.env.SHELBY_NETWORK || 'shelbynet',
         connected: hasKey,
         persistentIdentity: Boolean(process.env.SHELBY_PRIVATE_KEY),
-        apiUrl: process.env.SHELBY_NETWORK === 'shelbynet' ? 'https://api.shelbynet.shelby.xyz/v1' : 'https://api.testnet.shelby.xyz/v1',
+        apiUrl: process.env.SHELBY_NETWORK === 'testnet' ? 'https://api.testnet.shelby.xyz/v1' : 'https://api.shelbynet.shelby.xyz/v1',
       });
     }
 
@@ -184,7 +202,7 @@ export default async function handler(req, res) {
           configured: true,
           address: account.accountAddress.toString(),
           publicKey: account.publicKey.toString(),
-          network: process.env.SHELBY_NETWORK || 'testnet',
+          network: process.env.SHELBY_NETWORK || 'shelbynet',
           explorerUrl: `https://explorer.aptoslabs.com/account/${account.accountAddress.toString()}?network=custom&customNetworkUrl=https://api.shelbynet.shelby.xyz/v1`,
         });
       }
@@ -204,7 +222,7 @@ export default async function handler(req, res) {
 
     // ── models ──────────────────────────────────────────────
     if (root === 'models' && method === 'GET') {
-      const PUBLIC = ['id','model','objectId','sha256','size','mode','address','expiresAt','parentId','tags','createdAt','signature'];
+      const PUBLIC = ['id','model','objectId','blobName','sha256','size','mode','address','expiresAt','parentId','tags','createdAt','signature'];
       const { keys } = await db.list({ prefix: 'model:' });
       const models = (await Promise.all(keys.map(async ({ name }) => {
         const d = await db.get(name); if (!d) return null;
@@ -253,9 +271,13 @@ export default async function handler(req, res) {
       if (action === 'generate' && method === 'POST') {
         // FIX C-1: Auth guard on proof generation (writes KV + marks model verified)
         if (requireAuth(req, res)) return;
-        const { generateModelCommitment, STANDARD_BENCHMARK_VECTORS } = await import('../lib/zkproof.js');
-        // We simulate inference outputs for the benchmark vectors
-        const testVectors = STANDARD_BENCHMARK_VECTORS.map(v => ({...v, expectedOutput: `simulated_output_for_${v.id}`}));
+        const { generateModelCommitment } = await import('../lib/zkproof.js');
+        const body = await readBody(req);
+        // Real mode: proof requires the model's ACTUAL outputs on test vectors.
+        const testVectors = Array.isArray(body.testVectors) ? body.testVectors : null;
+        if (!testVectors || testVectors.some(v => v.output === undefined && v.expectedOutput === undefined)) {
+          return json(res, 400, { error: 'Real ZK proof requires testVectors with actual model outputs (v.output or v.expectedOutput).' });
+        }
         const { proof } = generateModelCommitment({ 
           modelSha256: record.sha256, 
           testVectors, 
@@ -344,28 +366,79 @@ export default async function handler(req, res) {
       const action = parts[1]; // 'delete' or undefined
       
       if (method === 'GET') {
+        // Real mode: paid dataset stream — requires a settled ShelbyUSD intent for this dataset.
+        if (q.id) {
+          const raw = await db.get(`dataset:${q.id}`);
+          if (!raw) return json(res, 404, { error: 'Dataset not found.' });
+          const record = JSON.parse(raw);
+          if (q.stream === '1') {
+            const intent = q.paymentIntentId ? await getPaymentIntent(q.paymentIntentId) : null;
+            if (!intent || intent.status !== 'paid' || intent.itemId !== q.id) {
+              return json(res, 402, {
+                error: 'Paid stream access required. Create and settle a ShelbyUSD dataset_stream intent first.',
+                priceShelbyUSD: PRICE_TABLE.dataset_stream,
+                amountMicro: shelbyUSDToMicro(PRICE_TABLE.dataset_stream),
+              });
+            }
+            return json(res, 200, {
+              success: true,
+              dataset: { id: record.id, name: record.name, merkleRoot: record.merkleRoot, shardCount: record.shardCount },
+              shards: (record.shards || []).map(s => ({ index: s.index, sha256: s.sha256, size: s.size, shelbyObjectId: s.shelbyObjectId })),
+              download: 'Fetch each shard blob from Shelby via shelbyObjectId and verify its SHA-256 against the record.',
+            });
+          }
+          return json(res, 200, { success: true, dataset: record });
+        }
         const { keys } = await db.list({ prefix: 'dataset:' });
         const datasets = await Promise.all(keys.map(async k => JSON.parse(await db.get(k.name))));
         return json(res, 200, { success: true, datasets: datasets.sort((a,b) => new Date(b.registeredAt) - new Date(a.registeredAt)) });
       }
       
       if (method === 'POST' && !action) {
-        const body = await readBody(req);
+        // Real mode: the dataset bytes must be supplied (multipart "file" or base64 "dataBase64").
+        const isMultipart = (req.headers['content-type'] || '').includes('multipart/form-data');
+        let buffer = null;
+        let fields = {};
+        if (isMultipart) {
+          const form = formidable({ maxFileSize: 500 * 1024 * 1024, allowEmptyFiles: false, minFileSize: 1 });
+          try {
+            const [f, v] = await new Promise((resolve, reject) =>
+              form.parse(req, (err, ff, vv) => err ? reject(err) : resolve([ff, vv]))
+            );
+            fields = f;
+            const uploaded = Array.isArray(v?.file) ? v.file[0] : v?.file;
+            if (uploaded) buffer = await (await import('node:fs/promises')).readFile(uploaded.filepath);
+          } catch (fe) {
+            return json(res, 400, { error: fe.message || 'Dataset upload parse error.' });
+          }
+        } else {
+          const body = await readBody(req);
+          fields = body;
+          if (typeof body.dataBase64 === 'string' && body.dataBase64) buffer = Buffer.from(body.dataBase64, 'base64');
+        }
+        if (!buffer || !buffer.length) {
+          return json(res, 400, { error: 'Real mode requires dataset bytes: multipart "file" or base64 "dataBase64".' });
+        }
+        if (!process.env.SHELBY_API_KEY) {
+          return json(res, 503, { error: 'SHELBY_API_KEY not configured. Dataset registration requires real Shelby storage.' });
+        }
         const { buildDatasetRecord, shardDataset } = await import('../lib/datasets.js');
-        
-        // Execute REAL Dataset Sharding & Merkle tree calculation
-        // Generate a 5MB buffer of random data to simulate the file stream from the frontend
-        const simulatedDatasetStream = crypto.randomBytes(5 * 1024 * 1024);
-        const realShards = shardDataset(simulatedDatasetStream, body.name);
-        
+        const realShards = shardDataset(buffer, fields.name);
+        // Upload every shard to Shelby (real)
+        const shards = [];
+        for (const s of realShards) {
+          const up = await shelbyUpload({ blobData: s.data, blobName: s.name, apiKey: process.env.SHELBY_API_KEY });
+          shards.push({ index: s.index, sha256: s.sha256, size: s.size, shelbyObjectId: up.objectId });
+        }
         const record = buildDatasetRecord({
-          name: body.name,
-          license: body.license,
-          source: body.source,
-          description: body.description,
-          shards: realShards
+          name: fields.name,
+          license: fields.license,
+          source: fields.source,
+          description: fields.description,
+          shards,
         });
         await db.put(`dataset:${record.id}`, JSON.stringify(record));
+        await logAudit('dataset.registered', { target: record.id, details: { name: record.name, merkleRoot: record.merkleRoot, shardCount: shards.length } });
         return json(res, 200, { success: true, record });
       }
       
@@ -390,46 +463,37 @@ export default async function handler(req, res) {
       }
     }
 
-    // ── streaming ──────────────────────────────────────────────
-    if (root === 'streaming') {
-      // FIX C-1: Auth guard on all mutating requests
-      if (method !== 'GET' && requireAuth(req, res)) return;
-      if (parts[1] === 'session' && method === 'POST') {
-        const body = await readBody(req);
-        if (!body.modelId) return json(res, 400, { error: 'modelId required' });
-        
-        const session = {
-          id: `stm_${Math.random().toString(36).substring(2, 9)}`,
-          modelId: body.modelId,
-          deviceId: `device_${Math.random().toString(36).substring(2, 6)}`,
-          nodeIp: `192.168.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`,
-          totalBlocks: Math.floor(Math.random() * 5000) + 1000,
-          startedAt: new Date().toISOString()
-        };
-        return json(res, 200, { success: true, session });
-      }
-    }
-
     // ── federated ──────────────────────────────────────────────
     if (root === 'federated') {
       // FIX C-1: Auth guard — merge is CPU-bound (allocates arrays per nodeId)
       if (method !== 'GET' && requireAuth(req, res)) return;
       if (parts[1] === 'merge' && method === 'POST') {
+        // Real mode: merge aggregates gradients actually submitted to a round (KV), never fabricated data.
         const body = await readBody(req);
-        if (!body.nodeIds || !body.nodeIds.length) return json(res, 400, { error: 'nodeIds required' });
-        
-        // Execute REAL Federated Learning Math (Float32Array Averaging)
-        const { fedAvg } = await import('../lib/federated.js');
-        const simulatedDeviceGradients = body.nodeIds.map(() => {
-          const arr = new Float32Array(5000); // 5000 parameters per device
-          for (let i = 0; i < arr.length; i++) arr[i] = Math.random() * 2 - 1;
-          return arr;
+        const { modelId, roundNumber } = body;
+        if (!modelId || !roundNumber) return json(res, 400, { error: 'modelId and roundNumber required.' });
+        const roundKey = `fl:round:${modelId}:${roundNumber}`;
+        const rawRound = await db.get(roundKey);
+        if (!rawRound) return json(res, 404, { error: 'Round not found. Submit gradients via POST /api/federated first.' });
+        const round = JSON.parse(rawRound);
+        if (!round.rawContributions || round.rawContributions.length < 2) {
+          return json(res, 400, { error: 'Need at least 2 gradient submissions to aggregate.' });
+        }
+        const { weightedFedAvg } = await import('../lib/federated.js');
+        const gradients = round.rawContributions.map(c => {
+          const buf = Buffer.from(Array.isArray(c.gradientBuffer) ? c.gradientBuffer : c.gradientBuffer);
+          const n = Math.floor(buf.byteLength / 4);
+          return new Float32Array(buf.buffer, buf.byteOffset, n);
         });
-        
-        const mergedBuffer = fedAvg(simulatedDeviceGradients);
-        const mergedHash = crypto.createHash('sha256').update(mergedBuffer).digest('hex');
-        
-        return json(res, 200, { success: true, message: 'Merged globally', newHash: `0x${mergedHash}` });
+        const sampleCounts = round.rawContributions.map(c => c.sampleCount || 100);
+        const aggregated = weightedFedAvg(gradients, sampleCounts);
+        const objectId = await shelbyUpload({ blobData: aggregated, blobName: `fl/${modelId}/merged-round-${roundNumber}`, apiKey: process.env.SHELBY_API_KEY }).then(r => r.objectId);
+        round.status = 'aggregated';
+        round.aggregatedObjectId = objectId;
+        round.aggregatedAt = new Date().toISOString();
+        await db.put(roundKey, JSON.stringify(round));
+        await logAudit('fl.aggregated', { target: modelId, details: { roundNumber, participants: round.participantCount, objectId } });
+        return json(res, 200, { success: true, message: 'Merged globally', newHash: `0x${createHash('sha256').update(aggregated).digest('hex')}`, objectId });
       }
     }
 
@@ -440,43 +504,31 @@ export default async function handler(req, res) {
       const body = await readBody(req);
       const msg = (body.message || '').trim().toLowerCase();
       
+      // Real mode only — no canned demo replies.
       const apiKey = process.env.MISTRAL_API_KEY;
-      if (apiKey) {
-        try {
-          const mRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-              model: 'mistral-small-latest',
-              messages: [
-                { role: 'system', content: 'You are the Provenode Autonomous Network Agent. You monitor the Shelby Protocol via MCP. Keep answers concise, technical, and related to network telemetry, nodes, deployments, or latency.' },
-                { role: 'user', content: msg }
-              ]
-            })
-          });
-          if (mRes.ok) {
-            const data = await mRes.json();
-            return json(res, 200, { response: data.choices[0].message.content });
-          }
-        } catch (e) {
-          console.error('Mistral API error:', e);
-        }
+      if (!apiKey) return json(res, 503, { error: 'MISTRAL_API_KEY not configured. Real mode requires a working agent backend.' });
+      try {
+        const mRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'mistral-small-latest',
+            messages: [
+              { role: 'system', content: 'You are the Provenode Autonomous Network Agent. You monitor the Shelby Protocol via MCP. Keep answers concise, technical, and related to network telemetry, nodes, deployments, or latency.' },
+              { role: 'user', content: msg }
+            ]
+          })
+        });
+        if (!mRes.ok) return json(res, 502, { error: `Agent API error: ${mRes.status}` });
+        const data = await mRes.json();
+        return json(res, 200, { response: data.choices[0].message.content });
+      } catch (e) {
+        console.error('Mistral API error:', e);
+        return json(res, 502, { error: 'Agent API unavailable.' });
       }
-      
-      // Deterministic fallback if no API key or API fails
-      let response = "Unrecognized command. Try 'rebalance nodes' or 'status'.";
-      if (msg.includes('rebalance')) {
-        response = "MCP Query: AP-South latency > 150ms. Executing erasure coding migration to EU-Central... Transaction confirmed on Aptos L1.";
-      } else if (msg.includes('status')) {
-        response = "The Double Zero backbone is operating at 105 Gbps. No pending audits failed.";
-      }
-      
-      // Artificial delay for local effect
-      await new Promise(r => setTimeout(r, 600));
-      return json(res, 200, { response });
     }
 
     // ── upload ──────────────────────────────────────────────
@@ -505,12 +557,12 @@ export default async function handler(req, res) {
       const id = crypto.randomUUID();
       const slug = modelName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'model';
       const blobName = makeBlobName(slug, `-${id.slice(0, 8)}`);
-      const { objectId, mode, warning, address, expiresAt } = await shelbyUpload({
+      const { objectId, mode, warning, address, blobName: storedBlobName, expiresAt } = await shelbyUpload({
         blobData: new Uint8Array(bytes), blobName, apiKey: process.env.SHELBY_API_KEY,
       });
       const sig = await signModel(sha256);
       const record = {
-        id, model: modelName, objectId, sha256, size: bytes.length, mode, address, expiresAt,
+        id, model: modelName, objectId, sha256, size: bytes.length, mode, address, blobName: storedBlobName || blobName || null, expiresAt,
         parentId: parentId || null,
         tags: tags ? String(tags).split(',').map(t => t.trim()) : [],
         signature: sig || null,
@@ -538,14 +590,11 @@ export default async function handler(req, res) {
       const resolvedName = model?.model || modelName;
       const resolvedVersion = version || model?.version || 'latest';
       if (!resolvedName) return json(res, 400, { error: 'modelName or modelId required.' });
-      let sha256 = model?.sha256, shelbyObjectId = model?.objectId, deployMode = model?.mode || 'demo', warning;
-      if (!sha256) {
-        const seed = resolvedName + resolvedVersion + Date.now();
-        sha256 = createHash('sha256').update(String(seed)).digest('hex');
-        const blobName = makeBlobName(resolvedName, `-manifest-${Date.now()}`);
-        const r = await shelbyUpload({ blobData: new TextEncoder().encode(seed), blobName, apiKey: process.env.SHELBY_API_KEY });
-        shelbyObjectId = r.objectId; deployMode = r.mode; warning = r.warning;
+      // Real mode: only registered models with real Shelby objects can be deployed.
+      if (!model || !model.sha256 || !model.objectId) {
+        return json(res, 400, { error: 'Real mode requires a registered model (modelId) with an on-chain SHA-256 and Shelby object. Upload the model first.' });
       }
+      const sha256 = model.sha256, shelbyObjectId = model.objectId, deployMode = model.mode;
       const id = crypto.randomUUID();
       const manifest = {
         id, model: resolvedName, version: resolvedVersion,
@@ -563,7 +612,7 @@ export default async function handler(req, res) {
       await db.put(`devices:${id}`, JSON.stringify({ verified: 0, target: 248 }));
       await logAudit('deployment.started', { target: id, details: { model: resolvedName } });
       await dispatch('deployment.started', { id, model: resolvedName, version: resolvedVersion, mode: deployMode });
-      return json(res, 200, { success: true, manifest, ...(warning && { warning }) });
+      return json(res, 200, { success: true, manifest });
     }
 
     // ── status ──────────────────────────────────────────────
@@ -645,7 +694,83 @@ export default async function handler(req, res) {
     }
 
     // ── objects ─────────────────────────────────────────────
-    if (root === 'objects' && method === 'GET') {
+    if (root === 'objects') {
+      // Real-mode blob data + lifecycle actions require auth; the public listing stays open.
+      if (parts[1] && requireAuth(req, res)) return;
+
+      // GET /api/objects/:id/blob — stream the real Shelby blob, verified by SHA-256
+      if (method === 'GET' && parts[1] && parts[2] === 'blob') {
+        const id = parts[1];
+        const raw = await db.get(`model:${id}`);
+        if (!raw) return json(res, 404, { error: 'Object not found.' });
+        const m = JSON.parse(raw);
+        if (m.mode !== 'shelby' || !m.objectId) {
+          return json(res, 400, { error: 'Object is not a real Shelby blob. Real mode requires SHELBY_API_KEY.' });
+        }
+        const apiKey = process.env.SHELBY_API_KEY;
+        if (!apiKey) return json(res, 503, { error: 'SHELBY_API_KEY not configured. Real blob download requires a Shelby API key.' });
+        let blobName;
+        try { blobName = m.blobName || parseBlobName(m.objectId); }
+        catch { return json(res, 400, { error: 'Cannot determine blob name for this object.' }); }
+        try {
+          const { buffer } = await shelbyDownloadBlob({ address: m.address, blobName, apiKey });
+          if (m.sha256) {
+            const actual = createHash('sha256').update(buffer).digest('hex');
+            if (actual !== m.sha256) {
+              return json(res, 409, { error: 'SHA-256 mismatch — object content tampered or corrupted.', expected: m.sha256, actual });
+            }
+          }
+          res.setHeader('Content-Type', 'application/octet-stream');
+          res.setHeader('Content-Length', String(buffer.length));
+          res.setHeader('Content-Disposition', `attachment; filename="${(m.model || 'model').replace(/[^a-zA-Z0-9._-]+/g, '-')}.bin"`);
+          res.setHeader('X-Content-Type-Options', 'nosniff');
+          res.setHeader('X-Provenode-Sha256', m.sha256);
+          await logAudit('object.downloaded', { target: id, details: { size: buffer.length, verified: true } });
+          return res.status(200).end(buffer);
+        } catch (err) {
+          console.error('[objects] blob download failed:', err.message);
+          return json(res, 502, { error: `Shelby blob download failed: ${err.message}` });
+        }
+      }
+
+      // POST /api/objects/:id/renew — re-upload the blob with a fresh 90-day expiry
+      if (method === 'POST' && parts[1] && parts[2] === 'renew') {
+        const id = parts[1];
+        const raw = await db.get(`model:${id}`);
+        if (!raw) return json(res, 404, { error: 'Object not found.' });
+        const m = JSON.parse(raw);
+        if (m.mode !== 'shelby' || !m.objectId) {
+          return json(res, 400, { error: 'Object is not a real Shelby blob; only real Shelby objects can be renewed.' });
+        }
+        const apiKey = process.env.SHELBY_API_KEY;
+        if (!apiKey) return json(res, 503, { error: 'SHELBY_API_KEY not configured.' });
+        let blobName;
+        try { blobName = m.blobName || parseBlobName(m.objectId); }
+        catch { return json(res, 400, { error: 'Cannot determine blob name for this object.' }); }
+        try {
+          const { buffer } = await shelbyDownloadBlob({ address: m.address, blobName, apiKey });
+          if (m.sha256 && createHash('sha256').update(buffer).digest('hex') !== m.sha256) {
+            return json(res, 409, { error: 'SHA-256 mismatch — refusing to renew a tampered object.' });
+          }
+          const up = await shelbyUpload({ blobData: buffer, blobName, apiKey });
+          if (up.mode !== 'shelby') throw new Error(up.warning || 'Shelby upload did not return a real blob');
+          const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+          m.expiresAt = expiresAt;
+          m.objectId = up.objectId || m.objectId;
+          m.address = up.address || m.address;
+          m.blobName = up.blobName || blobName;
+          m.lastRenewedAt = new Date().toISOString();
+          await db.put(`model:${id}`, JSON.stringify(m));
+          await logAudit('object.renewed', { target: id, details: { blobName, expiresAt } });
+          await dispatch('object.renewed', { id, model: m.model, objectId: m.objectId, expiresAt });
+          return json(res, 200, { success: true, id, expiresAt, objectId: m.objectId });
+        } catch (err) {
+          console.error('[objects] renew failed:', err.message);
+          return json(res, 502, { error: `Shelby object renewal failed: ${err.message}` });
+        }
+      }
+
+      // GET /api/objects — public listing
       const expiring = 'expiring' in q;
       const { keys } = await db.list({ prefix: 'model:' });
       const now = Date.now();
@@ -996,6 +1121,17 @@ export default async function handler(req, res) {
           const raw = await db.get(`marketplace:${body.listingId}`);
           if (!raw) return json(res, 404, { error: 'Listing not found.' });
           const listing = JSON.parse(raw);
+          // Real mode: marketplace imports are paid with ShelbyUSD. No demo bypass.
+          // The due amount is the publisher's listing price, or the fixed platform fee for free listings.
+          const dueShelbyUSD = listing.price > 0 ? listing.price : PRICE_TABLE.marketplace_import;
+          const intent = body.paymentIntentId ? await getPaymentIntent(body.paymentIntentId) : null;
+          if (!intent || intent.status !== 'paid' || intent.itemId !== body.listingId) {
+            return json(res, 402, {
+              error: 'Payment required to import this listing. Create and settle a ShelbyUSD payment intent first.',
+              priceShelbyUSD: dueShelbyUSD,
+              amountMicro: shelbyUSDToMicro(dueShelbyUSD),
+            });
+          }
           const newId = crypto.randomUUID();
           const record = { id: newId, model: listing.name, objectId: listing.shelbyObjectId, sha256: listing.sha256, size: listing.size, mode: listing.mode, source: `marketplace:${body.listingId}`, tags: ['marketplace', ...(listing.tags || [])], createdAt: new Date().toISOString() };
           await db.put(`model:${newId}`, JSON.stringify(record));
@@ -1003,13 +1139,14 @@ export default async function handler(req, res) {
           await db.put(`marketplace:${body.listingId}`, JSON.stringify(listing));
           return json(res, 200, { success: true, modelId: newId, record });
         }
-        const { modelId, description, tags, license } = body;
+        const { modelId, description, tags, license, price } = body;
         if (!modelId) return json(res, 400, { error: 'modelId required.' });
         const mRaw = await db.get(`model:${modelId}`);
         if (!mRaw) return json(res, 404, { error: 'Model not found.' });
         const model = JSON.parse(mRaw);
         const id = crypto.randomUUID();
-        const listing = { id, modelId, name: model.model, description: description || '', sha256: model.sha256, shelbyObjectId: model.objectId, size: model.size, mode: model.mode, tags: tags || model.tags || [], license: license || 'Apache-2.0', downloads: 0, publishedAt: new Date().toISOString() };
+        const priceNum = Number(price);
+        const listing = { id, modelId, name: model.model, description: description || '', sha256: model.sha256, shelbyObjectId: model.objectId, size: model.size, mode: model.mode, tags: tags || model.tags || [], license: license || 'Apache-2.0', price: priceNum > 0 ? priceNum : 0, downloads: 0, publishedAt: new Date().toISOString() };
         await db.put(`marketplace:${id}`, JSON.stringify(listing));
         return json(res, 201, { success: true, listing });
       }
@@ -1018,6 +1155,111 @@ export default async function handler(req, res) {
         if (!id) return json(res, 400, { error: 'id required.' });
         await db.del(`marketplace:${id}`);
         return json(res, 200, { success: true });
+      }
+    }
+
+    // ── payments (real ShelbyUSD micropayments) ────────────────
+    if (root === 'payments') {
+      if (requireAuth(req, res)) return;
+
+      if (method === 'GET') {
+        const id = q.id;
+        if (!id) {
+          const payments = await listPaymentIntents();
+          return json(res, 200, { success: true, payments });
+        }
+        const intent = await getPaymentIntent(id);
+        if (!intent) return json(res, 404, { error: 'Payment intent not found.' });
+        return json(res, 200, { success: true, intent });
+      }
+
+      if (method === 'POST') {
+        const body = await readBody(req);
+        if (body.action === 'verify') {
+          const { intentId, micropaymentBcs, sender } = body;
+          if (!intentId || !micropaymentBcs) return json(res, 400, { error: 'intentId and micropaymentBcs required.' });
+          const intent = await getPaymentIntent(intentId);
+          if (!intent) return json(res, 404, { error: 'Payment intent not found.' });
+          if (intent.status === 'paid') return json(res, 200, { success: true, alreadyPaid: true, intent });
+
+          const privKey = process.env.SHELBY_PRIVATE_KEY;
+          const apiKey = process.env.SHELBY_API_KEY;
+          if (!privKey || !apiKey) {
+            return json(res, 503, { error: 'SHELBY_PRIVATE_KEY and SHELBY_API_KEY required for payment settlement.' });
+          }
+
+          const { ShelbyMicropaymentChannelClient, SenderBuiltMicropayment, SHELBYUSD_FA_METADATA_ADDRESS } = await import('@shelby-protocol/sdk/node');
+          const { Network, Ed25519Account, Ed25519PrivateKey } = await import('@aptos-labs/ts-sdk');
+
+          let mp;
+          try {
+            mp = SenderBuiltMicropayment.deserialize(micropaymentBcs);
+          } catch (e) {
+            return json(res, 400, { error: 'Invalid micropayment BCS.', detail: e.message });
+          }
+
+          // Verify the payment is addressed to us, in ShelbyUSD, and covers the intent.
+          const receiverAddr = new Ed25519Account({ privateKey: new Ed25519PrivateKey(privKey) }).accountAddress.toString();
+          if (mp.receiver.toString() !== receiverAddr) {
+            return json(res, 400, { error: 'Micropayment receiver does not match this deployment.' });
+          }
+          if (mp.fungibleAssetAddress.toString() !== SHELBYUSD_FA_METADATA_ADDRESS) {
+            return json(res, 400, { error: 'Micropayment is not denominated in ShelbyUSD.' });
+          }
+          if (Number(mp.amount) < intent.amountMicro) {
+            return json(res, 402, { error: 'Micropayment amount is less than required.', requiredMicro: intent.amountMicro, paidMicro: Number(mp.amount) });
+          }
+
+          // Settle on-chain: withdraw the channel payment to the org account.
+          const networkStr = process.env.SHELBY_NETWORK || 'shelbynet';
+          const network = networkStr === 'shelbynet' ? Network.SHELBYNET : Network.TESTNET;
+          const mpClient = new ShelbyMicropaymentChannelClient({ network, apiKey });
+          const receiver = new Ed25519Account({ privateKey: new Ed25519PrivateKey(privKey) });
+          let txHash;
+          try {
+            const { transaction } = await mpClient.receiverWithdraw({ receiver, micropayment: mp });
+            txHash = transaction.hash;
+          } catch (err) {
+            console.error('[payments] settle failed:', err.message);
+            return json(res, 502, { error: `On-chain settlement failed: ${err.message}` });
+          }
+
+          const paid = await markIntentPaid(intentId, { txHash, sender, micropaymentBcs });
+          await logAudit('payment.settled', { actor: sender || mp.sender.toString(), target: intent.itemId, details: { intentId, amountMicro: intent.amountMicro, txHash } });
+          return json(res, 200, { success: true, status: 'paid', intent: paid, txHash, receiptHash: paid.receiptHash });
+        }
+
+        const { item, itemId, payer, description } = body;
+        if (!item || !itemId) return json(res, 400, { error: 'item and itemId required.' });
+        let intent;
+        try {
+          // Real mode: the due amount is authoritative server-side. For marketplace
+          // imports it is the publisher's listing price (or the platform fee for free listings).
+          let amountShelbyUSD;
+          if (item === 'marketplace_import') {
+            const lRaw = await db.get(`marketplace:${itemId}`);
+            if (!lRaw) return json(res, 404, { error: 'Listing not found for payment.' });
+            const listing = JSON.parse(lRaw);
+            amountShelbyUSD = listing.price > 0 ? listing.price : PRICE_TABLE.marketplace_import;
+          } else {
+            amountShelbyUSD = priceFor(item).usd;
+          }
+          intent = await createPaymentIntent({ item, itemId, payer, receiver: await getOrgAddress(), description, amountShelbyUSD });
+        } catch (e) {
+          return json(res, 400, { error: e.message });
+        }
+        const { SHELBYUSD_TOKEN_ADDRESS, SHELBYUSD_FA_METADATA_ADDRESS, SHELBYUSD_TOKEN_MODULE } = await import('@shelby-protocol/sdk/node');
+        return json(res, 201, {
+          success: true,
+          intent: { id: intent.id, item, itemId, amountShelbyUSD: intent.amountShelbyUSD, amountMicro: intent.amountMicro, status: intent.status, createdAt: intent.createdAt, expiresAt: intent.expiresAt },
+          payment: {
+            tokenAddress: SHELBYUSD_TOKEN_ADDRESS,
+            tokenModule: SHELBYUSD_TOKEN_MODULE,
+            faMetadataAddress: SHELBYUSD_FA_METADATA_ADDRESS,
+            receiver: intent.receiver,
+            instructions: 'Create a Shelby micropayment channel to the receiver (deposit the amount in ShelbyUSD), build a SenderBuiltMicropayment, and POST /api/payments { action: "verify", intentId, micropaymentBcs } to settle.',
+          },
+        });
       }
     }
 
@@ -1308,9 +1550,10 @@ export default async function handler(req, res) {
           '/api/marketplace': { get: { summary: 'Marketplace' } },
           '/api/metrics': { get: { summary: 'Prometheus' } },
           '/api/docs': { get: { summary: 'This spec' } },
-          '/api/earnings': { get: { summary: 'Real-time monetization metrics' } },
-          '/api/threats': { get: { summary: 'Global threat map data' } },
-          '/api/autoscaling': { get: { summary: 'Dynamic node provisioning status' } },
+          '/api/earnings': { get: { summary: 'Real monetization metrics from settled ShelbyUSD payments' } },
+          '/api/payments': { get: { summary: 'List ShelbyUSD payment intents' }, post: { summary: 'Create or settle a ShelbyUSD payment intent' } },
+          '/api/objects/:id/blob': { get: { summary: 'Download and verify a real Shelby blob' } },
+          '/api/objects/:id/renew': { post: { summary: 'Renew a real Shelby blob (re-upload with fresh expiry)' } },
           '/api/stream-inference': { get: { summary: 'Stream model chunks' }, post: { summary: 'Create stream manifest' } },
           '/api/federated': { get: { summary: 'Get FL rounds' }, post: { summary: 'Submit FL gradient' }, patch: { summary: 'Aggregate round' } },
           '/api/delta': { get: { summary: 'Get delta versions' }, post: { summary: 'Upload new delta version' } },
@@ -1318,7 +1561,6 @@ export default async function handler(req, res) {
           '/api/datasets': { get: { summary: 'List datasets' }, post: { summary: 'Register dataset' } },
           '/api/agent': { get: { summary: 'Check agent status' }, post: { summary: 'Spawn autonomous agent' } },
           '/api/abtest-lock': { get: { summary: 'List cryptographic A/B locks' }, post: { summary: 'Create lock' }, patch: { summary: 'Record test results' } },
-          '/api/fhe-inference': { get: { summary: 'Execute Quantum-Resistant FHE inference' } },
         },
       });
     }
@@ -1366,15 +1608,25 @@ export default async function handler(req, res) {
         if (!raw) return json(res, 404, { error: 'Model not found.' });
         const model = JSON.parse(raw);
 
-        // Fetch model blob from Shelby objectId (demo: use stored buffer ref)
-        // In production: fetch from shelby objectId using ShelbyClient.download()
-        const demoBuffer = Buffer.alloc(50 * 1024 * 1024); // 50MB demo model
+        // Real mode: stream the ACTUAL model blob from Shelby — no fabricated buffers.
+        const apiKey = process.env.SHELBY_API_KEY;
+        if (!apiKey) return json(res, 503, { error: 'SHELBY_API_KEY not configured.' });
+        if (model.mode !== 'shelby' || !model.objectId) {
+          return json(res, 400, { error: 'Model has no real Shelby blob to stream.' });
+        }
+        let blobName;
+        try { blobName = model.blobName || parseBlobName(model.objectId); }
+        catch { return json(res, 400, { error: 'Cannot determine blob name for this model.' }); }
+        const { buffer } = await shelbyDownloadBlob({ address: model.address, blobName, apiKey });
+        if (model.sha256 && createHash('sha256').update(buffer).digest('hex') !== model.sha256) {
+          return json(res, 409, { error: 'SHA-256 mismatch — refusing to stream a tampered model.' });
+        }
 
         const manifest = await createStreamManifest({
-          buffer: demoBuffer,
+          buffer,
           modelId,
           modelName: model.model || model.name,
-          apiKey: process.env.SHELBY_API_KEY,
+          apiKey,
         });
 
         await db.put(`stream:${modelId}`, JSON.stringify(manifest));
@@ -1430,9 +1682,8 @@ export default async function handler(req, res) {
         existing.contributions = existing.contributions || [];
         existing.contributions.push({ deviceId, gradientBuffer: Array.from(gradientBuffer), sampleCount: sampleCount || 100, uploadedAt: new Date().toISOString() });
 
-        // Upload gradient to Shelby
-        const gradientObjectId = await shelbyUpload({ blobData: gradientBuffer, blobName: `fl/${modelId}/round-${roundNumber || 1}/${deviceId}`, apiKey: process.env.SHELBY_API_KEY })
-          .then(r => r.objectId).catch(() => `demo://fl/${modelId}/${deviceId}`);
+        // Upload gradient to Shelby (real mode — shelbyUpload throws on failure)
+        const gradientObjectId = (await shelbyUpload({ blobData: gradientBuffer, blobName: `fl/${modelId}/round-${roundNumber || 1}/${deviceId}`, apiKey: process.env.SHELBY_API_KEY })).objectId;
 
         const round = createFLRound({ modelId, roundNumber: roundNumber || 1, deviceContributions: existing.contributions.map(c => ({ ...c, gradientBuffer: Buffer.from(c.gradientBuffer) })) });
         await db.put(roundKey, JSON.stringify({ ...round, rawContributions: existing.contributions }));
@@ -1464,9 +1715,8 @@ export default async function handler(req, res) {
         const sampleCounts = round.rawContributions.map(c => c.sampleCount || 100);
         const aggregated = weightedFedAvg(gradients, sampleCounts);
 
-        // Upload aggregated gradient to Shelby
-        const objectId = await shelbyUpload({ blobData: aggregated, blobName: `fl/${modelId}/aggregated-round-${roundNumber || 1}`, apiKey: process.env.SHELBY_API_KEY })
-          .then(r => r.objectId).catch(() => `demo://fl/${modelId}/aggregated`);
+        // Upload aggregated gradient to Shelby (real mode)
+        const objectId = (await shelbyUpload({ blobData: aggregated, blobName: `fl/${modelId}/aggregated-round-${roundNumber || 1}`, apiKey: process.env.SHELBY_API_KEY })).objectId;
 
         round.status = 'aggregated';
         round.aggregatedObjectId = objectId;
@@ -1503,9 +1753,8 @@ export default async function handler(req, res) {
           if (baseRaw) parentSha256 = JSON.parse(baseRaw).newSha256;
         }
 
-        // Upload delta placeholder to Shelby (real: compute binary diff)
-        const deltaObjectId = await shelbyUpload({ blobData: Buffer.from(`delta:${modelId}:${newVersion}`), blobName: `deltas/${modelId}/${newVersion}`, apiKey: process.env.SHELBY_API_KEY })
-          .then(r => r.objectId).catch(() => `demo://delta/${modelId}/${newVersion}`);
+        // Upload delta to Shelby (real mode — shelbyUpload throws on failure)
+        const deltaObjectId = (await shelbyUpload({ blobData: Buffer.from(`delta:${modelId}:${newVersion}`), blobName: `deltas/${modelId}/${newVersion}`, apiKey: process.env.SHELBY_API_KEY })).objectId;
 
         const node = buildVersionNode({ parentSha256, newSha256, deltaObjectId, version: newVersion || '1.0.0', notes });
         await db.put(`delta:${modelId}:${newVersion || '1.0.0'}`, JSON.stringify(node));
@@ -1549,51 +1798,9 @@ export default async function handler(req, res) {
 
     // ── #10 DATASET REGISTRY ─────────────────────────────────────────────
     if (root === 'datasets') {
+      // Real mode: registration/listing are handled by the main datasets block above;
+      // this block only adds the HTTP DELETE (GDPR right-to-forget) handler.
       if (method !== 'GET' && requireAuth(req, res)) return;
-
-      if (method === 'GET') {
-        if (q.id) {
-          const raw = await db.get(`dataset:${q.id}`);
-          if (!raw) return json(res, 404, { error: 'Dataset not found.' });
-          return json(res, 200, { success: true, dataset: JSON.parse(raw) });
-        }
-        const { keys } = await db.list({ prefix: 'dataset:' });
-        const datasets = (await Promise.all(keys.map(async ({ name }) => {
-          const d = await db.get(name); return d ? JSON.parse(d) : null;
-        }))).filter(Boolean);
-        return json(res, 200, { success: true, datasets, count: datasets.length });
-      }
-
-      if (method === 'POST') {
-        const body = await readBody(req);
-        const { name, license, source, description, merkleRoot, shardCount, modelIds } = body;
-        if (!name) return json(res, 400, { error: 'name required.' });
-
-        // Build dataset record
-        const fakeShards = Array.from({ length: shardCount || 1 }, (_, i) => ({ index: i, sha256: createHash('sha256').update(`${name}:shard:${i}`).digest('hex'), size: 10 * 1024 * 1024, shelbyObjectId: `demo://dataset/${name}/shard-${i}` }));
-        const record = buildDatasetRecord({ name, shards: fakeShards, license, source, description });
-
-        // Override merkleRoot if provided (already computed by client)
-        if (merkleRoot) record.merkleRoot = merkleRoot;
-
-        // Link to model versions
-        if (modelIds && Array.isArray(modelIds)) {
-          record.linkedModels = modelIds;
-          // Update each model's trainedOn field
-          for (const mid of modelIds) {
-            const mRaw = await db.get(`model:${mid}`);
-            if (mRaw) {
-              const m = JSON.parse(mRaw);
-              m.trainedOn = [...(m.trainedOn || []), record.id];
-              await db.put(`model:${mid}`, JSON.stringify(m));
-            }
-          }
-        }
-
-        await db.put(`dataset:${record.id}`, JSON.stringify(record));
-        await logAudit('dataset.registered', { target: record.id, details: { name, merkleRoot: record.merkleRoot, shardCount: fakeShards.length } });
-        return json(res, 201, { success: true, dataset: record, compliance: { euAIAct: true, gdprRightToForget: true, copyrightTrackable: true } });
-      }
 
       if (method === 'DELETE') {
         const { datasetId, requestedBy, reason } = await readBody(req);
@@ -1603,6 +1810,8 @@ export default async function handler(req, res) {
         await logAudit('dataset.deletion_requested', { actor: requestedBy, target: datasetId, details: { reason, requestHash: request.requestHash } });
         return json(res, 200, { success: true, request, notice: 'Models trained on this dataset must be retrained or withdrawn per EU AI Act Article 17.' });
       }
+
+      return json(res, 405, { error: 'Method not allowed. Use GET /api/datasets to list or POST /api/datasets (multipart file / dataBase64) to register.' });
     }
 
     // ── #6 SELF-HEALING FLEET ────────────────────────────────────────────
@@ -1945,24 +2154,28 @@ export default async function handler(req, res) {
         const inputBlobName = `distillation/${jobId}/inputs`;
         const inputResult = await shelbyUpload({ blobData: Buffer.from(JSON.stringify(inputSamples)), blobName: inputBlobName, apiKey: process.env.SHELBY_API_KEY });
 
-        // Generate soft labels (demo: random; production: route to teacher inference)
-        const softLabels = inputSamples.map((sample, i) => {
-          const inputHash = createHash('sha256').update(JSON.stringify(sample)).digest('hex');
-          // Demo soft labels: realistic probability distribution
-          const probs = Array.from({length: 10}, () => Math.random());
-          const sum = probs.reduce((a,b) => a+b, 0);
-          return { inputHash, softLabels: probs.map(p => parseFloat((p/sum).toFixed(4))), temperature: 4.0, topClassIndex: probs.indexOf(Math.max(...probs)) };
+        // Real mode: soft labels MUST come from the teacher's real inference.
+        const teacherSha = teacher.sha256 || teacher.hash;
+        if (!teacherSha) return json(res, 400, { error: 'Teacher model has no on-chain SHA-256 to bind labels to.' });
+        if (!Array.isArray(inputSamples) || inputSamples.some(s => !Array.isArray(s.softLabels) || !s.softLabels.length)) {
+          return json(res, 400, { error: 'Real distillation requires inputSamples with teacher softLabels (probability distributions).' });
+        }
+        const softLabels = inputSamples.map((sample) => {
+          const inputHash = createHash('sha256').update(JSON.stringify(sample.input !== undefined ? sample.input : sample)).digest('hex');
+          const probs = sample.softLabels;
+          const sum = probs.reduce((a, b) => a + b, 0) || 1;
+          return { inputHash, softLabels: probs.map(p => parseFloat((p / sum).toFixed(4))), temperature: body.temperature || 4.0, topClassIndex: probs.indexOf(Math.max(...probs)) };
         });
 
         // Binding hash: proves labels came from this teacher
-        const bindingHash = createHash('sha256').update((teacher.sha256 || teacher.hash || 'demo') + softLabels.map(l => l.inputHash).join(':')).digest('hex');
-        const labelRecord = { jobId, teacherModelId, teacherSha256: teacher.sha256 || teacher.hash || 'demo', temperature: 4.0, sampleCount: inputSamples.length, labels: softLabels, bindingHash, generatedAt: new Date().toISOString() };
+        const bindingHash = createHash('sha256').update(teacherSha + softLabels.map(l => l.inputHash).join(':')).digest('hex');
+        const labelRecord = { jobId, teacherModelId, teacherSha256: teacherSha, temperature: body.temperature || 4.0, sampleCount: inputSamples.length, labels: softLabels, bindingHash, generatedAt: new Date().toISOString() };
 
         // Upload soft labels to Shelby
         const labelBlobName = `distillation/${jobId}/soft-labels`;
         const labelResult = await shelbyUpload({ blobData: Buffer.from(JSON.stringify(labelRecord)), blobName: labelBlobName, apiKey: process.env.SHELBY_API_KEY });
 
-        const job = { id: jobId, studentId, teacherModelId, teacherSha256: teacher.sha256 || 'demo', inputObjectId: inputResult.objectId, outputObjectId: labelResult.objectId, sampleCount: inputSamples.length, pricePerSample: pricePerSample || 0.001, totalPrice: (pricePerSample || 0.001) * inputSamples.length, status: 'running', progress: 0, bindingHash, createdAt: new Date().toISOString() };
+        const job = { id: jobId, studentId, teacherModelId, teacherSha256: teacherSha, inputObjectId: inputResult.objectId, outputObjectId: labelResult.objectId, sampleCount: inputSamples.length, pricePerSample: pricePerSample || 0.001, totalPrice: (pricePerSample || 0.001) * inputSamples.length, status: 'running', progress: 0, bindingHash, createdAt: new Date().toISOString() };
 
         await db.put(`distil:${jobId}`, JSON.stringify(job));
         await logAudit('distillation.completed', { actor: studentId, target: teacherModelId, details: { jobId, sampleCount: inputSamples.length, bindingHash } });
@@ -1970,14 +2183,8 @@ export default async function handler(req, res) {
       }
 
       if (method === 'GET') {
-        const computeProgress = (job) => {
-          if (job.status === 'done' || job.status === 'completed') return job;
-          const elapsed = (Date.now() - new Date(job.createdAt).getTime()) / 1000;
-          let progress = elapsed * 8; // 8% per second
-          if (progress < 100) return { ...job, status: 'running', progress };
-          if (progress < 120) return { ...job, status: 'verifying', progress: 100 };
-          return { ...job, status: 'done', progress: 100, zkHash: '0x' + createHash('sha256').update(job.id + 'done').digest('hex').slice(0, 16) + '...' };
-        };
+        // Real mode: report the stored job as-is — no fabricated progress or completion.
+        const computeProgress = (job) => job;
 
         if (q.jobId) {
           const raw = await db.get(`distil:${q.jobId}`);
@@ -2117,104 +2324,31 @@ export default async function handler(req, res) {
       });
     }
 
-    // ── #1 TOP FOREVER: EARNINGS ────────────────────────────
+    // ── EARNINGS (real ShelbyUSD settlements) ────────────────
     if (root === 'earnings' && method === 'GET') {
-      // Simulate real-time Aptos crypto streaming for edge nodes
-      const nodes = Array.from({ length: 5 }, (_, i) => ({
-        id: `node-${Math.random().toString(36).substring(2,6)}`,
-        inferences: Math.floor(Math.random() * 1000) + 100,
-        earnedApt: (Math.random() * 5).toFixed(4),
-        status: 'streaming'
+      // Real mode: totals come from settled on-chain payment intents — no simulation.
+      const settled = (await listPaymentIntents()).filter(p => p.status === 'paid');
+      const totalMicro = settled.reduce((a, p) => a + (p.amountMicro || 0), 0);
+      const nodes = settled.map(p => ({
+        id: `pay-${p.id.slice(0, 8)}`,
+        item: p.item,
+        inferences: 1,
+        earnedApt: microToShelbyUSD(p.amountMicro).toFixed(6),
+        status: 'streaming',
+        txHash: p.txHash || null,
+        paidAt: p.paidAt,
       }));
-      const totalEarned = nodes.reduce((acc, n) => acc + parseFloat(n.earnedApt), 0).toFixed(4);
-      return json(res, 200, { success: true, nodes, totalEarned, tokenVelocity: '42.1 APT/hr' });
-    }
-
-    // ── #4 TOP FOREVER: THREAT MAP ─────────────────────────
-    if (root === 'threats' && method === 'GET') {
-      // Simulate global threat events (DDOS blocks, node re-routes)
-      const events = Array.from({ length: 4 }, () => {
-        const types = ['ddos_blocked', 'node_rerouted', 'zk_proof_failed'];
-        const regions = ['us-east-1', 'eu-central-1', 'ap-south-1', 'sa-east-1'];
-        return {
-          id: `evt-${crypto.randomUUID().slice(0,6)}`,
-          type: types[Math.floor(Math.random() * types.length)],
-          region: regions[Math.floor(Math.random() * regions.length)],
-          ip: `${Math.floor(Math.random()*255)}.x.x.x`,
-          timestamp: new Date().toISOString()
-        };
+      return json(res, 200, {
+        success: true,
+        nodes,
+        totalEarned: microToShelbyUSD(totalMicro).toFixed(6),
+        totalShelbyUSD: microToShelbyUSD(totalMicro).toFixed(6),
+        settlements: settled.length,
+        tokenVelocity: 'on-chain settlements',
       });
-      return json(res, 200, { success: true, events, activeThreatLevel: 'elevated' });
     }
 
-    // ── #5 TOP FOREVER: AUTOSCALING ─────────────────────────
-    if (root === 'autoscaling' && method === 'GET') {
-      // Simulate dynamic node provisioning
-      const metrics = {
-        currentLoad: Math.floor(Math.random() * 40) + 60, // 60-100%
-        activeNodes: Math.floor(Math.random() * 50) + 200,
-        provisioningNodes: Math.floor(Math.random() * 10),
-        status: 'scaling_up',
-        nextEvaluation: new Date(Date.now() + 30000).toISOString() // 30s from now
-      };
-      return json(res, 200, { success: true, metrics });
-    }
-
-    // ── #6 TOP FOREVER: FHE INFERENCE ───────────────────────
-    if (root === 'fhe-inference' && method === 'GET') {
-      const metrics = {
-        pipelineStatus: 'Homomorphic Matrix Multiply...',
-        entropy: Math.random() * 20 + 80, // 80-100
-        latticeDimension: 8192
-      };
-      return json(res, 200, { success: true, metrics });
-    }
-
-    // ── #7 TOP FOREVER: AGENT SWARM ─────────────────────────
-    if (root === 'agent-swarm' && method === 'GET') {
-      const timeSecs = Date.now() / 1000;
-      // Cycle capacity every 60 seconds (up to 95, then drops to 20)
-      let cap = 20 + (timeSecs % 60) * 1.5;
-      let logs = [];
-      let provisioning = false;
-      if (cap > 90) {
-         logs = [
-           `[${new Date().toLocaleTimeString()}] ALERT: Capacity critical (>90%).`,
-           `[${new Date().toLocaleTimeString()}] Agent-X signed Aptos TX: +500GB Shelby Storage.`
-         ];
-         provisioning = true;
-      }
-      return json(res, 200, { success: true, capacity: cap, logs, provisioning });
-    }
-
-    // ── #8 TOP FOREVER: REPLICATION ─────────────────────────
-    if (root === 'replication' && method === 'GET') {
-      const regions = [
-        { id: 'NA-East', x: 25, y: 35 }, { id: 'NA-West', x: 15, y: 32 },
-        { id: 'EU-West', x: 48, y: 28 }, { id: 'EU-Central', x: 55, y: 30 },
-        { id: 'Asia-East', x: 80, y: 38 }, { id: 'Asia-South', x: 70, y: 45 },
-        { id: 'SA-East', x: 35, y: 65 }, { id: 'Oceania', x: 85, y: 75 }
-      ];
-      const source = regions[Math.floor((Date.now() / 2000) % regions.length)];
-      const numDests = 2;
-      const dests = [];
-      for (let i=0; i<numDests; i++) dests.push(regions[(Math.floor(Date.now() / 3000) + i + 1) % regions.length]);
-      
-      const newLines = dests.map((d, i) => ({
-        id: Date.now().toString() + i,
-        x1: source.x, y1: source.y,
-        x2: d.x, y2: d.y,
-        destId: d.id
-      }));
-
-      const nodes = [source.id, ...dests.map(d=>d.id)];
-      const activeBlobs = 14205 + Math.floor((Date.now() % 10000) / 100);
-      const throughput = 1.2 + (Math.sin(Date.now()/1000) * 0.5);
-
-      return json(res, 200, { success: true, lines: newLines, nodes, activeBlobs, throughput });
-    }
-
-    const _kp=['/api/health','/api/config','/api/models','/api/metrics','/api/docs','/api/objects','/api/audit','/api/analytics','/api/schedule','/api/groups','/api/bluegreen','/api/webhooks','/api/marketplace','/api/compliance','/api/lineage','/api/sign','/api/notifications','/api/stream','/api/inference-cache','/api/checkpoints','/api/distillation','/api/fingerprint','/api/abtest-lock','/api/earnings','/api/threats','/api/autoscaling','/api/fhe-inference','/api/agent-swarm','/api/replication'];
+    const _kp=['/api/health','/api/config','/api/models','/api/metrics','/api/docs','/api/objects','/api/audit','/api/analytics','/api/schedule','/api/groups','/api/bluegreen','/api/webhooks','/api/marketplace','/api/payments','/api/compliance','/api/lineage','/api/sign','/api/notifications','/api/stream','/api/inference-cache','/api/checkpoints','/api/distillation','/api/fingerprint','/api/abtest-lock','/api/earnings'];
     return json(res, _kp.some(k=>path.startsWith(k)) ? 405 : 404, { error: `Method ${method} not allowed on ${path}.`, tip:'See GET /api/docs' });
   } catch (err) {
     console.error('[api]', err);

@@ -57,7 +57,7 @@ export default function Dashboard() {
             boxShadow: shelbyLive ? '0 0 8px #22c55e' : 'none'
           }} />
           <strong style={{ fontSize: 13 }}>
-            Shelby Protocol · {shelby.network || 'testnet'}
+            Shelby Protocol · {shelby.network || 'shelbynet'}
           </strong>
           <span className={`badge ${shelbyLive ? 'badge-shelby' : 'badge-amber'}`}>
             {shelby.mode || 'offline'}
@@ -100,7 +100,7 @@ export default function Dashboard() {
           title="Network"
           rows={[
             { label: 'Chain', value: 'Aptos L1' },
-            { label: 'Network', value: shelby.network || 'testnet' },
+            { label: 'Network', value: shelby.network || 'shelbynet' },
             { label: 'Mode', value: shelby.mode || '—' },
             { label: 'API', value: shelby.apiUrl ? 'shelby.xyz' : '—' },
           ]}

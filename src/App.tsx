@@ -32,10 +32,6 @@ import Health from './pages/Health';
 import Governance from './pages/Governance';
 import ZKValidator from './pages/ZKValidator';
 import Earnings from './pages/Earnings';
-import AgentSwarm from './pages/AgentSwarm';
-import ThreatMap from './pages/ThreatMap';
-import FHE from './pages/FHE';
-import Replication from './pages/Replication';
 
 // Only mounted when PrivyProvider is guaranteed present in the tree (noAuth=false)
 function PrivyGuard({ children }: { children: React.ReactNode }) {
@@ -99,10 +95,6 @@ export default function App({ noAuth: externalNoAuth }: { noAuth?: boolean }) {
         <Route path="governance"    element={<Governance />} />
         <Route path="zkvalidator"   element={<ZKValidator />} />
         <Route path="earnings"      element={<Earnings />} />
-        <Route path="agents"        element={<AgentSwarm />} />
-        <Route path="threats"       element={<ThreatMap />} />
-        <Route path="fhe"           element={<FHE />} />
-        <Route path="replication"   element={<Replication />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

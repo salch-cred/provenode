@@ -1,36 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import { get } from '../lib/api';
+import { get, post } from '../lib/api';
 import { useToast } from '../contexts/AppContext';
+
+const VECTOR_TEMPLATE = JSON.stringify([
+  { input: { prompt: 'sample input 1' }, output: 'class-a' },
+  { input: { prompt: 'sample input 2' }, output: 'class-b' }
+], null, 2);
 
 export default function ZKValidator() {
   const toast = useToast();
-  const [proofs, setProofs] = useState([
-    { id: 'zk-98f211', deviceId: 'CAM-SIN-042', modelId: 'vision-v2.4.1', status: 'validating', timestamp: new Date().toISOString() },
-    { id: 'zk-33a8b1', deviceId: 'DRONE-NY-01', modelId: 'nav-v3.3', status: 'verified', timestamp: new Date(Date.now() - 4000).toISOString() },
-    { id: 'zk-77f920', deviceId: 'ROBOT-BER-99', modelId: 'safety-v0.9', status: 'verified', timestamp: new Date(Date.now() - 15000).toISOString() },
-  ]);
+  const [models, setModels] = useState<any[]>([]);
+  const [modelId, setModelId] = useState('');
+  const [vectorsText, setVectorsText] = useState(VECTOR_TEMPLATE);
+  const [proof, setProof] = useState<any>(null);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setProofs(prev => {
-        const newProofs = [...prev];
-        if (newProofs[0].status === 'validating') {
-          newProofs[0].status = 'verified';
-        }
-        if (Math.random() > 0.7) {
-          newProofs.unshift({
-            id: `zk-${Math.random().toString(16).slice(2, 8)}`,
-            deviceId: `DEV-${Math.floor(Math.random() * 1000)}`,
-            modelId: 'vision-v2.4.1',
-            status: 'validating',
-            timestamp: new Date().toISOString()
-          });
-        }
-        return newProofs.slice(0, 10);
-      });
-    }, 3000);
-    return () => clearInterval(timer);
+    get<any>('/api/models').then(res => {
+      setModels(res.models || []);
+      if (res.models?.[0]) setModelId(res.models[0].id);
+    }).catch(() => {});
   }, []);
+
+  const verify = async (mid: string) => {
+    if (!mid) { setProof(null); return; }
+    try {
+      const res = await get<any>(`/api/zkproof/verify/${encodeURIComponent(mid)}`);
+      setProof({ verified: res.verified, result: res.result });
+    } catch (e: any) {
+      setProof(null);
+    }
+  };
+
+  useEffect(() => { verify(modelId); }, [modelId]);
+
+  const generate = async () => {
+    if (!modelId) return toast('Select a model first', 'error');
+    let testVectors;
+    try {
+      testVectors = JSON.parse(vectorsText);
+    } catch {
+      toast('Test vectors must be valid JSON', 'error');
+      return;
+    }
+    if (!Array.isArray(testVectors) || !testVectors.length) { toast('Provide at least one test vector', 'error'); return; }
+    if (testVectors.some((v: any) => v.output === undefined)) {
+      toast('Each test vector needs a real model output (v.output)', 'error');
+      return;
+    }
+    setGenerating(true);
+    try {
+      const res = await post<any>(`/api/zkproof/generate/${encodeURIComponent(modelId)}`, { testVectors });
+      toast('Proof generated from real model outputs', 'success');
+      verify(modelId);
+    } catch (e: any) {
+      toast(e.message, 'error');
+    }
+    setGenerating(false);
+  };
 
   return (
     <div style={{ maxWidth: 860 }}>
@@ -38,43 +65,54 @@ export default function ZKValidator() {
         <div className="card-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <i className="hgi-stroke hgi-shield-02" style={{ color: 'var(--coral)' }} />
-            <span className="card-title">ZK-SNARK Execution Proofs</span>
+            <span className="card-title">ZK Execution Proofs</span>
           </div>
         </div>
         <div className="card-body">
           <p style={{ color: 'var(--text-muted)', marginBottom: 20, fontSize: 14 }}>
-            Edge devices submit Zero-Knowledge proofs (NIZKPoK) verifying they executed the exact model hash on their local data without exposing the data or weights.
+            A proof commits the model's SHA-256 to its real outputs on your test vectors. Proofs are stored on-chain-bound KV and verified with the circuit.
           </p>
 
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Proof ID</th>
-                  <th>Edge Device</th>
-                  <th>Target Model</th>
-                  <th>Verification Status</th>
-                  <th>Timestamp</th>
-                </tr>
-              </thead>
-              <tbody>
-                {proofs.map(p => (
-                  <tr key={p.id}>
-                    <td className="mono">{p.id}</td>
-                    <td>{p.deviceId}</td>
-                    <td>{p.modelId}</td>
-                    <td>
-                      {p.status === 'validating' ? (
-                        <span className="badge badge-amber"><span className="spin" style={{ width: 12, height: 12, marginRight: 6, borderWidth: 2 }} /> Validating Math...</span>
-                      ) : (
-                        <span className="badge badge-green"><i className="hgi-stroke hgi-tick-01" style={{ marginRight: 4 }} /> On-Chain Verified</span>
-                      )}
-                    </td>
-                    <td style={{ fontSize: 12, opacity: 0.6 }}>{new Date(p.timestamp).toLocaleTimeString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="form-group" style={{ maxWidth: 420 }}>
+            <label className="form-label">Model</label>
+            <select className="form-input" value={modelId} onChange={e => setModelId(e.target.value)}>
+              <option value="">Select a registered model...</option>
+              {models.map(m => <option key={m.id} value={m.id}>{m.model}</option>)}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Test Vectors (JSON — {`{ input, output }`} from real model runs)</label>
+            <textarea className="form-input mono" style={{ height: 160, fontFamily: 'var(--font-mono)', fontSize: 12 }} value={vectorsText} onChange={e => setVectorsText(e.target.value)} />
+          </div>
+
+          <button className="btn btn-primary" onClick={generate} disabled={generating || !modelId}>
+            {generating ? 'Generating proof...' : 'Generate Proof'}
+          </button>
+
+          <div className="card" style={{ marginTop: 24 }}>
+            <div className="card-header"><span className="card-title">Proof Status — {modelId || 'no model'}</span></div>
+            <div className="card-body">
+              {proof ? (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                    {proof.verified ? (
+                      <span className="badge badge-green"><i className="hgi-stroke hgi-tick-01" style={{ marginRight: 4 }} /> Valid Proof</span>
+                    ) : (
+                      <span className="badge badge-red"><i className="hgi-stroke hgi-alert-01" style={{ marginRight: 4 }} /> Invalid</span>
+                    )}
+                  </div>
+                  <pre style={{ background: 'var(--input-bg)', padding: 14, borderRadius: 8, border: '1px solid var(--border)', fontSize: 12, overflowX: 'auto', color: 'var(--text-primary)' }}>
+                    {JSON.stringify(proof.result, null, 2)}
+                  </pre>
+                </div>
+              ) : (
+                <div className="empty" style={{ padding: '24px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, opacity: 0.8 }}>
+                  <i className="hgi-stroke hgi-shield-02" style={{ fontSize: 34, opacity: 0.2 }} />
+                  <div style={{ fontSize: 13 }}>No proof yet for this model — generate one from real outputs.</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

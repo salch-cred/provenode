@@ -16,8 +16,6 @@ const NAV = [
     { to: 'abtest',      label: 'A/B Tests',    icon: 'hgi-analytics-01' },
     { to: 'federated',   label: 'Federated',    icon: 'hgi-share-01' },
     { to: 'distillation',label: 'Distillation', icon: 'hgi-ai-brain-01' },
-    { to: 'agents',      label: 'Agent Swarm',  icon: 'hgi-bot' },
-    { to: 'threats',     label: 'Threat Map',   icon: 'hgi-maps-location-01' },
   ]},
   { section: 'Fleet', items: [
     { to: 'devices',     label: 'Devices',      icon: 'hgi-cpu' },
@@ -29,12 +27,10 @@ const NAV = [
     { to: 'governance',  label: 'Governance',   icon: 'hgi-signature' },
     { to: 'zkvalidator', label: 'ZK Validator', icon: 'hgi-shield-02' },
     { to: 'earnings',    label: 'Monetization', icon: 'hgi-bitcoin-04' },
-    { to: 'fhe',         label: 'FHE Enclaves', icon: 'hgi-lock-key' },
   ]},
   { section: 'Blockchain', items: [
     { to: 'objects',     label: 'Shelby Objects', icon: 'hgi-package' },
     { to: 'shelby',      label: 'Shelby Layer',   icon: 'hgi-blockchain-01' },
-    { to: 'replication', label: 'Global Heatmap', icon: 'hgi-maps-global-01' },
     { to: 'compliance',  label: 'Compliance',     icon: 'hgi-license' },
     { to: 'bluegreen',   label: 'Blue-Green',     icon: 'hgi-exchange-01' },
   ]},

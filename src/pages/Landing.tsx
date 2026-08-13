@@ -70,8 +70,8 @@ export default function Landing() {
       const lines = [
         '$ provenode upload model.onnx --name "ResNet-v2"',
         '  ✓ SHA-256: 9e4a7c81d2bf…b82f',
-        '  ✓ Shelby object: shelby://testnet/models/resnet-v2',
-        '  ✓ Registered on Aptos testnet · block 10356365905',
+        '  ✓ Shelby object: shelby://shelbynet/models/resnet-v2',
+        '  ✓ Registered on Shelbynet · block 10356365905',
         '',
         '$ provenode deploy --model resnet-v2 --region Global',
         '  → Pushing to 248 devices…',
@@ -370,7 +370,7 @@ export default function Landing() {
                 <div className="lp-proof-body">
                   {[
                     ['Model', 'vision-edge-v2.4.1.onnx'],
-                    ['Shelby object', 'shelby://testnet/models/vision/2.4.1'],
+                    ['Shelby object', 'shelby://shelbynet/models/vision/2.4.1'],
                     ['SHA-256', '9e4a7c81d2bf…b82f'],
                     ['Aptos contract', '0x77f8cb3d…87cb'],
                     ['Activation rule', 'Digest must match manifest'],
@@ -512,7 +512,7 @@ export default function Landing() {
               <i className="hgi-stroke hgi-github"/> GitHub
             </a>
             <Link to="/app/dashboard">Console</Link>
-            <a href="https://explorer.aptoslabs.com/account/0x77f8cb3dde7d8347cbaa1043889e79077489af6ed828e273f0283bfeccd39d18?network=testnet" target="_blank" rel="noreferrer">Contract</a>
+            <a href="https://explorer.aptoslabs.com/account/0x77f8cb3dde7d8347cbaa1043889e79077489af6ed828e273f0283bfeccd39d18?network=custom&customNetworkUrl=https%3A%2F%2Fapi.shelbynet.shelby.xyz%2Fv1" target="_blank" rel="noreferrer">Contract</a>
           </div>
         </div>
       </footer>

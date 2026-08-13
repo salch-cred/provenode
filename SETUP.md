@@ -64,8 +64,8 @@ Go to **Settings → Environment Variables** and add:
 
 | Name | Value | Scope |
 |---|---|---|
-| `SHELBY_NETWORK` | `testnet` | All |
-| `SHELBY_MODE` | `demo` | All |
+| `SHELBY_NETWORK` | `shelbynet` (real network; `testnet` to opt out) | All |
+| `SHELBY_MODE` | `shelby` (real mode only — demo mode removed) | All |
 | `SHELBY_API_KEY` | *(your real key from shelby.network)* | Production only |
 | `ALLOWED_ORIGIN` | `https://provenode.vercel.app` | Production |
 

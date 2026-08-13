@@ -8,7 +8,7 @@
 
 ## 1. Project Summary
 
-Provenode is a zero-cost AI model deployment dashboard built on top of the **Shelby Protocol** testnet (Aptos-based decentralized object storage). Users upload model files, get SHA-256 hashes, and optionally publish them as verifiable on-chain objects. A deployment console tracks rollout progress across 248 edge devices.
+Provenode is a zero-cost AI model deployment dashboard built on top of the **Shelby Protocol** Shelbynet (Aptos-based decentralized object storage). Users upload model files, get SHA-256 hashes, and optionally publish them as verifiable on-chain objects. A deployment console tracks rollout progress across 248 edge devices.
 
 **Architecture (original):**
 ```
@@ -171,8 +171,8 @@ In the Vercel dashboard → Settings → Environment Variables:
 | Variable | Value | Environments |
 |---|---|---|
 | `SHELBY_API_KEY` | Your key from shelby.network | Production only |
-| `SHELBY_NETWORK` | `testnet` | All |
-| `SHELBY_MODE` | `demo` (or `shelby` if key set) | All |
+| `SHELBY_NETWORK` | `shelbynet` (real network; `testnet` to opt out) | All |
+| `SHELBY_MODE` | `shelby` (real mode only — demo mode removed) | All |
 | `ALLOWED_ORIGIN` | `https://provenode.vercel.app` | Production |
 
 ### Step 3 — Install new dependency
