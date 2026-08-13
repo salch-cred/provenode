@@ -2,6 +2,10 @@ export async function apiFetch<T = any>(method: string, path: string, body?: unk
   const opts: RequestInit = { method, headers: {} };
   const tenant = localStorage.getItem('tenant');
   if (tenant) (opts.headers as any)['X-Tenant-Id'] = tenant;
+  // Backend guards all mutating routes with DEPLOY_SECRET via X-Provenode-Token.
+  // Attach it when present so the UI keeps working in auth-enabled deploys.
+  const token = localStorage.getItem('token');
+  if (token) (opts.headers as any)['X-Provenode-Token'] = token;
   if (body) {
     if (isForm) opts.body = body as FormData;
     else { (opts.headers as any)['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }

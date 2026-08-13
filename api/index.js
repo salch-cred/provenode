@@ -251,6 +251,8 @@ export default async function handler(req, res) {
       const record = JSON.parse(recordStr);
       
       if (action === 'generate' && method === 'POST') {
+        // FIX C-1: Auth guard on proof generation (writes KV + marks model verified)
+        if (requireAuth(req, res)) return;
         const { generateModelCommitment, STANDARD_BENCHMARK_VECTORS } = await import('../lib/zkproof.js');
         // We simulate inference outputs for the benchmark vectors
         const testVectors = STANDARD_BENCHMARK_VECTORS.map(v => ({...v, expectedOutput: `simulated_output_for_${v.id}`}));
@@ -284,6 +286,8 @@ export default async function handler(req, res) {
 
     // ── integrity ─────────────────────────────────────────────
     if (root === 'integrity') {
+      // FIX C-1: Auth guard on all mutating requests (scan/heal write to KV)
+      if (method !== 'GET' && requireAuth(req, res)) return;
       const action = parts[1]; // 'scan' or 'heal'
       const deviceId = parts[2];
       
@@ -334,6 +338,9 @@ export default async function handler(req, res) {
 
     // ── datasets ──────────────────────────────────────────────
     if (root === 'datasets') {
+      // FIX C-1: Auth guard on all mutating requests. This block preempts the
+      // guarded block below, so without this POST /api/datasets was unauthenticated.
+      if (method !== 'GET' && requireAuth(req, res)) return;
       const action = parts[1]; // 'delete' or undefined
       
       if (method === 'GET') {
@@ -385,6 +392,8 @@ export default async function handler(req, res) {
 
     // ── streaming ──────────────────────────────────────────────
     if (root === 'streaming') {
+      // FIX C-1: Auth guard on all mutating requests
+      if (method !== 'GET' && requireAuth(req, res)) return;
       if (parts[1] === 'session' && method === 'POST') {
         const body = await readBody(req);
         if (!body.modelId) return json(res, 400, { error: 'modelId required' });
@@ -403,6 +412,8 @@ export default async function handler(req, res) {
 
     // ── federated ──────────────────────────────────────────────
     if (root === 'federated') {
+      // FIX C-1: Auth guard — merge is CPU-bound (allocates arrays per nodeId)
+      if (method !== 'GET' && requireAuth(req, res)) return;
       if (parts[1] === 'merge' && method === 'POST') {
         const body = await readBody(req);
         if (!body.nodeIds || !body.nodeIds.length) return json(res, 400, { error: 'nodeIds required' });
@@ -424,6 +435,8 @@ export default async function handler(req, res) {
 
     // ── agent (Mistral AI / Bot) ──────────────────────────────
     if (root === 'agent' && method === 'POST') {
+      // FIX C-1: Auth guard — unauthenticated calls burn MISTRAL_API_KEY quota
+      if (requireAuth(req, res)) return;
       const body = await readBody(req);
       const msg = (body.message || '').trim().toLowerCase();
       
@@ -468,6 +481,8 @@ export default async function handler(req, res) {
 
     // ── upload ──────────────────────────────────────────────
     if (root === 'upload' && method === 'POST') {
+      // FIX C-1: Auth guard on all mutating requests (missing before — anyone could upload)
+      if (requireAuth(req, res)) return;
       const form = formidable({ maxFileSize: 100 * 1024 * 1024, keepExtensions: true, allowEmptyFiles: false, minFileSize: 1 });
       let fields, files;
       try {
@@ -510,6 +525,8 @@ export default async function handler(req, res) {
 
     // ── deploy ──────────────────────────────────────────────
     if (root === 'deploy' && method === 'POST') {
+      // FIX C-1: Auth guard on all mutating requests (missing before — anyone could deploy)
+      if (requireAuth(req, res)) return;
       const body = await readBody(req);
       const { modelId, modelName, version, region, canary, policy } = body;
       let model = null;
@@ -886,6 +903,11 @@ export default async function handler(req, res) {
         const { source, repo, filename, name, revision } = body;
         if (source !== 'huggingface') return json(res, 400, { error: 'Only source "huggingface" is supported.' });
         if (!repo || !filename) return json(res, 400, { error: 'repo and filename required.' });
+        // FIX: repo/filename/revision are interpolated into a URL — reject
+        // path traversal and URL injection (e.g. repo="a/b/../../", filename with ?#)
+        if (!/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(repo)) return json(res, 400, { error: 'Invalid repo. Expected owner/model.' });
+        if (/\.\./.test(filename) || /[?#]/.test(filename)) return json(res, 400, { error: 'Invalid filename.' });
+        if (revision && !/^[a-zA-Z0-9_.\/-]+$/.test(revision)) return json(res, 400, { error: 'Invalid revision.' });
         const jobId = crypto.randomUUID();
         const job = { id: jobId, source, repo, filename, name: name || `${repo.split('/')[1]}/${filename}`, status: 'fetching', createdAt: new Date().toISOString() };
         await db.put(`import:${jobId}`, JSON.stringify(job));
@@ -1303,8 +1325,9 @@ export default async function handler(req, res) {
 
     // ── notifications ───────────────────────────────────────
     if (root === 'notifications') {
-      // FIX C-1: Auth guard on all mutating requests
-      if (method !== 'GET' && requireAuth(req, res)) return;
+      // FIX C-1: Guard ALL methods — GET sends a test email (side effect),
+      // so an unauthenticated GET could spam ALERT_EMAIL via the Resend API.
+      if (requireAuth(req, res)) return;
 
       if (method === 'GET') {
         const to = process.env.ALERT_EMAIL;
@@ -1346,7 +1369,6 @@ export default async function handler(req, res) {
         // Fetch model blob from Shelby objectId (demo: use stored buffer ref)
         // In production: fetch from shelby objectId using ShelbyClient.download()
         const demoBuffer = Buffer.alloc(50 * 1024 * 1024); // 50MB demo model
-        crypto.getRandomValues ? null : demoBuffer.fill(0x42);
 
         const manifest = await createStreamManifest({
           buffer: demoBuffer,
@@ -1431,7 +1453,14 @@ export default async function handler(req, res) {
         const round = JSON.parse(rawRound);
         if (!round.rawContributions || round.rawContributions.length < 2) return json(res, 400, { error: 'Need at least 2 gradient submissions to aggregate.' });
 
-        const gradients = round.rawContributions.map(c => new Float32Array(Buffer.from(Array.isArray(c.gradientBuffer) ? c.gradientBuffer : Buffer.from(c.gradientBuffer))));
+        // Reinterpret stored gradient BYTES as Float32 values (4 bytes per float).
+        // `new Float32Array(buffer)` would treat each byte as a separate element,
+        // producing garbage averages and breaking the FedAvg math.
+        const gradients = round.rawContributions.map(c => {
+          const buf = Buffer.from(Array.isArray(c.gradientBuffer) ? c.gradientBuffer : c.gradientBuffer);
+          const n = Math.floor(buf.byteLength / 4);
+          return new Float32Array(buf.buffer, buf.byteOffset, n);
+        });
         const sampleCounts = round.rawContributions.map(c => c.sampleCount || 100);
         const aggregated = weightedFedAvg(gradients, sampleCounts);
 
@@ -1818,12 +1847,20 @@ export default async function handler(req, res) {
       }
 
       if (method === 'DELETE') {
-        // Get cache stats for a model
+        // FIX: DELETE now actually deletes the KV cache index (it previously
+        // just returned stats). Shelby blobs are immutable so they remain,
+        // but the fast-lookup pointer is removed.
         const modelId = q.modelId;
-        if (!modelId) return json(res, 400, { error: 'modelId required.' });
+        const cacheKey = q.key || q.cacheKey || q.inputHash;
+        if (cacheKey) {
+          if (!modelId) return json(res, 400, { error: 'modelId required with key.' });
+          await db.del(`icache:${modelId}:${cacheKey}`);
+          return json(res, 200, { deleted: 1, modelId, key: cacheKey });
+        }
+        if (!modelId) return json(res, 400, { error: 'modelId or key required.' });
         const { keys } = await db.list({ prefix: `icache:${modelId}:` });
-        const entries = (await Promise.all(keys.map(async ({name}) => { const d = await db.get(name); return d ? JSON.parse(d) : null; }))).filter(Boolean);
-        return json(res, 200, { modelId, cachedEntries: entries.length, totalCached: entries.length, note: 'Cache entries stored on Shelby are immutable — counts only' });
+        await Promise.all(keys.map(async ({ name }) => db.del(name)));
+        return json(res, 200, { modelId, deleted: keys.length, note: 'Cache index purged; immutable Shelby blobs remain.' });
       }
     }
 
@@ -1836,10 +1873,12 @@ export default async function handler(req, res) {
         const { runId, step, loss, accuracy, checkpointData, optimizer, hyperparams } = body;
         if (!runId || step === undefined) return json(res, 400, { error: 'runId and step required.' });
 
-        // Get parent checkpoint for chain linking
+        // Get parent checkpoint for chain linking.
+        // Keys are cp:{runId}:{zero-padded step} — sort the NAMES so .pop()
+        // reliably returns the highest step (KV scan order is not guaranteed).
         const { keys } = await db.list({ prefix: `cp:${runId}:` });
-        const prevKey = keys.sort().pop();
-        const prevRaw = prevKey ? await db.get(prevKey.name) : null;
+        const prevKeyName = keys.map(k => k.name).sort().pop();
+        const prevRaw = prevKeyName ? await db.get(prevKeyName) : null;
         const parentId = prevRaw ? JSON.parse(prevRaw).id : null;
 
         // Upload checkpoint to Shelby

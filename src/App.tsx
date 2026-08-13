@@ -59,9 +59,11 @@ function AuthGuard({ children, noAuth }: { children: React.ReactNode; noAuth?: b
 }
 
 export default function App({ noAuth: externalNoAuth }: { noAuth?: boolean }) {
-  // Read NO_AUTH from environment (Vite exposes it as import.meta.env.VITE_NO_AUTH)
-  // For standard React/Webpack setups, use process.env.REACT_APP_NO_AUTH
-  const noAuth = externalNoAuth !== undefined ? externalNoAuth : true;
+  // Auth is ON unless explicitly disabled: VITE_NO_AUTH=true (Vite) or REACT_APP_NO_AUTH=true.
+  // Previously this defaulted to `true`, which made the entire /app/* console public
+  // and bypassed Privy SSO even when VITE_PRIVY_APP_ID was configured.
+  const envNoAuth = import.meta.env.VITE_NO_AUTH === 'true' || (import.meta as any).env?.REACT_APP_NO_AUTH === 'true';
+  const noAuth = externalNoAuth !== undefined ? externalNoAuth : envNoAuth;
 
   return (
     <Routes>
