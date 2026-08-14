@@ -612,6 +612,9 @@ export default async function handler(req, res) {
         { type: 'function', function: { name: 'list_deployments', description: 'List deployments (model, version, status, rollout progress, region, canary).', parameters: { type: 'object', properties: {}, required: [] } } },
         { type: 'function', function: { name: 'get_fleet_status', description: 'Fleet health: device count by status (online/offline/healing) and per-device detail.', parameters: { type: 'object', properties: {}, required: [] } } },
         { type: 'function', function: { name: 'get_registry_status', description: 'Live on-chain ModelRegistry status (contract address, model count).', parameters: { type: 'object', properties: {}, required: [] } } },
+        { type: 'function', function: { name: 'get_earnings', description: 'Earnings: settled on-chain ShelbyUSD totals and per-payment detail.', parameters: { type: 'object', properties: {}, required: [] } } },
+        { type: 'function', function: { name: 'list_marketplace_listings', description: 'List marketplace listings (name, price, license, downloads, publishedAt).', parameters: { type: 'object', properties: {}, required: [] } } },
+        { type: 'function', function: { name: 'list_payment_intents', description: 'List payment intents (item, amount, status, paidAt, txHash).', parameters: { type: 'object', properties: {}, required: [] } } },
       ];
       const runTool = async (name) => {
         switch (name) {
@@ -658,6 +661,24 @@ export default async function handler(req, res) {
             try { const { getRegistryStatus, MODEL_REGISTRY_ADDRESS } = await import('../lib/registry.js'); return { contractAddress: MODEL_REGISTRY_ADDRESS, ...(await getRegistryStatus()) }; }
             catch (e) { return { error: `Registry unavailable: ${e.message}` }; }
           }
+          case 'get_earnings': {
+            const settled = (await listPaymentIntents()).filter(p => p.status === 'paid');
+            const totalMicro = settled.reduce((a, p) => a + (p.amountMicro || 0), 0);
+            return { totalShelbyUSD: microToShelbyUSD(totalMicro).toFixed(6), settlements: settled.length, earnings: settled.map(p => ({ id: p.id, item: p.item, amountShelbyUSD: microToShelbyUSD(p.amountMicro).toFixed(6), txHash: p.txHash || null, paidAt: p.paidAt || null })) };
+          }
+          case 'list_marketplace_listings': {
+            const { keys } = await db.list({ prefix: 'marketplace:' });
+            const listings = (await Promise.all(keys.map(async ({ name }) => {
+              const d = await db.get(name); if (!d) return null;
+              const l = JSON.parse(d);
+              return { id: l.id, name: l.name, price: l.price, license: l.license, downloads: l.downloads, publishedAt: l.publishedAt };
+            }))).filter(Boolean);
+            return { count: listings.length, listings };
+          }
+          case 'list_payment_intents': {
+            const intents = await listPaymentIntents();
+            return { count: intents.length, intents: intents.map(p => ({ id: p.id, item: p.item, itemId: p.itemId, amountShelbyUSD: p.amountShelbyUSD, status: p.status, createdAt: p.createdAt, paidAt: p.paidAt, txHash: p.txHash })) };
+          }
           default:
             return { error: `Unknown tool: ${name}` };
         }
@@ -671,7 +692,7 @@ export default async function handler(req, res) {
         if (!mRes.ok) return { error: `Agent API error: ${mRes.status}` };
         return { data: await mRes.json() };
       };
-      const SYSTEM = 'You are the Provenode Autonomous Network Agent for the Provenode platform. You answer questions about models, deployments, fleet devices, and the on-chain registry. ALWAYS ground your answer in real data: call the provided tools to read live platform state, then answer from the tool results. Never invent numbers. Keep answers concise and technical.';
+      const SYSTEM = 'You are the Provenode Autonomous Network Agent for the Provenode platform. You answer questions about models, deployments, fleet devices, the on-chain registry, marketplace listings, payments, and earnings. ALWAYS ground your answer in real data: call the provided tools to read live platform state, then answer from the tool results. Never invent numbers. Keep answers concise and technical.';
       try {
         const first = await callMistral([
           { role: 'system', content: SYSTEM },
@@ -680,15 +701,17 @@ export default async function handler(req, res) {
         if (first.error) return json(res, 502, { error: first.error });
         const assistant = first.data.choices[0].message;
         const toolCalls = assistant.tool_calls || [];
-        if (!toolCalls.length) return json(res, 200, { response: assistant.content || '' });
+        if (!toolCalls.length) return json(res, 200, { response: assistant.content || '', data: {} });
 
         // Execute every requested tool against real KV state, then let Mistral
         // compose the final grounded answer (single follow-up round trip).
+        const toolData = {};
         const toolResults = [];
         for (const tc of toolCalls) {
           let result;
           try { result = await runTool(tc.function.name); }
           catch (e) { result = { error: e.message }; }
+          toolData[tc.function.name] = result;
           toolResults.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
         }
         const second = await callMistral([
@@ -698,7 +721,7 @@ export default async function handler(req, res) {
           ...toolResults,
         ]);
         if (second.error) return json(res, 502, { error: second.error });
-        return json(res, 200, { response: second.data.choices[0].message.content || '' });
+        return json(res, 200, { response: second.data.choices[0].message.content || '', data: toolData });
       } catch (e) {
         console.error('Mistral API error:', e);
         return json(res, 502, { error: 'Agent API unavailable.' });

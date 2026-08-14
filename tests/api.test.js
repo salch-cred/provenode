@@ -238,7 +238,10 @@ describe('Agent (AI bot) endpoint', () => {
       globalThis.fetch = async (url, opts) => {
         const payload = JSON.parse(opts.body);
         expect(url).toBe('https://api.mistral.ai/v1/chat/completions');
-        expect(payload.tools.length).toBeGreaterThanOrEqual(4);
+        expect(payload.tools.length).toBeGreaterThanOrEqual(7);
+        for (const n of ['get_earnings', 'list_marketplace_listings', 'list_payment_intents']) {
+          expect(payload.tools.map(t => t.function.name)).toContain(n);
+        }
         expect(payload.tool_choice).toBe('auto');
         calls += 1;
         if (calls === 1) {
@@ -268,7 +271,60 @@ describe('Agent (AI bot) endpoint', () => {
       const res = await api('POST', '/api/agent', { body: { message: 'Which models are registered?' } });
       expect(res.status).toBe(200);
       expect(res.body.response).toContain('EdgeVision v3');
+      expect(res.body.data.list_models.models.some(m => m.model === 'EdgeVision v3')).toBe(true);
       expect(calls).toBe(2);
+    } finally {
+      globalThis.fetch = origFetch;
+      delete process.env.MISTRAL_API_KEY;
+      delete process.env.DEPLOY_SECRET;
+    }
+  });
+
+  it('serves marketplace and earnings data through the new tools', async () => {
+    const db = getDB();
+    await db.put('marketplace:tool-listing', JSON.stringify({ id: 'tool-listing', name: 'Tool Listing', price: 3.2, license: 'MIT', downloads: 7, publishedAt: new Date().toISOString() }));
+    await db.put('pay:tool-paid', JSON.stringify({ id: 'tool-paid', item: 'marketplace_import', itemId: 'tool-listing', amountShelbyUSD: 3.2, amountMicro: 320000000, status: 'paid', createdAt: new Date().toISOString(), paidAt: new Date().toISOString(), txHash: '0xabc' }));
+
+    process.env.MISTRAL_API_KEY = 'test-key';
+    process.env.DEPLOY_SECRET = 'secret-test';
+
+    const origFetch = globalThis.fetch;
+    let calls = 0;
+    try {
+      globalThis.fetch = async (url, opts) => {
+        const payload = JSON.parse(opts.body);
+        calls += 1;
+        if (calls === 1) {
+          return {
+            ok: true, status: 200,
+            json: async () => ({
+              choices: [{ message: {
+                role: 'assistant', content: null,
+                tool_calls: [
+                  { id: 'call_a', type: 'function', function: { name: 'list_marketplace_listings', arguments: '{}' } },
+                  { id: 'call_b', type: 'function', function: { name: 'get_earnings', arguments: '{}' } },
+                ],
+              } }],
+            }),
+          };
+        }
+        const toolMsgs = payload.messages.filter(m => m.role === 'tool');
+        expect(toolMsgs.length).toBe(2);
+        expect(toolMsgs[0].content).toContain('Tool Listing');
+        expect(toolMsgs[1].content).toContain('3.200000');
+        return {
+          ok: true, status: 200,
+          json: async () => ({
+            choices: [{ message: { role: 'assistant', content: 'Marketplace: Tool Listing at 3.2. Earnings: 3.2.' } }],
+          }),
+        };
+      };
+
+      const res = await api('POST', '/api/agent', { body: { message: 'marketplace + earnings?' } });
+      expect(res.status).toBe(200);
+      expect(res.body.data.list_marketplace_listings.listings.some(l => l.name === 'Tool Listing')).toBe(true);
+      expect(res.body.data.get_earnings.totalShelbyUSD).toBe('3.200000');
+      expect(res.body.data.get_earnings.settlements).toBe(1);
     } finally {
       globalThis.fetch = origFetch;
       delete process.env.MISTRAL_API_KEY;
