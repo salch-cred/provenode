@@ -588,10 +588,18 @@ export default async function handler(req, res) {
 
     // ── agent (Mistral AI / Bot) ──────────────────────────────
     if (root === 'agent' && method === 'POST') {
-      // FIX C-1: Auth guard — unauthenticated calls burn MISTRAL_API_KEY quota
-      if (requireAuth(req, res)) return;
+      // Public chat bot — the floating widget in the UI has no DEPLOY_SECRET token,
+      // so this route is exempt from requireAuth. It is throttled per IP instead,
+      // keeping anonymous users from burning the MISTRAL_API_KEY quota; requests
+      // carrying a valid token are treated as trusted operators (higher limit).
+      const trusted = !process.env.DEPLOY_SECRET || req.headers['x-provenode-token'] === process.env.DEPLOY_SECRET;
+      const rl = await checkRateLimit(req, trusted ? 120 : 10, 60000);
+      if (!rl.allowed) {
+        res.setHeader('Retry-After', String(Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000))));
+        return json(res, 429, { error: 'Rate limit exceeded. Try again in a moment.' });
+      }
       const body = await readBody(req);
-      const msg = (body.message || '').trim().toLowerCase();
+      const msg = (body.message || '').trim();
       
       // Real mode only — no canned demo replies.
       const apiKey = process.env.MISTRAL_API_KEY;

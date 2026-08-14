@@ -214,6 +214,17 @@ describe('Auth guard', () => {
   });
 });
 
+describe('Agent (AI bot) endpoint', () => {
+  it('is public (no token needed) and fails cleanly when MISTRAL_API_KEY is missing', async () => {
+    process.env.DEPLOY_SECRET = 'secret-test';
+    delete process.env.MISTRAL_API_KEY;
+    const res = await api('POST', '/api/agent', { body: { message: 'status' } });
+    expect(res.status).toBe(503);
+    expect(res.body.error).toMatch(/MISTRAL_API_KEY not configured/);
+    delete process.env.DEPLOY_SECRET;
+  });
+});
+
 describe('Removed simulated endpoints 404', () => {
   it('threats, autoscaling, fhe-inference, agent-swarm, replication, streaming/session', async () => {
     for (const p of ['/api/threats', '/api/autoscaling', '/api/fhe-inference', '/api/agent-swarm', '/api/replication', '/api/streaming/session']) {
