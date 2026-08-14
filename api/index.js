@@ -2477,7 +2477,12 @@ export default async function handler(req, res) {
         if (!modelRaw) return json(res, 404, { error: 'Model not found.' });
         const model = JSON.parse(modelRaw);
 
-        const outputHashes = outputs.map(o => ({ canaryId: o.canaryId, outputHash: createHash('sha256').update(JSON.stringify(o.output)).digest('hex') }));
+        // Validate each canary entry before hashing — malformed entries would
+        // otherwise crash createHash with an unhelpful 500.
+        const outputHashes = outputs.map(o => (o && typeof o === 'object' && o.canaryId !== undefined && o.output !== undefined)
+          ? { canaryId: o.canaryId, outputHash: createHash('sha256').update(JSON.stringify(o.output)).digest('hex') }
+          : null);
+        if (outputHashes.some(h => !h)) return json(res, 400, { error: 'Each outputs[] entry requires canaryId and output.' });
         const fingerprint = createHash('sha256').update(outputHashes.map(o => o.outputHash).join(':')).digest('hex');
         const modelSha256 = model.sha256 || model.hash || 'unknown';
         const compoundFingerprint = createHash('sha256').update(modelSha256 + fingerprint).digest('hex');

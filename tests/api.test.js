@@ -277,6 +277,22 @@ describe('Agent (AI bot) endpoint', () => {
   });
 });
 
+describe('Fingerprint route', () => {
+  it('rejects malformed outputs[] entries with a clean 400 instead of crashing', async () => {
+    const db = getDB();
+    await db.put('model:fp-model', JSON.stringify({ id: 'fp-model', model: 'FPM', sha256: 'd'.repeat(64), size: 1, mode: 'shelby', createdAt: new Date().toISOString() }));
+    const res = await api('POST', '/api/fingerprint', { body: { modelId: 'fp-model', outputs: ['abc', 'abd'] } });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/canaryId and output/);
+  });
+
+  it('creates a fingerprint from well-formed canary outputs', async () => {
+    const res = await api('POST', '/api/fingerprint', { body: { modelId: 'fp-model', outputs: [{ canaryId: 'c1', output: 'abc' }, { canaryId: 'c2', output: 'abd' }] } });
+    expect(res.status).toBe(201);
+    expect(res.body.fingerprint).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
 describe('Removed simulated endpoints 404', () => {
   it('threats, autoscaling, fhe-inference, agent-swarm, replication, streaming/session', async () => {
     for (const p of ['/api/threats', '/api/autoscaling', '/api/fhe-inference', '/api/agent-swarm', '/api/replication', '/api/streaming/session']) {
