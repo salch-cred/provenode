@@ -600,28 +600,105 @@ export default async function handler(req, res) {
       }
       const body = await readBody(req);
       const msg = (body.message || '').trim();
-      
+
       // Real mode only — no canned demo replies.
       const apiKey = process.env.MISTRAL_API_KEY;
       if (!apiKey) return json(res, 503, { error: 'MISTRAL_API_KEY not configured. Real mode requires a working agent backend.' });
-      try {
+
+      // ── Tool-calling: ground answers in REAL platform state (KV-backed) ──
+      const tools = [
+        { type: 'function', function: { name: 'get_platform_summary', description: 'Platform-wide snapshot: registered model count, deployment count, fleet device count, and on-chain registry status.', parameters: { type: 'object', properties: {}, required: [] } } },
+        { type: 'function', function: { name: 'list_models', description: 'List registered AI models (name, id, sha256, size, mode, createdAt).', parameters: { type: 'object', properties: {}, required: [] } } },
+        { type: 'function', function: { name: 'list_deployments', description: 'List deployments (model, version, status, rollout progress, region, canary).', parameters: { type: 'object', properties: {}, required: [] } } },
+        { type: 'function', function: { name: 'get_fleet_status', description: 'Fleet health: device count by status (online/offline/healing) and per-device detail.', parameters: { type: 'object', properties: {}, required: [] } } },
+        { type: 'function', function: { name: 'get_registry_status', description: 'Live on-chain ModelRegistry status (contract address, model count).', parameters: { type: 'object', properties: {}, required: [] } } },
+      ];
+      const runTool = async (name) => {
+        switch (name) {
+          case 'get_platform_summary': {
+            const [models, deployments, devices] = await Promise.all([
+              db.list({ prefix: 'model:' }),
+              db.list({ prefix: 'deployment:' }),
+              db.list({ prefix: 'device:' }),
+            ]);
+            let registry = null;
+            try { const { getRegistryStatus, MODEL_REGISTRY_ADDRESS } = await import('../lib/registry.js'); registry = { contractAddress: MODEL_REGISTRY_ADDRESS, ...(await getRegistryStatus()) }; } catch { /* registry unavailable */ }
+            return { models: models.keys.length, deployments: deployments.keys.length, devices: devices.keys.length, registry };
+          }
+          case 'list_models': {
+            const { keys } = await db.list({ prefix: 'model:' });
+            const models = (await Promise.all(keys.map(async ({ name }) => {
+              const d = await db.get(name); if (!d) return null;
+              const m = JSON.parse(d);
+              return { id: m.id, model: m.model, sha256: m.sha256, size: m.size, mode: m.mode, createdAt: m.createdAt };
+            }))).filter(Boolean);
+            return { count: models.length, models };
+          }
+          case 'list_deployments': {
+            const { keys } = await db.list({ prefix: 'deployment:' });
+            const deployments = (await Promise.all(keys.map(async ({ name }) => {
+              const d = await db.get(name); if (!d) return null;
+              const m = JSON.parse(d);
+              return { id: m.id, model: m.model, version: m.version, status: m.status, progress: m.progress, region: m.region, canary: !!(m.canary && m.canary.enabled), createdAt: m.createdAt };
+            }))).filter(Boolean);
+            return { count: deployments.length, deployments };
+          }
+          case 'get_fleet_status': {
+            const { keys } = await db.list({ prefix: 'device:' });
+            const devices = (await Promise.all(keys.map(async ({ name }) => {
+              const d = await db.get(name); if (!d) return null;
+              const dev = JSON.parse(d);
+              return { id: dev.id, type: dev.type, arch: dev.arch, location: dev.location, status: dev.status, healing: !!dev.healing, lastSeenAt: dev.lastSeenAt };
+            }))).filter(Boolean);
+            const byStatus = {};
+            for (const dev of devices) byStatus[dev.status] = (byStatus[dev.status] || 0) + 1;
+            return { total: devices.length, byStatus, devices };
+          }
+          case 'get_registry_status': {
+            try { const { getRegistryStatus, MODEL_REGISTRY_ADDRESS } = await import('../lib/registry.js'); return { contractAddress: MODEL_REGISTRY_ADDRESS, ...(await getRegistryStatus()) }; }
+            catch (e) { return { error: `Registry unavailable: ${e.message}` }; }
+          }
+          default:
+            return { error: `Unknown tool: ${name}` };
+        }
+      };
+      const callMistral = async (messages) => {
         const mRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          },
-          body: JSON.stringify({
-            model: 'mistral-small-latest',
-            messages: [
-              { role: 'system', content: 'You are the Provenode Autonomous Network Agent. You monitor the Shelby Protocol via MCP. Keep answers concise, technical, and related to network telemetry, nodes, deployments, or latency.' },
-              { role: 'user', content: msg }
-            ]
-          })
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify({ model: 'mistral-small-latest', messages, tools, tool_choice: 'auto' }),
         });
-        if (!mRes.ok) return json(res, 502, { error: `Agent API error: ${mRes.status}` });
-        const data = await mRes.json();
-        return json(res, 200, { response: data.choices[0].message.content });
+        if (!mRes.ok) return { error: `Agent API error: ${mRes.status}` };
+        return { data: await mRes.json() };
+      };
+      const SYSTEM = 'You are the Provenode Autonomous Network Agent for the Provenode platform. You answer questions about models, deployments, fleet devices, and the on-chain registry. ALWAYS ground your answer in real data: call the provided tools to read live platform state, then answer from the tool results. Never invent numbers. Keep answers concise and technical.';
+      try {
+        const first = await callMistral([
+          { role: 'system', content: SYSTEM },
+          { role: 'user', content: msg },
+        ]);
+        if (first.error) return json(res, 502, { error: first.error });
+        const assistant = first.data.choices[0].message;
+        const toolCalls = assistant.tool_calls || [];
+        if (!toolCalls.length) return json(res, 200, { response: assistant.content || '' });
+
+        // Execute every requested tool against real KV state, then let Mistral
+        // compose the final grounded answer (single follow-up round trip).
+        const toolResults = [];
+        for (const tc of toolCalls) {
+          let result;
+          try { result = await runTool(tc.function.name); }
+          catch (e) { result = { error: e.message }; }
+          toolResults.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
+        }
+        const second = await callMistral([
+          { role: 'system', content: SYSTEM },
+          { role: 'user', content: msg },
+          assistant,
+          ...toolResults,
+        ]);
+        if (second.error) return json(res, 502, { error: second.error });
+        return json(res, 200, { response: second.data.choices[0].message.content || '' });
       } catch (e) {
         console.error('Mistral API error:', e);
         return json(res, 502, { error: 'Agent API unavailable.' });

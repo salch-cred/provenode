@@ -223,6 +223,58 @@ describe('Agent (AI bot) endpoint', () => {
     expect(res.body.error).toMatch(/MISTRAL_API_KEY not configured/);
     delete process.env.DEPLOY_SECRET;
   });
+
+  it('grounds answers in real platform state via tool calls', async () => {
+    const db = getDB();
+    await db.put('model:tool-test', JSON.stringify({ id: 'tool-test', model: 'EdgeVision v3', sha256: 'c'.repeat(64), size: 2048, mode: 'shelby', createdAt: new Date().toISOString() }));
+    await db.put('deployment:tool-dep', JSON.stringify({ id: 'tool-dep', model: 'EdgeVision v3', version: '3.1', status: 'verified', progress: 100, region: 'Global', createdAt: new Date().toISOString() }));
+
+    process.env.MISTRAL_API_KEY = 'test-key';
+    process.env.DEPLOY_SECRET = 'secret-test';
+
+    const origFetch = globalThis.fetch;
+    let calls = 0;
+    try {
+      globalThis.fetch = async (url, opts) => {
+        const payload = JSON.parse(opts.body);
+        expect(url).toBe('https://api.mistral.ai/v1/chat/completions');
+        expect(payload.tools.length).toBeGreaterThanOrEqual(4);
+        expect(payload.tool_choice).toBe('auto');
+        calls += 1;
+        if (calls === 1) {
+          // Model asks for real data instead of hallucinating.
+          return {
+            ok: true, status: 200,
+            json: async () => ({
+              choices: [{ message: {
+                role: 'assistant', content: null,
+                tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'list_models', arguments: '{}' } }],
+              } }],
+            }),
+          };
+        }
+        // Second call carries the tool result with the seeded model.
+        const toolMsg = payload.messages.find(m => m.role === 'tool');
+        expect(toolMsg).toBeTruthy();
+        expect(toolMsg.content).toContain('EdgeVision v3');
+        return {
+          ok: true, status: 200,
+          json: async () => ({
+            choices: [{ message: { role: 'assistant', content: 'There is 1 registered model: EdgeVision v3.' } }],
+          }),
+        };
+      };
+
+      const res = await api('POST', '/api/agent', { body: { message: 'Which models are registered?' } });
+      expect(res.status).toBe(200);
+      expect(res.body.response).toContain('EdgeVision v3');
+      expect(calls).toBe(2);
+    } finally {
+      globalThis.fetch = origFetch;
+      delete process.env.MISTRAL_API_KEY;
+      delete process.env.DEPLOY_SECRET;
+    }
+  });
 });
 
 describe('Removed simulated endpoints 404', () => {
