@@ -6,7 +6,8 @@ import crypto, { createHash, createHmac } from 'node:crypto';
 import formidable from 'formidable';
 import { getDB } from '../lib/kv.js';
 import { shelbyUpload, shelbyDownloadBlob, makeBlobName } from '../lib/shelby.js';
-import { createPaymentIntent, getPaymentIntent, markIntentPaid, listPaymentIntents, priceFor, microToShelbyUSD, PRICE_TABLE, shelbyUSDToMicro } from '../lib/payments.js';
+import { createPaymentIntent, getPaymentIntent, listPaymentIntents, priceFor, microToShelbyUSD, PRICE_TABLE, shelbyUSDToMicro, findOrCreateIntent, getPaywallIntent } from '../lib/payments.js';
+import { settleMicropayment } from '../lib/settle.js';
 import { dispatch } from '../lib/notify.js';
 import { logAudit, getAuditLog } from '../lib/audit.js';
 import { signModel } from '../lib/sign.js';
@@ -43,6 +44,13 @@ function requireAuth(req, res) {
     return true; // signals "handled, stop processing"
   }
   return false;
+}
+
+/** True when the request carries the deploy token, or no secret is configured (dev-open mode). */
+function isAdminRequest(req) {
+  const secret = process.env.DEPLOY_SECRET;
+  if (!secret) return true;
+  return req.headers['x-provenode-token'] === secret;
 }
 
 function json(res, status, body) {
@@ -905,9 +913,16 @@ export default async function handler(req, res) {
     // ── objects ─────────────────────────────────────────────
     if (root === 'objects') {
       // Real-mode blob data + lifecycle actions require auth; the public listing stays open.
-      if (parts[1] && requireAuth(req, res)) return;
+      // With the paywall enabled, GET :id/blob is exempt from the auth guard — it enforces
+      // the x402-style pay-per-read flow instead (admin token still downloads free).
+      const paywallOn = (process.env.PAYWALL_MODE || 'on') !== 'off';
+      const isPaidBlobRoute = paywallOn && method === 'GET' && !!parts[1] && parts[2] === 'blob';
+      if (parts[1] && !isPaidBlobRoute && requireAuth(req, res)) return;
 
-      // GET /api/objects/:id/blob — stream the real Shelby blob, verified by SHA-256
+      // GET /api/objects/:id/blob — x402-style pay-per-read. Unauthenticated
+      // callers get a 402 quote; they retry with an X-Payment header carrying a
+      // BCS-encoded SenderBuiltMicropayment, which is settled on-chain before
+      // the blob streams (receipt in X-Payment-Response). Admin token = free.
       if (method === 'GET' && parts[1] && parts[2] === 'blob') {
         const id = parts[1];
         const raw = await db.get(`model:${id}`);
@@ -916,6 +931,57 @@ export default async function handler(req, res) {
         if (m.mode !== 'shelby' || !m.objectId) {
           return json(res, 400, { error: 'Object is not a real Shelby blob. Real mode requires SHELBY_API_KEY.' });
         }
+
+        let receipt = null;
+        if (paywallOn && !isAdminRequest(req)) {
+          const payer = req.headers['x-payer'] || 'anon';
+          const paymentBcs = req.headers['x-payment'];
+          if (!paymentBcs) {
+            // ── Step 1: quote. Pending intents are reused per object + payer. ──
+            const intent = await findOrCreateIntent({
+              resourceKey: id,
+              item: 'download',
+              itemId: id,
+              payer,
+              receiver: await getOrgAddress(),
+              description: `Blob download: ${m.model || id}`,
+            });
+            const { SHELBYUSD_TOKEN_ADDRESS, SHELBYUSD_TOKEN_MODULE, SHELBYUSD_FA_METADATA_ADDRESS } = await import('@shelby-protocol/sdk/node');
+            return json(res, 402, {
+              error: 'Payment required. Settle the intent, then retry with the X-Payment header.',
+              x402: {
+                scheme: 'shelby-micropayment',
+                intentId: intent.id,
+                amountShelbyUSD: intent.amountShelbyUSD,
+                amountMicro: intent.amountMicro,
+                receiver: intent.receiver,
+                token: { address: SHELBYUSD_TOKEN_ADDRESS, module: SHELBYUSD_TOKEN_MODULE, faMetadataAddress: SHELBYUSD_FA_METADATA_ADDRESS },
+                pay: { header: 'X-Payment', value: 'BCS-encoded SenderBuiltMicropayment (hex)', optional: { 'X-Payment-Intent': intent.id, 'X-Payer': payer } },
+                expiresAt: intent.expiresAt,
+              },
+            });
+          }
+
+          // ── Step 2: settle the micropayment, then stream the blob. ──
+          const intent = (req.headers['x-payment-intent'] ? await getPaymentIntent(req.headers['x-payment-intent']) : null)
+            || await getPaywallIntent(id, payer);
+          if (!intent) {
+            return json(res, 404, { error: 'No payment intent for this object. Request a quote first (GET without X-Payment).' });
+          }
+          if (new Date(intent.expiresAt) < new Date()) {
+            return json(res, 402, { error: 'Payment intent expired. Request a fresh quote (GET without X-Payment).', intentId: intent.id });
+          }
+          if (intent.status === 'paid') {
+            // Idempotent retry after settlement (client may have missed the 200).
+            receipt = { intentId: intent.id, txHash: intent.txHash, receiptHash: intent.receiptHash, amountMicro: intent.amountMicro };
+          } else {
+            const result = await settleMicropayment({ intent, micropaymentBcs: paymentBcs, sender: payer });
+            if (result.status !== 200) return json(res, result.status, result.body);
+            receipt = { intentId: intent.id, txHash: result.body.txHash, receiptHash: result.body.receiptHash, amountMicro: intent.amountMicro };
+          }
+          await logAudit('object.paid', { actor: payer, target: id, details: { intentId: receipt.intentId, amountMicro: receipt.amountMicro } });
+        }
+
         const apiKey = process.env.SHELBY_API_KEY;
         if (!apiKey) return json(res, 503, { error: 'SHELBY_API_KEY not configured. Real blob download requires a Shelby API key.' });
         let blobName;
@@ -934,7 +1000,8 @@ export default async function handler(req, res) {
           res.setHeader('Content-Disposition', `attachment; filename="${(m.model || 'model').replace(/[^a-zA-Z0-9._-]+/g, '-')}.bin"`);
           res.setHeader('X-Content-Type-Options', 'nosniff');
           res.setHeader('X-Provenode-Sha256', m.sha256);
-          await logAudit('object.downloaded', { target: id, details: { size: buffer.length, verified: true } });
+          if (receipt) res.setHeader('X-Payment-Response', Buffer.from(JSON.stringify(receipt)).toString('base64'));
+          await logAudit('object.downloaded', { target: id, details: { size: buffer.length, verified: true, paid: !!receipt, intentId: receipt ? receipt.intentId : null } });
           return res.status(200).end(buffer);
         } catch (err) {
           console.error('[objects] blob download failed:', err.message);
@@ -1390,52 +1457,10 @@ export default async function handler(req, res) {
           const intent = await getPaymentIntent(intentId);
           if (!intent) return json(res, 404, { error: 'Payment intent not found.' });
           if (intent.status === 'paid') return json(res, 200, { success: true, alreadyPaid: true, intent });
-
-          const privKey = process.env.SHELBY_PRIVATE_KEY;
-          const apiKey = process.env.SHELBY_API_KEY;
-          if (!privKey || !apiKey) {
-            return json(res, 503, { error: 'SHELBY_PRIVATE_KEY and SHELBY_API_KEY required for payment settlement.' });
-          }
-
-          const { ShelbyMicropaymentChannelClient, SenderBuiltMicropayment, SHELBYUSD_FA_METADATA_ADDRESS } = await import('@shelby-protocol/sdk/node');
-          const { Network, Ed25519Account, Ed25519PrivateKey } = await import('@aptos-labs/ts-sdk');
-
-          let mp;
-          try {
-            mp = SenderBuiltMicropayment.deserialize(micropaymentBcs);
-          } catch (e) {
-            return json(res, 400, { error: 'Invalid micropayment BCS.', detail: e.message });
-          }
-
-          // Verify the payment is addressed to us, in ShelbyUSD, and covers the intent.
-          const receiverAddr = new Ed25519Account({ privateKey: new Ed25519PrivateKey(privKey) }).accountAddress.toString();
-          if (mp.receiver.toString() !== receiverAddr) {
-            return json(res, 400, { error: 'Micropayment receiver does not match this deployment.' });
-          }
-          if (mp.fungibleAssetAddress.toString() !== SHELBYUSD_FA_METADATA_ADDRESS) {
-            return json(res, 400, { error: 'Micropayment is not denominated in ShelbyUSD.' });
-          }
-          if (Number(mp.amount) < intent.amountMicro) {
-            return json(res, 402, { error: 'Micropayment amount is less than required.', requiredMicro: intent.amountMicro, paidMicro: Number(mp.amount) });
-          }
-
-          // Settle on-chain: withdraw the channel payment to the org account.
-          const networkStr = process.env.SHELBY_NETWORK || 'shelbynet';
-          const network = networkStr === 'shelbynet' ? Network.SHELBYNET : Network.TESTNET;
-          const mpClient = new ShelbyMicropaymentChannelClient({ network, apiKey });
-          const receiver = new Ed25519Account({ privateKey: new Ed25519PrivateKey(privKey) });
-          let txHash;
-          try {
-            const { transaction } = await mpClient.receiverWithdraw({ receiver, micropayment: mp });
-            txHash = transaction.hash;
-          } catch (err) {
-            console.error('[payments] settle failed:', err.message);
-            return json(res, 502, { error: `On-chain settlement failed: ${err.message}` });
-          }
-
-          const paid = await markIntentPaid(intentId, { txHash, sender, micropaymentBcs });
-          await logAudit('payment.settled', { actor: sender || mp.sender.toString(), target: intent.itemId, details: { intentId, amountMicro: intent.amountMicro, txHash } });
-          return json(res, 200, { success: true, status: 'paid', intent: paid, txHash, receiptHash: paid.receiptHash });
+          // Verify + settle via the shared x402 settlement helper (same rules as
+          // the pay-per-read flow on GET /api/objects/:id/blob).
+          const result = await settleMicropayment({ intent, micropaymentBcs, sender });
+          return json(res, result.status, result.body);
         }
 
         const { item, itemId, payer, description } = body;
@@ -1852,7 +1877,7 @@ export default async function handler(req, res) {
           '/api/payments': { get: { summary: 'List ShelbyUSD payment intents' }, post: { summary: 'Create or settle a ShelbyUSD payment intent' } },
           '/api/passport': { get: { summary: 'Get a model passport' }, post: { summary: 'Issue a passport or check a weights file' } },
           '/api/registry': { get: { summary: 'Live on-chain ModelRegistry state (status, verify by sha256)' } },
-          '/api/objects/:id/blob': { get: { summary: 'Download and verify a real Shelby blob' } },
+          '/api/objects/:id/blob': { get: { summary: 'Download and verify a real Shelby blob (x402 pay-per-read: 402 quote, retry with X-Payment; admin token free)' } },
           '/api/objects/:id/renew': { post: { summary: 'Renew a real Shelby blob (re-upload with fresh expiry)' } },
           '/api/stream-inference': { get: { summary: 'Stream model chunks' }, post: { summary: 'Create stream manifest' } },
           '/api/federated': { get: { summary: 'Get FL rounds' }, post: { summary: 'Submit FL gradient' }, patch: { summary: 'Aggregate round' } },

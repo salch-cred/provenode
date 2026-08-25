@@ -133,6 +133,15 @@ The backend exposes a comprehensive REST API for CI/CD and edge-device integrati
 - `GET /api/marketplace` / `POST /api/marketplace` — listing + import with payment gating
 - `GET /api/earnings` — settlement history
 
+### Pay-per-read (x402-style) on blob downloads
+
+`GET /api/objects/:id/blob` monetizes real downloads with ShelbyUSD micropayments. Requests carrying a valid `X-Provenode-Token` (admin) download free; everyone else gets the two-step flow:
+
+1. **Quote** — `GET /api/objects/:id/blob` without payment headers returns `402` with an `x402` block: `intentId`, `amountMicro` (price table: `download` = 0.0001 ShelbyUSD), the receiver address, and the ShelbyUSD token addresses. Repeat quotes reuse the same pending intent (idempotent).
+2. **Pay + download** — build a `SenderBuiltMicropayment` to the receiver for `amountMicro` micro-units (8 decimals), then retry with `X-Payment: <BCS hex>` (optionally `X-Payment-Intent: <intentId>`). The server verifies receiver, denomination, and amount, settles on-chain via `receiverWithdraw`, streams the blob, and returns a base64 receipt in `X-Payment-Response` (`{ intentId, txHash, receiptHash, amountMicro }`). Replays after settlement are free and still carry the receipt.
+
+Set `PAYWALL_MODE=off` to restore auth-only downloads (401 for strangers). Every settlement is recorded in the audit log and appears in `GET /api/earnings`.
+
 ## Documentation
 
 Architecture docs and integration guides: [provenodes.xyz/docs](https://www.provenodes.xyz/docs).
