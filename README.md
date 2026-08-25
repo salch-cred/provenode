@@ -38,6 +38,23 @@ PROVENODE_API_URL=https://your-app.vercel.app/api PROVENODE_TOKEN=<deploy-secret
 
 See [`mcp/README.md`](mcp/README.md) for tools, env vars, and client configuration.
 
+## Built on Shelby
+
+Provenode is a Shelby Early Access builder project. It runs against **three Shelby protocol primitives** — not just storage:
+
+| Primitive | How Provenode uses it |
+|---|---|
+| **Blob storage** | Model weights, passports, and datasets are uploaded as Shelby blobs via `@shelby-protocol/sdk` (`ShelbyNodeClient`, Ed25519 signer, 90-day expiry), with checkpoint resume against the Shelbynet API. |
+| **ShelbyUSD micropayments** | Marketplace listings, dataset streams, and model imports are gated by server-priced payment intents settled on-chain via `SenderBuiltMicropayment` BCS (8-decimal micro-units). |
+| **On-chain anchoring** | SHA-256 digests and storage object IDs are anchored on Aptos via the Move `ModelRegistry` contract (`contract/sources/ModelRegistry.move`). |
+
+- Shelby contract (blob storage): `0x85fdb9a176ab8ef1d9d9c1b60d60b3924f0800ac1de1cc2085fb0b8bb4988e6a`
+- Provenode `ModelRegistry`: `0x77f8cb3dde7d8347cbaa1043889e79077489af6ed828e273f0283bfeccd39d18`
+- Network: **Shelbynet** — RPC `https://api.shelbynet.shelby.xyz/shelby`, blobs at `/shelby/v1/blobs/{address}/{blobName}`
+- Explorer: [explorer.shelby.xyz/shelbynet](https://explorer.shelby.xyz/shelbynet)
+
+Docs: [docs.shelby.xyz](https://docs.shelby.xyz) · Apply for Early Access: [developers.shelby.xyz](https://developers.shelby.xyz)
+
 ## Technology Stack
 
 - **Blockchain / settlement** — Aptos (Move), ShelbyUSD micropayments
