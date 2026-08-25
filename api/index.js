@@ -299,13 +299,23 @@ export default async function handler(req, res) {
         const privKey = process.env.SHELBY_PRIVATE_KEY;
         const apiKey = process.env.SHELBY_API_KEY;
         if (!privKey || !apiKey) return json(res, 400, { error: 'SHELBY_PRIVATE_KEY and SHELBY_API_KEY required.' });
-        const { Account, Ed25519PrivateKey, Network } = await import('@aptos-labs/ts-sdk');
-        const { ShelbyClient } = await import('@shelby-protocol/sdk/browser');
-        const account = Account.fromPrivateKey({ privateKey: new Ed25519PrivateKey(privKey) });
-        const client = new ShelbyClient({ network: Network.TESTNET, apiKey });
-        await client.fundAccountWithAPT({ address: account.accountAddress, amount: 100_00000000 });
-        await client.fundAccountWithShelbyUSD({ address: account.accountAddress, amount: 10000_00000000 });
-        return json(res, 200, { success: true, address: account.accountAddress.toString(), funded: true });
+        // Node runtime → node client (was: browser client), and derive the
+        // network from env like every other Shelby call site (was: hardcoded TESTNET).
+        const { Ed25519Account, Ed25519PrivateKey } = await import('@aptos-labs/ts-sdk');
+        const { ShelbyNodeClient } = await import('@shelby-protocol/sdk/node');
+        const { Network } = await import('@aptos-labs/ts-sdk');
+        const networkStr = process.env.SHELBY_NETWORK || 'shelbynet';
+        const network = networkStr === 'shelbynet' ? Network.SHELBYNET : Network.TESTNET;
+        const account = new Ed25519Account({ privateKey: new Ed25519PrivateKey(privKey) });
+        const client = new ShelbyNodeClient({ network, apiKey });
+        try {
+          await client.fundAccountWithAPT({ address: account.accountAddress, amount: 100_00000000 });
+          await client.fundAccountWithShelbyUSD({ address: account.accountAddress, amount: 10000_00000000 });
+        } catch (e) {
+          console.error('[identity] fund failed:', e.message);
+          return json(res, 502, { error: `Faucet funding failed on ${networkStr}: ${e.message}` });
+        }
+        return json(res, 200, { success: true, address: account.accountAddress.toString(), funded: true, network: networkStr });
       }
     }
 
