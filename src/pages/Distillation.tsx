@@ -105,8 +105,8 @@ export default function Distillation() {
               <label className="form-label">Input Samples (JSON — each needs a softLabels distribution from the teacher)</label>
               <textarea className="form-input mono" style={{ height: 180, fontFamily: 'var(--font-mono)', fontSize: 12 }} value={samplesText} onChange={e => setSamplesText(e.target.value)} />
             </div>
-            <div style={{ marginBottom: 16, padding: '10px 12px', background: 'rgba(236,72,153,0.1)', border: '1px solid rgba(236,72,153,0.2)', borderRadius: 6, fontSize: 12 }}>
-              <i className="hgi-stroke hgi-shield-02" style={{ marginRight: 6, color: '#ec4899' }} />
+            <div style={{ marginBottom: 16, padding: '10px 12px', background: 'var(--shelby-wash)', border: '1px solid var(--shelby-light)', borderRadius: 6, fontSize: 12 }}>
+              <i className="hgi-stroke hgi-shield-02" style={{ marginRight: 6, color: 'var(--shelby)' }} />
               Soft labels are normalized, bound to the teacher's SHA-256 via a binding hash, and stored on Shelby — the teacher's weights are never exposed.
             </div>
             <button className="btn btn-primary" onClick={start} disabled={running} style={{ width: '100%' }}>
@@ -129,7 +129,7 @@ export default function Distillation() {
                 <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--text-muted)' }}>
                   <div>{j.sampleCount} samples · {j.totalPrice} SBY · teacher {j.teacherSha256?.slice(0, 10)}…</div>
                   {j.bindingHash && (
-                    <div style={{ marginTop: 6, fontSize: 10, fontFamily: 'var(--font-mono)', color: '#ec4899', background: 'rgba(236,72,153,0.05)', padding: 6, borderRadius: 4 }}>
+                    <div style={{ marginTop: 6, fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--shelby)', background: 'var(--shelby-wash)', padding: 6, borderRadius: 4 }}>
                       binding: {j.bindingHash}
                     </div>
                   )}

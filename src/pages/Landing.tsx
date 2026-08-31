@@ -97,28 +97,16 @@ export default function Landing() {
       tio.observe(terminal);
     }
 
-    // 3D Tilt effect on feature cards
+    // Cursor spotlight on feature cards (sets --mx/--my for the CSS radial)
     const cards = ref.current?.querySelectorAll('.lp-feat');
     const handleMouseMove = (e: MouseEvent) => {
       const el = e.currentTarget as HTMLElement;
       const rect = el.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const cx = rect.width / 2;
-      const cy = rect.height / 2;
-      const tiltX = ((y - cy) / cy) * -10;
-      const tiltY = ((x - cx) / cx) * 10;
-      el.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale3d(1.02, 1.02, 1.02)`;
-      el.style.zIndex = '10';
-    };
-    const handleMouseLeave = (e: MouseEvent) => {
-      const el = e.currentTarget as HTMLElement;
-      el.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
-      el.style.zIndex = '1';
+      el.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+      el.style.setProperty('--my', `${e.clientY - rect.top}px`);
     };
     cards?.forEach(card => {
       card.addEventListener('mousemove', handleMouseMove as EventListener);
-      card.addEventListener('mouseleave', handleMouseLeave as EventListener);
     });
 
     return () => {
@@ -127,7 +115,6 @@ export default function Landing() {
       window.removeEventListener('scroll', onScroll);
       cards?.forEach(card => {
         card.removeEventListener('mousemove', handleMouseMove as EventListener);
-        card.removeEventListener('mouseleave', handleMouseLeave as EventListener);
       });
     };
   }, []);
@@ -255,14 +242,14 @@ export default function Landing() {
                   <div key={h} className="lp-th">{h}</div>
                 ))}
                 {[
-                  { n:1, name:'Vision Edge v2.4.1', obj:'0x73ab…20f1', region:'Singapore', bg:'#ded2ff', icon:'hgi-ai-brain-01', verified:true,  rollout:'64%' },
-                  { n:2, name:'Drone Nav v3.2',      obj:'0xe871…b019', region:'Bengaluru',  bg:'#c9dcff', icon:'hgi-drone',       verified:true,  rollout:'Complete' },
-                  { n:3, name:'Safety Adapter v0.9', obj:'Pending',     region:'Frankfurt',  bg:'#f7dc72', icon:'hgi-machine-robot',verified:false, rollout:'—' },
+                  { n:1, name:'Vision Edge v2.4.1', obj:'0x73ab…20f1', region:'Singapore', icon:'hgi-ai-brain-01',   verified:true,  rollout:'64%' },
+                  { n:2, name:'Drone Nav v3.2',      obj:'0xe871…b019', region:'Bengaluru',  icon:'hgi-drone',       verified:true,  rollout:'Complete' },
+                  { n:3, name:'Safety Adapter v0.9', obj:'Pending',     region:'Frankfurt',  icon:'hgi-machine-robot',verified:false, rollout:'—' },
                 ].map(row => (
                   <React.Fragment key={row.n}>
                     <div className="lp-td lp-num">{row.n}</div>
                     <div className="lp-td">
-                      <span className="lp-mico" style={{background:row.bg}}><i className={`hgi-stroke ${row.icon}`}/></span>
+                      <span className="lp-mico"><i className={`hgi-stroke ${row.icon}`}/></span>
                       <strong>{row.name}</strong>
                     </div>
                     <div className="lp-td lp-mono">{row.obj}</div>
@@ -274,8 +261,8 @@ export default function Landing() {
                     </div>
                     <div className="lp-td">
                       {row.rollout === '64%'
-                        ? <><div className="lp-bar"><div className="lp-fill"/></div><span style={{fontSize:10,marginLeft:4}}>64%</span></>
-                        : <span style={{fontSize:11,color:'#6d6a64'}}>{row.rollout}</span>}
+                        ? <><div className="lp-bar"><div className="lp-fill"/></div><span style={{fontSize:10,marginLeft:4,fontFamily:'var(--font-mono)'}}>64%</span></>
+                        : <span style={{fontSize:11,color:'var(--text-faint)'}}>{row.rollout}</span>}
                     </div>
                   </React.Fragment>
                 ))}
@@ -395,17 +382,17 @@ export default function Landing() {
             </div>
             <div className="lp-features-6">
               {[
-                { icon:'hgi-fingerprint-scan', title:'SHA-256 identity',       desc:'Every model is content-addressed before deployment. Hash is the identity, not the filename.',        bg:'var(--lp-paper)' },
-                { icon:'hgi-route-01',         title:'Canary rollouts',        desc:'10% → 50% → 100% with automatic rollback if error rate exceeds your threshold.',                    bg:'#fff3ca' },
-                { icon:'hgi-shield-energy',    title:'Activation enforcement', desc:'Devices re-hash the download and compare it to the signed manifest. No match = no load.',           bg:'#e8e0ff' },
-                { icon:'hgi-blockchain-01',    title:'On-chain manifests',     desc:'Deployment decisions uploaded to Shelby as immutable objects. Auditors go to the chain, not your DB.', bg:'#d4eafe' },
-                { icon:'hgi-analytics-01',     title:'A/B model testing',      desc:'Split fleet traffic between two model versions, measure real latency and error rate per device.',    bg:'#e7f5ea' },
-                { icon:'hgi-git-branch',       title:'Model lineage',          desc:'Track parent → child relationships. Catch when a recalled base model is still in production.',       bg:'#fce7e7' },
-                { icon:'hgi-shield-tick',      title:'ZK Execution Proofs',    desc:'Generates NIZKPoK benchmark proofs to verify model execution without exposing proprietary weights.', bg:'#e6f2ff' },
-                { icon:'hgi-cpu',              title:'Autonomous Self-Healing',desc:'If an edge device detects tampering, it instantly halts, logs the breach, and requests a clean OTA payload.', bg:'#ffebe6' },
-                { icon:'hgi-network',          title:'Federated Learning',     desc:'Aggregates local device gradients via Float32 tensor math without exposing sensitive end-user data.', bg:'#f5e6ff' },
+                { icon:'hgi-fingerprint-scan', title:'SHA-256 identity',       desc:'Every model is content-addressed before deployment. Hash is the identity, not the filename.' },
+                { icon:'hgi-route-01',         title:'Canary rollouts',        desc:'10% → 50% → 100% with automatic rollback if error rate exceeds your threshold.' },
+                { icon:'hgi-shield-energy',    title:'Activation enforcement', desc:'Devices re-hash the download and compare it to the signed manifest. No match = no load.' },
+                { icon:'hgi-blockchain-01',    title:'On-chain manifests',     desc:'Deployment decisions uploaded to Shelby as immutable objects. Auditors go to the chain, not your DB.' },
+                { icon:'hgi-analytics-01',     title:'A/B model testing',      desc:'Split fleet traffic between two model versions, measure real latency and error rate per device.' },
+                { icon:'hgi-git-branch',       title:'Model lineage',          desc:'Track parent → child relationships. Catch when a recalled base model is still in production.' },
+                { icon:'hgi-shield-tick',      title:'ZK Execution Proofs',    desc:'Generates NIZKPoK benchmark proofs to verify model execution without exposing proprietary weights.' },
+                { icon:'hgi-cpu',              title:'Autonomous Self-Healing',desc:'If an edge device detects tampering, it instantly halts, logs the breach, and requests a clean OTA payload.' },
+                { icon:'hgi-network',          title:'Federated Learning',     desc:'Aggregates local device gradients via Float32 tensor math without exposing sensitive end-user data.' },
               ].map((f, i) => (
-                <article className={`lp-feat lp-reveal lp-d${i % 3}`} key={f.title} style={{background:f.bg}}>
+                <article className={`lp-feat lp-reveal lp-d${i % 3}`} key={f.title}>
                   <div className="lp-feat-icon"><i className={`hgi-stroke ${f.icon}`}/></div>
                   <h3>{f.title}</h3>
                   <p>{f.desc}</p>
@@ -481,10 +468,10 @@ export default function Landing() {
               <h2>When device 42 in Singapore loads the wrong model, you will know. Before it activates.</h2>
               <p>Deploy your first model in under 5 minutes. Free. Open source.</p>
               <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
-                <Link to="/app/dashboard" className="lp-btn lp-btn-dark">
+                <Link to="/app/dashboard" className="lp-btn lp-btn-primary">
                   <i className="hgi-stroke hgi-dashboard-square-01"/> Open console
                 </Link>
-                <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer" className="lp-btn" style={{background:'rgba(255,255,255,.15)',border:'1.5px solid rgba(255,255,255,.4)',color:'#fff',boxShadow:'none'}}>
+                <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer" className="lp-btn lp-btn-ghost" style={{background:'rgba(250,250,248,.08)',borderColor:'rgba(250,250,248,.22)',color:'#F2EFE9'}}>
                   <i className="hgi-stroke hgi-github"/> Star on GitHub
                 </a>
               </div>

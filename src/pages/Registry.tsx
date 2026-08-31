@@ -31,7 +31,7 @@ export default function Registry() {
           <tr key={m.id}>
             <td>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ background: '#fff', padding: '4px', borderRadius: '4px', display: 'flex' }}>
+                <div style={{ background: 'var(--surface)', padding: '4px', borderRadius: '6px', display: 'flex', border: '1px solid var(--border)' }}>
                   <QRCodeSVG value={`https://www.provenodes.xyz/verify?id=${m.id}`} size={40} />
                 </div>
                 <div>

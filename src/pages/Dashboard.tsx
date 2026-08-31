@@ -43,20 +43,15 @@ export default function Dashboard() {
       {/* ── Shelby Network Banner ───────────────────────────────── */}
       <div className="shelby-panel" style={{
         display: 'flex', flexWrap: 'wrap', alignItems: 'center',
-        gap: 20, padding: '14px 20px',
-        background: shelbyLive
-          ? 'linear-gradient(135deg,rgba(108,51,255,.12) 0%,rgba(56,182,255,.07) 100%)'
-          : 'rgba(0,0,0,.04)',
-        border: `1.5px solid ${shelbyLive ? 'rgba(108,51,255,.35)' : 'var(--border)'}`,
-        borderRadius: 12
+        gap: 20, padding: '14px 20px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{
             width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-            background: shelbyLive ? '#22c55e' : '#f59e0b',
-            boxShadow: shelbyLive ? '0 0 8px #22c55e' : 'none'
+            background: shelbyLive ? 'var(--green)' : 'var(--amber)',
+            boxShadow: shelbyLive ? '0 0 0 3px rgba(30,127,78,.15)' : '0 0 0 3px rgba(150,105,14,.15)'
           }} />
-          <strong style={{ fontSize: 13 }}>
+          <strong style={{ fontSize: 13, fontWeight: 500 }}>
             Shelby Protocol · {shelby.network || 'shelbynet'}
           </strong>
           <span className={`badge ${shelbyLive ? 'badge-shelby' : 'badge-amber'}`}>

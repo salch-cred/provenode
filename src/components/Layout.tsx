@@ -107,7 +107,7 @@ export default function Layout() {
           <button className={`menu-btn ${open ? 'open' : ''}`} onClick={() => setOpen(o => !o)} aria-label="Open menu">
             <span />
           </button>
-          <h1 style={{fontSize:15,fontWeight:800,letterSpacing:'-.3px',flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+          <h1 style={{fontSize:16,fontWeight:600,letterSpacing:'-.02em',flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
             {TITLES[current] || 'Dashboard'}
           </h1>
           <div className="flex gap-2 items-center">

@@ -5,7 +5,7 @@ import { useToast } from '../contexts/AppContext';
 export default function Groups() {
   const toast = useToast();
   const [groups, setGroups] = useState<any[]>([]);
-  const [name, setName] = useState(''); const [desc, setDesc] = useState(''); const [tags, setTags] = useState(''); const [color, setColor] = useState('#6366f1');
+  const [name, setName] = useState(''); const [desc, setDesc] = useState(''); const [tags, setTags] = useState(''); const [color, setColor] = useState('#E85A28');
 
   const load = async () => { const d = await get<any>('/api/groups').catch(()=>({groups:[]})); setGroups(d.groups||[]); };
   useEffect(() => { load(); }, []);
@@ -25,8 +25,8 @@ export default function Groups() {
           {!groups.length ? (
             <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
               <i className="hgi-stroke hgi-user-group" style={{fontSize:40, opacity:0.2}} />
-              <div style={{fontWeight:700, fontSize:15}}>No fleet groups defined</div>
-              <div style={{fontSize:13, opacity:0.55}}>Create groups to batch-target OTA updates and canary deployments by device tag</div>
+              <div style={{fontWeight:600, fontSize:14.5}}>No fleet groups defined</div>
+              <div style={{fontSize:12.5, opacity:0.55}}>Create groups to batch-target OTA updates and canary deployments by device tag</div>
             </div>
           ) : groups.map(g => (
             <div className="card card-sm mb-2" style={{borderLeft:`4px solid ${g.color||'var(--shelby)'}`}} key={g.id}>

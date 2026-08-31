@@ -31,7 +31,7 @@ export default function Earnings() {
         <div className="card">
           <div className="card-body" style={{ textAlign: 'center', padding: '40px 20px' }}>
             <div style={{ fontSize: 13, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>Total Network Earnings</div>
-            <div style={{ fontSize: 48, fontWeight: 800, color: '#10b981', fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: 44, fontWeight: 500, letterSpacing: '-.03em', color: 'var(--green)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
               {data ? data.totalEarned : '0.0000'} APT
             </div>
             <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8 }}>
@@ -61,12 +61,12 @@ export default function Earnings() {
                   <tr key={i}>
                     <td><span className="mono" style={{ fontSize: 13 }}>{node.id}</span></td>
                     <td>
-                      <span className="badge" style={{ background: '#dcfce7', color: '#16a34a' }}>
+                      <span className="badge badge-green">
                         <i className="hgi-stroke hgi-activity-01" style={{ marginRight: 4 }}></i> {node.status}
                       </span>
                     </td>
                     <td>{node.inferences.toLocaleString()}</td>
-                    <td style={{ fontWeight: 600, color: '#10b981' }}>+{node.earnedApt} APT</td>
+                    <td style={{ fontWeight: 500, color: 'var(--green)' }}>+{node.earnedApt} APT</td>
                   </tr>
                 ))}
                 {!data && (

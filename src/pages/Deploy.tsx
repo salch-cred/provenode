@@ -59,7 +59,7 @@ export default function Deploy() {
                 width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                 background: step1Done ? 'var(--green)' : 'var(--coral)',
                 color: '#fff', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', fontWeight: 800, fontSize: 13
+                justifyContent: 'center', fontWeight: 500, fontSize: 12.5, fontFamily: 'var(--font-mono)'
               }}>1</div>
               <span className="card-title">Hash & register model</span>
               {step1Done && <span className="badge badge-green" style={{ marginLeft: 'auto' }}>
@@ -137,10 +137,11 @@ export default function Deploy() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
                 width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                background: step2Active ? 'var(--shelby)' : 'var(--border)',
+                background: step2Active ? 'var(--coral)' : 'var(--surface-hover)',
+                border: '1px solid var(--border-strong)',
                 color: step2Active ? '#fff' : 'var(--text-muted)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 800, fontSize: 13
+                fontWeight: 500, fontSize: 12.5, fontFamily: 'var(--font-mono)'
               }}>2</div>
               <span className="card-title">Deploy to fleet</span>
               {!step2Active && <span style={{ fontSize: 12, opacity: 0.5, marginLeft: 'auto' }}>Complete step 1 first</span>}
@@ -162,10 +163,11 @@ export default function Deploy() {
                 <label className="form-label">Canary rollout</label>
                 <label style={{
                   display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 12px', border: '2px solid var(--border)',
+                  padding: '10px 12px', border: '1px solid var(--border-strong)',
                   borderRadius: 6, cursor: step2Active ? 'pointer' : 'default',
-                  background: canary ? 'rgba(108,51,255,.06)' : 'transparent',
-                  borderColor: canary ? 'var(--shelby)' : 'var(--border)'
+                  background: canary ? 'var(--coral-wash)' : 'transparent',
+                  borderColor: canary ? 'var(--coral)' : 'var(--border-strong)',
+                  transition: 'background .2s, border-color .2s'
                 }}>
                   <input type="checkbox" checked={canary} onChange={e => setCanary(e.target.checked)}
                     disabled={!step2Active} style={{ width: 'auto' }} />
@@ -213,7 +215,7 @@ export default function Deploy() {
             { label: 'ISO/IEC 42001 audit trail', check: true },
             { label: 'NIST AI RMF provenance', check: true },
           ].map(r => (
-            <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 12 }}>
+            <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', borderBottom: '1px solid #F2EFE9', fontSize: 12.5 }}>
               <i className="hgi-stroke hgi-checkmark-circle-02" style={{ color: 'var(--green)', fontSize: 14 }} />
               <span>{r.label}</span>
             </div>
@@ -228,14 +230,14 @@ function TrustStep({ n, icon, label, sub, done, active, last }: {
   n: number; icon: string; label: string; sub: string;
   done?: boolean; active?: boolean; last?: boolean;
 }) {
-  const bg = done ? 'var(--green)' : active ? 'var(--coral)' : '#e5e5e5';
-  const textColor = done || active ? '#fff' : '#999';
+  const bg = done ? 'var(--green)' : active ? 'var(--coral)' : 'var(--surface-hover)';
+  const textColor = done || active ? '#fff' : 'var(--text-muted)';
   return (
     <div style={{ display: 'flex', gap: 14, paddingBottom: last ? 0 : 16, position: 'relative' }}>
       {!last && (
         <div style={{
           position: 'absolute', left: 13, top: 28, bottom: 0,
-          width: 2, background: done ? 'var(--green)' : '#e5e5e5'
+          width: 1.5, background: done ? 'var(--green)' : 'var(--border)'
         }} />
       )}
       <div style={{

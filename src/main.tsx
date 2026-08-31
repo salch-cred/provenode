@@ -45,7 +45,7 @@ function Root() {
       appId={PRIVY_APP_ID}
       config={{
         loginMethods: ['email', 'wallet', 'passkey'],
-        appearance: { theme: 'light', accentColor: '#ff5733', logo: '/provenode-logo.svg' }
+        appearance: { theme: 'light', accentColor: '#E85A28', logo: '/provenode-logo.svg' }
       }}
     >
       <QueryClientProvider client={queryClient}>

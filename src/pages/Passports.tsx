@@ -125,7 +125,7 @@ export default function Passports() {
                   <div><span className="text-muted">Model: </span><strong>{checkResult.passport.modelName}</strong></div>
                   <div><span className="text-muted">Registered: </span>{new Date(checkResult.passport.registeredAt).toLocaleString()}</div>
                   <div><span className="text-muted">Org: </span><span className="mono">{checkResult.passport.orgAddress ? checkResult.passport.orgAddress.slice(0, 16) + '…' : '—'}</span></div>
-                  <div><span className="text-muted">Signature: </span>{checkResult.verified ? <span style={{ color: '#16a34a' }}>VALID ✓</span> : <span style={{ color: '#dc2626' }}>INVALID ✗</span>}</div>
+                  <div><span className="text-muted">Signature: </span>{checkResult.verified ? <span style={{ color: 'var(--green)' }}>VALID ✓</span> : <span style={{ color: 'var(--red)' }}>INVALID ✗</span>}</div>
                   {checkResult.passport.anchored && <div><span className="text-muted">Anchored: </span>{checkResult.passport.anchored}</div>}
                   {checkResult.passport.explorerUrl && <div><span className="text-muted">TX: </span><a href={checkResult.passport.explorerUrl} target="_blank" rel="noreferrer" className="mono text-sm">{checkResult.passport.txHash?.slice(0, 12)}…</a></div>}
                   <div><span className="text-muted">Behavioral fingerprints: </span>{checkResult.fingerprintCount || 0}</div>
@@ -227,12 +227,12 @@ export default function Passports() {
             </div>
             {verdict && (
               <div style={{ marginTop: 16, padding: 14, borderRadius: 8, fontSize: 13, lineHeight: 1.6, background: 'var(--surface-hover)', border: '1px solid var(--border)' }}>
-                <div style={{ fontWeight: 700, marginBottom: 8, color: verdict.match === 'exact' ? '#16a34a' : verdict.match === 'partial' ? '#d97706' : '#dc2626' }}>
+                <div style={{ fontWeight: 600, marginBottom: 8, color: verdict.match === 'exact' ? 'var(--green)' : verdict.match === 'partial' ? 'var(--amber)' : 'var(--red)' }}>
                   {verdict.verdict}
                 </div>
                 <div className="text-sm text-muted">Divergence: {(verdict.divergenceScore * 100).toFixed(1)}%</div>
                 {verdict.isSilentTamper && (
-                  <div style={{ marginTop: 8, color: '#dc2626' }}>
+                  <div style={{ marginTop: 8, color: 'var(--red)' }}>
                     <i className="hgi-stroke hgi-alert-01" style={{ marginRight: 6 }} />
                     {verdict.silentTamperExplanation} — this is an unlicensed or edited copy.
                   </div>

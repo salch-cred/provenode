@@ -49,7 +49,7 @@ function StatChips({ items }: { items: [string, unknown][] }) {
   return (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
       {items.map(([label, val]) => (
-        <div key={label} style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '4px 10px', textAlign: 'center' }}>
+        <div key={label} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', textAlign: 'center' }}>
           <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>{fmtCell(val)}</div>
           <div style={{ fontSize: 10, opacity: 0.6 }}>{label}</div>
         </div>
@@ -135,18 +135,19 @@ export default function NetworkAgent() {
   const panelStyle: React.CSSProperties = isMobile
     ? {
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        height: '55vh', borderRadius: '20px 20px 0 0',
-        background: '#fff', border: '1px solid rgba(0,0,0,0.1)',
-        boxShadow: '0 -12px 40px rgba(0,0,0,0.18)', zIndex: 10000,
+        height: '55vh', borderRadius: '18px 18px 0 0',
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        borderBottom: 'none',
+        boxShadow: '0 -12px 40px rgba(23,21,20,0.16)', zIndex: 10000,
         display: 'flex', flexDirection: 'column',
-        animation: 'slideUp 0.25s ease'
+        animation: 'slideUp 0.3s cubic-bezier(.16,1,.3,1)'
       }
     : {
         position: 'fixed', bottom: 110, right: 30, width: 360, height: 460,
-        background: '#fff', border: '1px solid rgba(0,0,0,0.1)',
-        borderRadius: 14, boxShadow: '0 16px 48px rgba(0,0,0,0.18)', zIndex: 10000,
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 14, boxShadow: '0 24px 64px rgba(23,21,20,0.18)', zIndex: 10000,
         display: 'flex', flexDirection: 'column',
-        animation: 'fadeInUp 0.2s ease'
+        animation: 'fadeInUp 0.3s cubic-bezier(.16,1,.3,1)'
       };
 
   return (
@@ -155,7 +156,7 @@ export default function NetworkAgent() {
       {open && isMobile && (
         <div
           onClick={() => setOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9999 }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(23,21,20,0.32)', zIndex: 9999 }}
         />
       )}
 
@@ -166,9 +167,9 @@ export default function NetworkAgent() {
           style={{
             position: 'fixed', bottom: 30, right: 20,
             width: 52, height: 52,
-            borderRadius: '50%', background: 'var(--shelby)',
-            color: '#fff', border: 'none',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+            borderRadius: '50%', background: 'var(--text-primary)',
+            color: '#FAFAF8', border: '1px solid var(--text-primary)',
+            boxShadow: '0 10px 28px rgba(23,21,20,0.28)',
             cursor: 'pointer', zIndex: 10001,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             animation: 'pulse 3s infinite'
@@ -187,10 +188,13 @@ export default function NetworkAgent() {
             {isMobile && (
               <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border-color)', margin: '-4px auto 8px', position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)' }} />
             )}
-            <i className="hgi-stroke hgi-bot" style={{color:'var(--shelby-color,#7c3aed)', fontSize: 20}}/>
+            <i className="hgi-stroke hgi-bot" style={{color:'var(--shelby-color)', fontSize: 20}}/>
             <div>
-              <div style={{fontWeight: 600, fontSize: 14}}>Autonomous Network Agent</div>
-              <div style={{fontSize: 11, opacity: 0.6}}>Live platform data</div>
+              <div style={{fontWeight: 600, fontSize: 13.5}}>Autonomous Network Agent</div>
+              <div style={{fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 5}}>
+                <span style={{width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', display: 'inline-block'}} />
+                Live platform data
+              </div>
             </div>
             <button
               onClick={() => setOpen(false)}
@@ -204,17 +208,17 @@ export default function NetworkAgent() {
             {messages.map((m, i) => (
               <div key={i} style={{
                 alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-                background: m.role === 'user' ? 'var(--shelby-color,#7c3aed)' : 'var(--input-bg)',
-                color: m.role === 'user' ? '#fff' : 'var(--text-color)',
-                padding: '9px 13px', borderRadius: 8,
-                maxWidth: '80%', fontSize: 13, lineHeight: 1.5
+                background: m.role === 'user' ? 'var(--text-primary)' : 'var(--surface-hover)',
+                color: m.role === 'user' ? '#FAFAF8' : 'var(--text-color)',
+                padding: '9px 13px', borderRadius: 12,
+                maxWidth: '80%', fontSize: 13, lineHeight: 1.55
               }}>
                 <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.content}</div>
                 {m.role === 'agent' && <AgentRichData data={m.data} />}
               </div>
             ))}
             {loading && (
-              <div style={{ alignSelf: 'flex-start', background: 'var(--input-bg)', color: 'var(--text-color)', padding: '9px 13px', borderRadius: 8, fontSize: 13, opacity: 0.7 }}>…</div>
+              <div style={{ alignSelf: 'flex-start', background: 'var(--surface-hover)', color: 'var(--text-color)', padding: '9px 13px', borderRadius: 12, fontSize: 13, opacity: 0.7 }}>…</div>
             )}
           </div>
 
