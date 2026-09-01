@@ -17,6 +17,7 @@ export default defineConfig({
         // Suppress Privy's misplaced __PURE__ annotation warnings
         if (warning.code === 'INVALID_ANNOTATION') return
         if (warning.message?.includes('/*#__PURE__*/')) return
+        if (warning.code === 'UNRESOLVED_IMPORT' && warning.message?.includes('react-aria')) return
         warn(warning)
       },
     },

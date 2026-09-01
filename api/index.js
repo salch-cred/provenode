@@ -21,6 +21,7 @@ import { computeDelta, applyDelta, buildVersionNode } from '../lib/delta.js';   
 import { buildDatasetRecord, shardDataset, computeMerkleRoot, buildDeletionRequest } from '../lib/datasets.js'; // #10
 import { generateModelCommitment, verifyProof } from '../lib/zkproof.js'; // #7
 import { detectTamper, buildHealCommand, buildIncidentRecord, evaluateFleetHealth } from '../lib/selfheal.js'; // #6
+import { slugify, validateSlug, contentTypeFor, normalizeSitePath, buildSiteRecord, buildDeploymentRecord, siteBlobName, manifestBlobName } from '../lib/sites.js';
 
 function cors(res) {
   // FIX H-5: Fail closed — never default to wildcard CORS
@@ -2662,6 +2663,274 @@ export default async function handler(req, res) {
       });
     }
 
+    // ── SHELBY SITES — static website hosting on Shelby blobs ──────
+    // Like Vercel/Netlify but every file is an immutable Shelby blob.
+    // POST /api/sites { name, slug } -> create site
+    // GET  /api/sites -> list sites
+    // GET  /api/sites/:siteId -> get site
+    // DELETE /api/sites/:siteId -> delete site
+    // POST /api/sites/:siteId/deploy (multipart file=zip|html) -> deploy
+    // GET  /api/sites/:siteId/deployments -> list deployments
+    // GET  /api/sites/:siteId/serve/<path> -> serve file (SPA fallback to index.html)
+    // GET  /api/sites/:siteId/preview/:depId/<path> -> preview specific deployment
+    if (root === 'sites') {
+      const siteId = parts[1] || null;
+      const sub = parts[2] || null;
+
+      // GET /api/sites -> list all sites
+      if (!siteId && method === 'GET') {
+        const { keys } = await db.list({ prefix: 'site:' });
+        // filter out slug index keys
+        const siteKeys = keys.filter(k => !k.name.startsWith('site:slug:') && !k.name.startsWith('siteDeploy:'));
+        const sites = (await Promise.all(siteKeys.map(async ({ name }) => {
+          const d = await db.get(name); return d ? JSON.parse(d) : null;
+        }))).filter(Boolean).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        return json(res, 200, { success: true, sites });
+      }
+
+      // POST /api/sites -> create
+      if (!siteId && method === 'POST') {
+        if (requireAuth(req, res)) return;
+        const body = await readBody(req);
+        const name = String(body.name || body.slug || '').trim().slice(0, 120);
+        if (!name) return json(res, 400, { error: 'name required (used for slug).' });
+        let slug = slugify(body.slug || name);
+        if (!validateSlug(slug)) return json(res, 400, { error: 'Invalid slug. Use 3-48 chars, a-z0-9 and hyphens.' });
+        // uniqueness check
+        const existing = await db.get(`site:slug:${slug}`);
+        if (existing) return json(res, 409, { error: `Slug "${slug}" already taken.` });
+        const site = buildSiteRecord({ name, slug, description: body.description, framework: body.framework, owner: body.owner || null });
+        await db.put(`site:${site.id}`, JSON.stringify(site));
+        await db.put(`site:slug:${slug}`, site.id);
+        await logAudit('site.created', { target: site.id, details: { slug, name } });
+        return json(res, 201, { success: true, site, urlPath: `/s/${slug}`, serveUrl: `/api/sites/${site.id}/serve/` });
+      }
+
+      // All site-specific routes require site lookup
+      if (siteId) {
+        let site = null;
+        // allow lookup by id or slug
+        let raw = await db.get(`site:${siteId}`);
+        if (!raw) {
+          const idFromSlug = await db.get(`site:slug:${siteId}`);
+          if (idFromSlug) raw = await db.get(`site:${idFromSlug}`);
+        }
+        // serve / preview are public (like Vercel preview URLs)
+        const isServe = sub === 'serve' || sub === 'preview';
+        if (!raw && !isServe) return json(res, 404, { error: 'Site not found.' });
+        if (raw) site = JSON.parse(raw);
+
+        // GET /api/sites/:siteId -> get site + deployments count
+        if (!sub && method === 'GET') {
+          const { keys } = await db.list({ prefix: `siteDeploy:${site.id}:` });
+          const deployments = (await Promise.all(keys.map(async ({ name }) => {
+            const d = await db.get(name); return d ? JSON.parse(d) : null;
+          }))).filter(Boolean).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          return json(res, 200, { success: true, site, deployments, serveUrl: `/api/sites/${site.id}/serve/`, publicUrl: `/s/${site.slug}` });
+        }
+
+        // DELETE /api/sites/:siteId
+        if (!sub && method === 'DELETE') {
+          if (requireAuth(req, res)) return;
+          await db.del(`site:${site.id}`);
+          await db.del(`site:slug:${site.slug}`);
+          const { keys } = await db.list({ prefix: `siteDeploy:${site.id}:` });
+          for (const k of keys) await db.del(k.name);
+          await logAudit('site.deleted', { target: site.id, details: { slug: site.slug } });
+          return json(res, 200, { success: true });
+        }
+
+        // GET /api/sites/:siteId/deployments
+        if (sub === 'deployments' && method === 'GET') {
+          const { keys } = await db.list({ prefix: `siteDeploy:${site.id}:` });
+          const deployments = (await Promise.all(keys.map(async ({ name }) => {
+            const d = await db.get(name); return d ? JSON.parse(d) : null;
+          }))).filter(Boolean).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          return json(res, 200, { success: true, deployments });
+        }
+
+        // POST /api/sites/:siteId/deploy -> upload zip or single file
+        if (sub === 'deploy' && method === 'POST') {
+          if (requireAuth(req, res)) return;
+          if (!process.env.SHELBY_API_KEY) return json(res, 503, { error: 'SHELBY_API_KEY not configured. Shelby storage required for site deploys.' });
+          if (!process.env.SHELBY_PRIVATE_KEY) return json(res, 503, { error: 'SHELBY_PRIVATE_KEY not configured.' });
+
+          const ct = req.headers['content-type'] || '';
+          let filesToUpload = []; // [{ path, buffer }]
+          let entryOverride = null;
+
+          if (ct.includes('multipart/form-data')) {
+            const form = formidable({ maxFileSize: 50 * 1024 * 1024, keepExtensions: true, allowEmptyFiles: false, minFileSize: 1 });
+            let fields, files;
+            try {
+              [fields, files] = await new Promise((resolve, reject) => form.parse(req, (err, f, v) => err ? reject(err) : resolve([f, v])));
+            } catch (e) {
+              return json(res, 400, { error: e.message || 'Upload parse error.' });
+            }
+            const uploaded = Array.isArray(files?.file) ? files.file[0] : files?.file;
+            if (!uploaded) return json(res, 400, { error: 'No file provided. Send multipart field "file" (zip or html).' });
+            const { readFile } = await import('node:fs/promises');
+            const buf = await readFile(uploaded.filepath);
+            const original = uploaded.originalFilename || 'site.zip';
+            entryOverride = Array.isArray(fields.entry) ? fields.entry[0] : fields.entry || null;
+            if (original.toLowerCase().endsWith('.zip')) {
+              const AdmZip = (await import('adm-zip')).default;
+              const zip = new AdmZip(buf);
+              const entries = zip.getEntries();
+              for (const e of entries) {
+                if (e.isDirectory) continue;
+                let p = e.entryName.replace(/\\/g, '/').replace(/^\/+/, '');
+                if (!p || p.startsWith('__MACOSX/') || p.includes('/__MACOSX/') || p.endsWith('.DS_Store')) continue;
+                if (p.includes('..')) continue;
+                const data = e.getData();
+                if (!data || !data.length) continue;
+                if (data.length > 10 * 1024 * 1024) continue; // skip huge files
+                filesToUpload.push({ path: p, buffer: Buffer.from(data) });
+              }
+              if (!filesToUpload.length) return json(res, 400, { error: 'Zip is empty or contains no valid files.' });
+            } else {
+              // single file -> treat as index.html or as-is
+              const p = pFromName(original);
+              filesToUpload.push({ path: p, buffer: buf });
+              function pFromName(n) {
+                const low = n.toLowerCase();
+                if (low.endsWith('.html') || low.endsWith('.htm')) return 'index.html';
+                return n.replace(/[^a-zA-Z0-9._-]/g, '-');
+              }
+            }
+          } else {
+            const body = await readBody(req);
+            if (body.html && typeof body.html === 'string') {
+              filesToUpload.push({ path: 'index.html', buffer: Buffer.from(body.html, 'utf8') });
+            } else if (body.files && Array.isArray(body.files)) {
+              for (const f of body.files) {
+                if (!f.path || !f.contentBase64) continue;
+                filesToUpload.push({ path: normalizeSitePath(f.path), buffer: Buffer.from(f.contentBase64, 'base64') });
+              }
+            } else {
+              return json(res, 400, { error: 'Send multipart zip (field "file") or JSON { html } / { files: [{ path, contentBase64 }] }.' });
+            }
+          }
+
+          if (filesToUpload.length > 200) return json(res, 400, { error: 'Too many files (max 200).' });
+          const totalBytes = filesToUpload.reduce((a, f) => a + f.buffer.length, 0);
+          if (totalBytes > 40 * 1024 * 1024) return json(res, 400, { error: 'Total site size exceeds 40MB.' });
+
+          // Ensure index.html exists for SPA fallback
+          const hasIndex = filesToUpload.some(f => f.path === 'index.html' || f.path.endsWith('/index.html'));
+          if (!hasIndex) {
+            const firstHtml = filesToUpload.find(f => f.path.endsWith('.html'));
+            if (firstHtml) {
+              // duplicate first html as index.html for root
+              filesToUpload.push({ path: 'index.html', buffer: firstHtml.buffer });
+            } else {
+              // create minimal index that lists files
+              const listing = `<html><body><h1>${site.name}</h1><ul>${filesToUpload.map(f=>`<li><a href="/${f.path}">${f.path}</a></li>`).join('')}</ul></body></html>`;
+              filesToUpload.push({ path: 'index.html', buffer: Buffer.from(listing, 'utf8') });
+            }
+          }
+
+          const deploymentId = `dep_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
+          const uploadedMeta = [];
+          for (const f of filesToUpload) {
+            const sha256 = createHash('sha256').update(f.buffer).digest('hex');
+            const blobName = siteBlobName(site.slug, deploymentId, f.path);
+            const up = await shelbyUpload({ blobData: new Uint8Array(f.buffer), blobName, apiKey: process.env.SHELBY_API_KEY });
+            uploadedMeta.push({ path: f.path, size: f.buffer.length, sha256, blobName, objectId: up.objectId, contentType: contentTypeFor(f.path) });
+          }
+          // manifest
+          const manifest = { siteId: site.id, siteSlug: site.slug, deploymentId, files: uploadedMeta, entryPath: entryOverride ? normalizeSitePath(entryOverride) : 'index.html', createdAt: new Date().toISOString() };
+          const manifestUp = await shelbyUpload({ blobData: Buffer.from(JSON.stringify(manifest, null, 2)), blobName: manifestBlobName(site.slug, deploymentId), apiKey: process.env.SHELBY_API_KEY });
+
+          const deployment = buildDeploymentRecord({ siteId: site.id, siteSlug: site.slug, files: uploadedMeta, entryPath: manifest.entryPath });
+          deployment.id = deploymentId;
+          deployment.manifestObjectId = manifestUp.objectId;
+          deployment.manifestBlobName = manifestBlobName(site.slug, deploymentId);
+
+          await db.put(`siteDeploy:${site.id}:${deploymentId}`, JSON.stringify(deployment));
+          site.lastDeploymentId = deploymentId;
+          site.deploymentCount = (site.deploymentCount || 0) + 1;
+          site.updatedAt = new Date().toISOString();
+          site.lastDeploymentAt = deployment.createdAt;
+          await db.put(`site:${site.id}`, JSON.stringify(site));
+          await logAudit('site.deployed', { target: site.id, details: { deploymentId, fileCount: uploadedMeta.length, totalBytes } });
+
+          return json(res, 201, {
+            success: true,
+            deployment,
+            serveUrl: `/api/sites/${site.id}/serve/`,
+            previewUrl: `/api/sites/${site.id}/serve/${deployment.entryPath}`,
+            publicUrl: `/s/${site.slug}`,
+          });
+        }
+
+        // GET /api/sites/:siteId/serve/<path...>  (also supports ?path=)
+        if (sub === 'serve' && method === 'GET') {
+          const qPath = String(q.path || '').trim();
+          let filePath = parts.length > 3 ? parts.slice(3).join('/') : (qPath || '');
+          filePath = normalizeSitePath(filePath || 'index.html');
+
+          if (!site.lastDeploymentId) return json(res, 404, { error: 'No deployments yet. Deploy a site first.' });
+          const depRaw = await db.get(`siteDeploy:${site.id}:${site.lastDeploymentId}`);
+          if (!depRaw) return json(res, 404, { error: 'Deployment manifest not found.' });
+          const dep = JSON.parse(depRaw);
+
+          // resolve file with fallbacks: exact -> path.html -> path/index.html -> index.html
+          let entry = dep.files.find(f => f.path === filePath);
+          if (!entry && !filePath.includes('.')) {
+            entry = dep.files.find(f => f.path === `${filePath}.html`) || dep.files.find(f => f.path === `${filePath}/index.html`);
+          }
+          if (!entry) entry = dep.files.find(f => f.path === 'index.html');
+          if (!entry) return json(res, 404, { error: `File not found: ${filePath}` });
+
+          // parse objectId to get address + blobName
+          const m = /\/blobs\/([^/]+)\/(.+)$/.exec(entry.objectId);
+          if (!m) return json(res, 500, { error: 'Invalid objectId in manifest.' });
+          const address = m[1], blobName = decodeURIComponent(m[2]);
+          try {
+            const { buffer } = await shelbyDownloadBlob({ address, blobName, apiKey: process.env.SHELBY_API_KEY });
+            res.setHeader('Content-Type', entry.contentType || contentTypeFor(entry.path));
+            res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
+            res.setHeader('X-Shelby-Object', entry.objectId);
+            res.setHeader('X-Site-Slug', site.slug);
+            // allow iframe preview
+            res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+            return res.status(200).send(buffer);
+          } catch (e) {
+            return json(res, 502, { error: `Shelby fetch failed: ${e.message}` });
+          }
+        }
+
+        // GET /api/sites/:siteId/preview/:depId/<path>
+        if (sub === 'preview' && method === 'GET') {
+          const depId = parts[3];
+          if (!depId) return json(res, 400, { error: 'deploymentId required.' });
+          const depRaw = await db.get(`siteDeploy:${site.id}:${depId}`);
+          if (!depRaw) return json(res, 404, { error: 'Deployment not found.' });
+          const dep = JSON.parse(depRaw);
+          let filePath = parts.length > 4 ? parts.slice(4).join('/') : (String(q.path || '') || 'index.html');
+          filePath = normalizeSitePath(filePath);
+          let entry = dep.files.find(f => f.path === filePath);
+          if (!entry && !filePath.includes('.')) entry = dep.files.find(f => f.path === `${filePath}.html`) || dep.files.find(f => f.path === `${filePath}/index.html`);
+          if (!entry) entry = dep.files.find(f => f.path === 'index.html');
+          if (!entry) return json(res, 404, { error: `File not found: ${filePath}` });
+          const m = /\/blobs\/([^/]+)\/(.+)$/.exec(entry.objectId);
+          if (!m) return json(res, 500, { error: 'Invalid objectId.' });
+          const address = m[1], blobName = decodeURIComponent(m[2]);
+          try {
+            const { buffer } = await shelbyDownloadBlob({ address, blobName, apiKey: process.env.SHELBY_API_KEY });
+            res.setHeader('Content-Type', entry.contentType || contentTypeFor(entry.path));
+            res.setHeader('Cache-Control', 'public, max-age=60');
+            return res.status(200).send(buffer);
+          } catch (e) {
+            return json(res, 502, { error: `Shelby fetch failed: ${e.message}` });
+          }
+        }
+
+        return json(res, 404, { error: `Unknown sites sub-route: ${sub}` });
+      }
+    }
+
     // ── EARNINGS (real ShelbyUSD settlements) ────────────────
     if (root === 'earnings' && method === 'GET') {
       // Real mode: totals come from settled on-chain payment intents — no simulation.
@@ -2686,7 +2955,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const _kp=['/api/health','/api/config','/api/models','/api/metrics','/api/docs','/api/objects','/api/audit','/api/analytics','/api/schedule','/api/groups','/api/bluegreen','/api/webhooks','/api/marketplace','/api/payments','/api/passport','/api/registry','/api/compliance','/api/lineage','/api/sign','/api/notifications','/api/stream','/api/inference-cache','/api/checkpoints','/api/distillation','/api/fingerprint','/api/abtest-lock','/api/earnings'];
+    const _kp=['/api/health','/api/config','/api/models','/api/metrics','/api/docs','/api/objects','/api/audit','/api/analytics','/api/schedule','/api/groups','/api/bluegreen','/api/webhooks','/api/marketplace','/api/payments','/api/passport','/api/registry','/api/compliance','/api/lineage','/api/sign','/api/notifications','/api/stream','/api/inference-cache','/api/checkpoints','/api/distillation','/api/fingerprint','/api/abtest-lock','/api/earnings','/api/sites','/api/shelby-status','/api/registry/status','/api/registry/verify'];
     // Boundary match (k or k + '/…') — '/api/streaming/session' must NOT match '/api/stream'.
     const known = _kp.some(k => path === k || path.startsWith(k + '/'));
     return json(res, known ? 405 : 404, { error: `Method ${method} not allowed on ${path}.`, tip:'See GET /api/docs' });

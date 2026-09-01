@@ -20,6 +20,14 @@
       "destination": "/api/crons/:path*"
     },
     {
+      "source": "/s/:slug/:path*",
+      "destination": "/api/sites/:slug/serve/:path*"
+    },
+    {
+      "source": "/s/:slug",
+      "destination": "/api/sites/:slug/serve/index.html"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api"
     },
@@ -50,7 +58,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.hugeicons.com; font-src 'self' https://fonts.gstatic.com https://cdn.hugeicons.com data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss:; img-src 'self' data: blob: https:; frame-src 'self' https://auth.privy.io https://verify.walletconnect.com https://verify.walletconnect.org; base-uri 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+          "value": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.hugeicons.com; font-src 'self' https://fonts.gstatic.com https://cdn.hugeicons.com data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https: wss:; img-src 'self' data: blob: https:; frame-src 'self' https://auth.privy.io https://verify.walletconnect.com https://verify.walletconnect.org; base-uri 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
         },
         {
           "key": "Strict-Transport-Security",

@@ -36,6 +36,7 @@ const NAV = [
     { to: 'bluegreen',   label: 'Blue-Green',     icon: 'hgi-exchange-01' },
   ]},
   { section: 'Growth', items: [
+    { to: 'sites',       label: 'Sites',        icon: 'hgi-globe-02' },
     { to: 'marketplace', label: 'Marketplace',  icon: 'hgi-store-01' },
     { to: 'analytics',   label: 'Analytics',    icon: 'hgi-analytics-02' },
     { to: 'schedule',    label: 'Scheduled',    icon: 'hgi-calendar-01' },
