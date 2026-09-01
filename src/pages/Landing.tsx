@@ -129,7 +129,7 @@ export default function Landing() {
       <header className="lp-nav">
         <div className="lp-nav-inner">
           <Link to="/" className="lp-brand">
-            <span className="lp-mark"><img src="/provenode-logo.svg" alt="" /></span>
+            <span className="lp-mark"><img src="/provenode-logo.svg" alt="" width={26} height={26} /></span>
             Provenode
           </Link>
           <nav className="lp-nav-links">
@@ -604,7 +604,7 @@ ok  manifest anchored on-chain`}</pre>
 
       <footer className="lp-footer">
         <div className="lp-shell lp-footer-inner">
-          <div className="lp-footer-brand"><img src="/provenode-logo.svg" alt="Provenode" className="lp-footer-logo" /><b>Provenode</b></div>
+          <div className="lp-footer-brand"><img src="/provenode-logo.svg" alt="Provenode" className="lp-footer-logo" width={22} height={22} /><b>Provenode</b></div>
           <span className="lp-footer-tag">Verified AI model delivery on Shelbynet + Aptos</span>
           <div className="lp-footer-links">
             <Link to="/app/dashboard">Console</Link>

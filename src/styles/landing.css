@@ -121,6 +121,14 @@
   overflow-x: hidden;
 }
 
+/* Keep the browser's scroll-anchoring active for the page as a whole — it is
+   what prevents jumps when content above the viewport resizes — but opt the
+   self-animating regions out individually so none of them is ever chosen as
+   the anchor element. */
+.lp-reveal, .lp-float, .lp-fill, .lp-marquee-container, .lp-avatars {
+  overflow-anchor: none;
+}
+
 /* Lattice background is retired for this design — Notion is flat paper.
    Keep the component mounted (pages import it) but fully invisible. */
 .lp > .lattice { display: none; }
@@ -688,8 +696,20 @@
   font-family: 'Geist Mono', ui-monospace, monospace;
   font-size: 12.5px; line-height: 1.9;
   color: #e8e6df;
-  min-height: 180px;
-  white-space: pre-wrap;
+  /* LAYOUT-STABILITY FIX — do not replace this with a pixel min-height.
+     The typing animation appends 12 lines one character at a time. With a
+     fixed 180px floor the box grew to ~285px mid-animation. That growth
+     happens ABOVE the reader's position, so the browser holds scrollY and
+     pushes later sections downward — which reads exactly like "the page
+     scrolled up by itself".
+     22.8em = 12 lines x 1.9 line-height, so the final height is reserved from
+     the first frame and tracks the mobile font-size automatically. */
+  min-height: 22.8em;
+  /* pre-wrap let long commands wrap on narrow screens, producing MORE than 12
+     rendered lines and defeating the reservation. Terminals scroll sideways. */
+  white-space: pre;
+  overflow-x: auto;
+  overflow-anchor: none;
 }
 .lp-cursor { display: inline-block; color: var(--nt-marigold); animation: lp-cursor-blink 1s step-end infinite; }
 
@@ -920,7 +940,9 @@
   .lp-compare td:first-child { width: 96px; font-size: 12.5px; }
   .lp-compare th, .lp-compare td { padding: 11px 12px; font-size: 12.5px; }
 
-  .lp-terminal-body { min-height: 150px; font-size: 11.5px; padding: 16px; }
+  /* Font-size shrinks but the reservation is in em, so the box still never
+     grows mid-animation. Do not add a px min-height here. */
+  .lp-terminal-body { font-size: 11.5px; padding: 16px; }
   .lp-mockup-wrap { margin-top: 32px; }
   .lp-grid-6 { min-width: 560px; }
 
