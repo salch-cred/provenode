@@ -82,7 +82,7 @@ export default function ObjectsPage() {
                 <tr>
                   <td colSpan={6}>
                     <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
-                      <i className="hgi-stroke hgi-cloud-01" style={{fontSize:40, opacity:0.2}} />
+                      <i className="hgi-stroke hgi-cloud" style={{fontSize:40, opacity:0.2}} />
                       <div style={{fontWeight:700, fontSize:15}}>No objects in Shelby storage</div>
                       <div style={{fontSize:13, opacity:0.55}}>Deploy a model in Shelby mode to create persisted object blobs with provenance tracking</div>
                     </div>

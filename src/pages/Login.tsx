@@ -76,7 +76,7 @@ function LoginWithPrivy() {
         </button>
 
         <button className="auth-btn" onClick={() => doLogin(['passkey'], 'passkey')} disabled={!!mode}>
-          <span className="auth-btn-icon"><i className="hgi-stroke hgi-fingerprint-02" /></span>
+          <span className="auth-btn-icon"><i className="hgi-stroke hgi-fingerprint-scan" /></span>
           <span className="auth-btn-text"><b>Use Passkey</b><small>Face ID · Touch ID · Security key</small></span>
           <span className="auth-badge">Recommended</span>
         </button>

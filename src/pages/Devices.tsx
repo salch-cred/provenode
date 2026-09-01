@@ -119,7 +119,7 @@ export default function Devices() {
             <div className="card-body" style={{fontSize:13, color: 'var(--text-muted)'}}>
               <p>Hardware Enclaves (TEE) ensure that AI models cannot be extracted from the physical device memory by an attacker.</p>
               <div style={{ marginTop: 12, padding: 12, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }}>
-                <i className="hgi-stroke hgi-shield-tick" style={{ color: 'var(--shelby)', marginBottom: 8, fontSize: 18, display: 'block' }} />
+                <i className="hgi-stroke hgi-shield-02" style={{ color: 'var(--shelby)', marginBottom: 8, fontSize: 18, display: 'block' }} />
                 <strong>Strict Verification</strong><br/>
                 Models are only decrypted inside the secure enclave after Aptos verifies the deployment signature.
               </div>

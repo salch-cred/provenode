@@ -37,7 +37,7 @@ export default function Registry() {
                 <div>
                   <strong>{m.model}</strong><br/>
                   <span className="text-sm text-muted">{ago(m.createdAt)}</span>
-                  {m.zkVerified && <span className="badge badge-green" style={{marginLeft: 8, fontSize: '0.7rem'}}><i className="hgi-stroke hgi-shield-check" /> ZK Verified</span>}
+                  {m.zkVerified && <span className="badge badge-green" style={{marginLeft: 8, fontSize: '0.7rem'}}><i className="hgi-stroke hgi-shield-blockchain" /> ZK Verified</span>}
                 </div>
               </div>
             </td>

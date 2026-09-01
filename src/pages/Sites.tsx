@@ -101,7 +101,7 @@ export default function Sites() {
             </div>
           </div>
           <div className="card" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)', padding: 18 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a8a29a', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}><i className="hgi-stroke hgi-comparison" /> Shelby Sites vs Others</div>
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#a8a29a', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}><i className="hgi-stroke hgi-audit-01" /> Shelby Sites vs Others</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 90px', gap: 6, fontSize: 12 }}>
               <div style={{ color: '#7a7672', padding: '6px 0' }} />
               <div style={{ textAlign: 'center', fontWeight: 700, color: '#ff8a5c' }}>Shelby</div>

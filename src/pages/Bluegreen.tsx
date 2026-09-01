@@ -31,7 +31,7 @@ export default function Bluegreen() {
         <div style={{padding:12}}>
           {!configs.length ? (
             <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
-              <i className="hgi-stroke hgi-shuffle-01" style={{fontSize:40, opacity:0.2}} />
+              <i className="hgi-stroke hgi-shuffle" style={{fontSize:40, opacity:0.2}} />
               <div style={{fontWeight:700, fontSize:15}}>No blue-green configs</div>
               <div style={{fontSize:13, opacity:0.55}}>Configure two deployment slots per project for zero-downtime atomic cutover</div>
             </div>

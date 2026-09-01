@@ -18,10 +18,11 @@ slug: /
 ## Tier-1 Enterprise Capabilities
 
 Provenode is distinguished by advanced capabilities previously unseen on decentralized infrastructure:
+- **Shelby Sites**: Deploy entire static websites to immutable Shelby blobs with a Vercel-like ZIP flow — every file content-addressed and publicly verifiable at `/s/<slug>`.
 - **Autonomous Agent Swarms**: Intelligent nodes that autonomously provision and expand Shelby L1 storage via Aptos micro-transactions when global capacity hits thresholds.
 - **FHE & Global Replication**: Fully Homomorphic Encryption enclaves are mirrored across a visualized global Shelby node network for ultimate uptime and privacy.
 - **ZK-Distillation Engine**: Compresses massive gigabyte-scale datasets on Shelby into tiny Zero-Knowledge verifiable student models without transferring raw data off-chain.
 
 ## Reference
 
-Review the technical implementation of [Zero-Knowledge Integrity Verification](/zk-proofs) and [Dataset Merkle Roots](/datasets).
+Review the technical implementation of [Shelby Sites](/sites), [Zero-Knowledge Integrity Verification](/zk-proofs) and [Dataset Merkle Roots](/datasets).

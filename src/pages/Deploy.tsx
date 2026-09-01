@@ -107,7 +107,7 @@ export default function Deploy() {
                 style={{ width: '100%', justifyContent: 'center' }}>
                 {uploading
                   ? <><span className="spin" /> Hashing & anchoring to Shelby…</>
-                  : <><i className="hgi-stroke hgi-shield-check" /> Hash & Register</>}
+                  : <><i className="hgi-stroke hgi-shield-blockchain" /> Hash & Register</>}
               </button>
             </div>
 
@@ -196,7 +196,7 @@ export default function Deploy() {
           </div>
           <div className="card-body">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              <TrustStep n={1} icon="hgi-fingerprint-02" label="Provenode SHA-256" sub="Local identity hash computed from model bytes" done={step1Done} active={!step1Done} />
+              <TrustStep n={1} icon="hgi-fingerprint-scan" label="Provenode SHA-256" sub="Local identity hash computed from model bytes" done={step1Done} active={!step1Done} />
               <TrustStep n={2} icon="hgi-package" label="Shelby on-chain object" sub="Immutable commitment anchored to Shelbynet" done={step1Done} active={false} />
               <TrustStep n={3} icon="hgi-blockchain-01" label="Aptos L1 manifest" sub="On-chain deployment proof written to Move contract" done={false} active={step2Active} />
               <TrustStep n={4} icon="hgi-cpu" label="Edge device verify" sub="SHA-256 check against on-chain hash before activation" done={false} active={false} last />
@@ -246,7 +246,7 @@ function TrustStep({ n, icon, label, sub, done, active, last }: {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontWeight: 800, fontSize: 12, zIndex: 1
       }}>
-        {done ? <i className="hgi-stroke hgi-checkmark-02" style={{ fontSize: 14 }} /> : n}
+        {done ? <i className="hgi-stroke hgi-tick-02" style={{ fontSize: 14 }} /> : n}
       </div>
       <div style={{ paddingTop: 3 }}>
         <div style={{ fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>

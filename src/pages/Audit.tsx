@@ -27,7 +27,7 @@ export default function Audit() {
       <div className="table-wrap"><table><thead><tr><th>Timestamp</th><th>Event</th><th>Actor</th><th>Target</th></tr></thead>
       <tbody>{!records.length ? <tr><td colSpan={4}>
         <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
-          <i className="hgi-stroke hgi-file-audit" style={{fontSize:40, opacity:0.2}} />
+          <i className="hgi-stroke hgi-audit-02" style={{fontSize:40, opacity:0.2}} />
           <div style={{fontWeight:700, fontSize:15}}>No audit records loaded</div>
           <div style={{fontSize:13, opacity:0.55}}>Select an event filter and click Load to fetch immutable on-chain records</div>
         </div>

@@ -33,7 +33,7 @@ const AVATARS = [
   { icon: 'hgi-drone',        label: 'Drones' },
   { icon: 'hgi-cpu',          label: 'Edge devices' },
   { icon: 'hgi-video-01',     label: 'Cameras' },
-  { icon: 'hgi-robot-01',     label: 'Robotics' },
+  { icon: 'hgi-robotic',     label: 'Robotics' },
   { icon: 'hgi-shield-02',    label: 'Verification' },
   { icon: 'hgi-globe-02',     label: 'Shelby Sites' },
 ];
@@ -372,9 +372,9 @@ ok  manifest anchored on-chain`}</pre>
                 { icon: 'hgi-blockchain-01', title: 'On-chain manifests', desc: 'Deployment decisions live as immutable Shelby objects. Auditors go to the chain.' },
                 { icon: 'hgi-analytics-01', title: 'A/B model testing', desc: 'Split fleet traffic between versions with cryptographically locked results.' },
                 { icon: 'hgi-git-branch', title: 'Model lineage', desc: 'Track parent → child. Catch a recalled base model still serving in prod.' },
-                { icon: 'hgi-shield-tick', title: 'ZK execution proofs', desc: 'NIZKPoK benchmarks verify execution without exposing proprietary weights.' },
+                { icon: 'hgi-shield-02', title: 'ZK execution proofs', desc: 'NIZKPoK benchmarks verify execution without exposing proprietary weights.' },
                 { icon: 'hgi-cpu', title: 'Autonomous self-healing', desc: 'Tamper detected → halt, log the breach, request a clean OTA payload.' },
-                { icon: 'hgi-network', title: 'Federated learning', desc: 'Aggregate device gradients without exposing sensitive end-user data.' },
+                { icon: 'hgi-internet', title: 'Federated learning', desc: 'Aggregate device gradients without exposing sensitive end-user data.' },
               ].map((f, i) => (
                 <article className={`lp-card lp-reveal lp-d${i % 3}`} key={f.title}>
                   <div className="lp-card-icon lp-card-icon--tint"><i className={`hgi-stroke ${f.icon}`} /></div>
@@ -408,7 +408,7 @@ ok  manifest anchored on-chain`}</pre>
             </div>
             <div className="lp-grid-3">
               {[
-                { icon: 'hgi-robot-01', title: 'Robotics', desc: 'Push perception models to warehouse AMRs. Verify on-device before navigation starts. Roll back fleet-wide in seconds.', stat: '12k robots' },
+                { icon: 'hgi-robotic', title: 'Robotics', desc: 'Push perception models to warehouse AMRs. Verify on-device before navigation starts. Roll back fleet-wide in seconds.', stat: '12k robots' },
                 { icon: 'hgi-video-01', title: 'Smart cameras', desc: 'City-scale camera fleets with EU AI Act audit trails. Every model version anchored, every device attested.', stat: '248 cameras' },
                 { icon: 'hgi-drone', title: 'Drones & UAVs', desc: 'Safety-critical navigation updates with autonomous self-healing. Tamper triggers auto-heal from Shelby.', stat: '4 regions' },
               ].map(u => (

@@ -25,7 +25,7 @@ export default function Governance() {
       <div className="card">
         <div className="card-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <i className="hgi-stroke hgi-shield-tick" style={{ color: 'var(--coral)' }} />
+            <i className="hgi-stroke hgi-shield-02" style={{ color: 'var(--coral)' }} />
             <span className="card-title">Multi-Sig Deployment Governance</span>
           </div>
         </div>

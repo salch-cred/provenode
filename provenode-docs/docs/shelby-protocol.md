@@ -24,6 +24,8 @@ We automatically shard and encrypt data locally. When you upload a dataset or de
 3. Dispersed to storage providers
 4. The Merkle root is anchored on the Aptos L1
 
+Shelby also powers **[Shelby Sites](/sites)** — static website hosting where every file in a deployment ZIP becomes an immutable blob under `sites/<slug>/<deploymentId>/<path>`, served publicly at `/s/<slug>` with per-file SHA-256 manifests.
+
 ## DePIN Auditor Dashboard
 Provenode doesn't just use Shelby as a dumb storage drive. It provides deep visibility into the **Decentralized Physical Infrastructure Network (DePIN)** layer. 
 

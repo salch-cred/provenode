@@ -29,7 +29,7 @@ export default function ABTest() {
         <div style={{padding:12}}>
           {!tests.length ? (
             <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
-              <i className="hgi-stroke hgi-chart-bar-01" style={{fontSize:40, opacity:0.2}} />
+              <i className="hgi-stroke hgi-chart-bar-line" style={{fontSize:40, opacity:0.2}} />
               <div style={{fontWeight:700, fontSize:15}}>No A/B tests running</div>
               <div style={{fontSize:13, opacity:0.55}}>Create a test to compare inference accuracy across two model versions</div>
             </div>

@@ -89,7 +89,7 @@ export default function Integrity() {
                   {!health.needsHealing?.length ? (
                     <tr><td colSpan={6}>
                       <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
-                        <i className="hgi-stroke hgi-shield-check" style={{fontSize:40, opacity:0.3, color:'var(--color-green)'}} />
+                        <i className="hgi-stroke hgi-shield-blockchain" style={{fontSize:40, opacity:0.3, color:'var(--color-green)'}} />
                         <div style={{fontWeight:700, fontSize:15}}>All devices passed integrity checks</div>
                         <div style={{fontSize:13, opacity:0.55}}>No SHA-256 mismatches detected across the fleet</div>
                       </div>
