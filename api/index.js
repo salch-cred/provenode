@@ -12,7 +12,7 @@ import { dispatch, isBlockedWebhookUrl } from '../lib/notify.js';
 import { logAudit, getAuditLog } from '../lib/audit.js';
 import { signModel } from '../lib/sign.js';
 import { buildPassportRecord, verifyPassport, storePassport, findPassportBySha256, anchorOnChain, passportBlobName } from '../lib/passport.js';
-import { getRegistryStatus, verifyModelOnChain, getModelCount, MODEL_REGISTRY_ADDRESS, SHELBY_RPC } from '../lib/registry.js';
+import { getRegistryStatus, verifyModelOnChain, getModelCount, MODEL_REGISTRY_ADDRESS, SHELBY_RPC, accountExplorerUrl, txExplorerUrl } from '../lib/registry.js';
 import { sendEmail, deploymentVerifiedEmail, integrityMismatchEmail, expiryWarningEmail } from '../lib/email.js';
 // ── TOP 10 TIER-1 SHELBY FEATURES ─────────────────────────────────────────
 import { createStreamManifest, getChunkUrl } from '../lib/streaming.js';         // #1
@@ -321,6 +321,10 @@ export default async function handler(req, res) {
         mode: process.env.SHELBY_API_KEY ? 'shelby' : 'unconfigured',
         network: process.env.SHELBY_NETWORK || 'shelbynet',
         shelbyApiUrl: 'https://api.shelbynet.shelby.xyz/v1',
+        // Canonical explorer links — the frontend must use these instead of
+        // hardcoding a host, so there is exactly one explorer of record.
+        registryAddress: MODEL_REGISTRY_ADDRESS,
+        registryExplorerUrl: accountExplorerUrl(MODEL_REGISTRY_ADDRESS),
         maxUploadBytes: 100 * 1024 * 1024,
         version: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) || 'local',
         features: {
@@ -389,7 +393,7 @@ export default async function handler(req, res) {
           address: account.accountAddress.toString(),
           publicKey: account.publicKey.toString(),
           network: process.env.SHELBY_NETWORK || 'shelbynet',
-          explorerUrl: `https://explorer.aptoslabs.com/account/${account.accountAddress.toString()}?network=custom&customNetworkUrl=https://api.shelbynet.shelby.xyz/v1`,
+          explorerUrl: accountExplorerUrl(account.accountAddress.toString()),
         });
       }
       if (method === 'POST') {

@@ -1,11 +1,35 @@
 node_modules/
 .vercel/
+.vercel
+.env
+.env.*
 .env.local
 .env.*.local
 *.log
 .DS_Store
 Thumbs.db
 dist/
+build/
 .next/
-.vercel
-.env*
+.docusaurus/
+
+# ── Local scratch / one-off scripts ─────────────────────────────────────────
+# Ad-hoc load tests, scrapers and theme experiments. Useful locally, but they
+# are not part of the product and drift out of date immediately.
+scratch/
+
+# ── Generated reports & artifacts ───────────────────────────────────────────
+# Point-in-time test/audit output. The living record is docs/reports/ (one file);
+# anything auto-generated stays untracked.
+*_REPORT.md
+!docs/reports/*.md
+load_test_report.txt
+*_report.txt
+*_report.json
+
+# Test fixtures and media produced by tooling
+test_model.bin
+*.model.bin
+brag-output-*/
+*.mp3
+*.mp4
