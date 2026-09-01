@@ -21,7 +21,7 @@ import { computeDelta, applyDelta, buildVersionNode } from '../lib/delta.js';   
 import { buildDatasetRecord, shardDataset, computeMerkleRoot, buildDeletionRequest } from '../lib/datasets.js'; // #10
 import { generateModelCommitment, verifyProof } from '../lib/zkproof.js'; // #7
 import { detectTamper, buildHealCommand, buildIncidentRecord, evaluateFleetHealth } from '../lib/selfheal.js'; // #6
-import { slugify, validateSlug, contentTypeFor, normalizeSitePath, buildSiteRecord, buildDeploymentRecord, siteBlobName, manifestBlobName } from '../lib/sites.js';
+import { slugify, validateSlug, contentTypeFor, normalizeSitePath, buildSiteRecord, buildDeploymentRecord, siteBlobName, manifestBlobName, generateDeployKey, normalizeDeployKey } from '../lib/sites.js';
 
 function cors(res) {
   // FIX H-5: Fail closed — never default to wildcard CORS
@@ -52,6 +52,22 @@ function isAdminRequest(req) {
   const secret = process.env.DEPLOY_SECRET;
   if (!secret) return true;
   return req.headers['x-provenode-token'] === secret;
+}
+
+/**
+ * CI deploy auth — accepts either the admin token (X-Provenode-Token)
+ * or a site-scoped bearer key (Authorization: Bearer pvnd_...).
+ * Returns the siteId the key is scoped to, or null when unauthorized.
+ */
+async function resolveCiAuth(req, db) {
+  // admin token always wins, scoped to the requested site
+  if (isAdminRequest(req)) return { admin: true };
+  const bearer = normalizeDeployKey(req.headers['authorization']);
+  if (bearer && bearer.startsWith('pvnd_')) {
+    const raw = await db.get(`siteKey:${bearer}`);
+    if (raw) return { admin: false, siteId: JSON.parse(raw).siteId };
+  }
+  return null;
 }
 
 function json(res, status, body) {
@@ -2749,9 +2765,59 @@ export default async function handler(req, res) {
           return json(res, 200, { success: true, deployments });
         }
 
+        // ── CI deploy keys (GitHub Actions) ─────────────────────────
+        // POST   /api/sites/:siteId/keys        -> create key  (admin only, returns token ONCE)
+        // GET    /api/sites/:siteId/keys        -> list keys  (admin only, no secrets)
+        // DELETE /api/sites/:siteId/keys/:token -> revoke key (admin only)
+        if (sub === 'keys') {
+          if (requireAuth(req, res)) return;
+          const keyAction = parts[3] || '';
+
+          if (method === 'POST' && !keyAction) {
+            const token = generateDeployKey();
+            const record = { siteId: site.id, siteSlug: site.slug, createdAt: new Date().toISOString(), label: 'github-actions' };
+            await db.put(`siteKey:${token}`, JSON.stringify(record));
+            await logAudit('site.key.created', { target: site.id, details: { label: record.label } });
+            return json(res, 201, { success: true, token, note: 'Store this token now — it is not retrievable again.', record });
+          }
+
+          if (method === 'GET' && !keyAction) {
+            const { keys } = await db.list({ prefix: 'siteKey:' });
+            const all = (await Promise.all(keys.map(async ({ name }) => {
+              const raw = await db.get(name);
+              if (!raw) return null;
+              const rec = JSON.parse(raw);
+              if (rec.siteId !== site.id) return null;
+              return { ...rec, token: name.slice('siteKey:'.length) };
+            }))).filter(Boolean);
+            // mask tokens in listing
+            return json(res, 200, { success: true, keys: all.map(k => ({ ...k, token: `${k.token.slice(0, 10)}...` })) });
+          }
+
+          if (method === 'DELETE' && keyAction) {
+            // Listing masks tokens (pvnd_abc...) — resolve masked prefix to the full key
+            let full = keyAction;
+            if (keyAction.endsWith('...')) {
+              const prefix = keyAction.slice(0, -3);
+              const { keys } = await db.list({ prefix: `siteKey:${prefix}` });
+              const match = keys.find(k => k.name.startsWith(`siteKey:${prefix}`));
+              if (!match) return json(res, 404, { error: 'Key not found (it may already be revoked).' });
+              const raw = await db.get(match.name);
+              if (!raw || JSON.parse(raw).siteId !== site.id) return json(res, 404, { error: 'Key not found for this site.' });
+              full = match.name.slice('siteKey:'.length);
+            }
+            await db.del(`siteKey:${full}`);
+            await logAudit('site.key.revoked', { target: site.id, details: { key: `${full.slice(0, 10)}...` } });
+            return json(res, 200, { success: true });
+          }
+        }
+
         // POST /api/sites/:siteId/deploy -> upload zip or single file
         if (sub === 'deploy' && method === 'POST') {
-          if (requireAuth(req, res)) return;
+          // Admin token (X-Provenode-Token) OR site-scoped CI key (Authorization: Bearer pvnd_...)
+          const ci = await resolveCiAuth(req, db);
+          if (!ci) return json(res, 401, { error: 'Unauthorized. Provide X-Provenode-Token or a site deploy key (Authorization: Bearer pvnd_...).' });
+          if (!ci.admin && ci.siteId !== site.id) return json(res, 403, { error: 'This deploy key belongs to a different site.' });
           if (!process.env.SHELBY_API_KEY) return json(res, 503, { error: 'SHELBY_API_KEY not configured. Shelby storage required for site deploys.' });
           if (!process.env.SHELBY_PRIVATE_KEY) return json(res, 503, { error: 'SHELBY_PRIVATE_KEY not configured.' });
 

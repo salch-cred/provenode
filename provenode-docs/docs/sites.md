@@ -97,6 +97,85 @@ or
 | Max single file | 10 MB |
 | Blob lifetime | 90 days (auto-renewed by cron) |
 
+## Push-to-Deploy from GitHub
+
+Deploy automatically on every `git push` — GitHub Actions builds, Provenode hosts on Shelby.
+
+### 1. Create a deploy key
+
+In the console: **Sites → your site → GitHub → Create deploy key**. Or via API:
+
+```bash
+curl -X POST https://your-app.vercel.app/api/sites/$SITE_ID/keys \
+  -H "X-Provenode-Token: $TOKEN"
+# → { "token": "pvnd_..." }   # shown ONCE — store it now
+```
+
+The key is **site-scoped**: it can only deploy that one site and is revoked by deleting it. Add it to your repo as the `PROVENODE_DEPLOY_KEY` secret (Settings → Secrets and variables → Actions).
+
+### 2. Add the workflow
+
+Save as `.github/workflows/deploy.yml` (the Sites console generates this pre-filled):
+
+```yaml
+name: Deploy to Provenode
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write   # comments preview URLs on PRs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+
+      - name: Build
+        run: npm ci && npm run build
+
+      # If your build outputs to dist/, zip that folder:
+      #   cd dist && zip -r ../site.zip .
+      - name: Package
+        run: zip -r site.zip .
+
+      - name: Deploy to Provenode
+        env:
+          PROVENODE_KEY: ${{ secrets.PROVENODE_DEPLOY_KEY }}
+        run: |
+          curl -sf -X POST "$PROVENODE_URL/api/sites/$SITE_ID/deploy" \
+            -H "Authorization: Bearer $PROVENODE_KEY" \
+            -F file=@site.zip -o deploy_result.json
+          cat deploy_result.json
+
+      - name: Comment preview URL on PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          URL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('deploy_result.json')).previewUrl)")
+          gh pr comment "$PR_NUMBER" --body "Shelby preview: $PROVENODE_URL$URL"
+```
+
+### 3. Push
+
+- **`main`** → deploys to production at `/s/your-slug`
+- **Pull requests** → immutable preview deployment, URL commented on the PR
+- Redeploying to the same slug atomically flips production to the new snapshot
+
+### CI auth model
+
+| Credential | Header | Scope |
+|---|---|---|
+| Admin token (`DEPLOY_SECRET`) | `X-Provenode-Token` | all sites |
+| Site deploy key (`pvnd_...`) | `Authorization: Bearer pvnd_...` | one site only |
+
+Key routes: `POST /api/sites/:id/keys` (create, returns token once) · `GET /api/sites/:id/keys` (list, masked) · `DELETE /api/sites/:id/keys/:token` (revoke — accepts masked prefix).
+
 ## Verification
 
 Every deployment manifest is itself a Shelby blob. To audit a live site:

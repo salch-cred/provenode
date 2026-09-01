@@ -14,6 +14,66 @@ type Deployment = {
   entryPath: string; manifestObjectId: string;
 };
 
+type SiteKey = { siteId: string; siteSlug: string; createdAt: string; label: string; token: string };
+
+const BUILD_CMDS: Record<string, string> = {
+  vite: 'npm ci && npm run build',
+  'next-static': 'npm ci && npm run build',
+  astro: 'npm ci && npm run build',
+  other: 'npm ci && npm run build --if-present',
+};
+
+function workflowYaml({ siteId, origin, buildCmd }: { siteId: string; origin: string; buildCmd: string }) {
+  return `# Provenode — push-to-deploy to Shelby Sites
+# Commits to main deploy to production (/s/your-slug).
+# Pull requests deploy an immutable preview and comment the URL.
+name: Deploy to Provenode
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write   # lets the PR job comment the preview URL
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build
+        run: ${buildCmd}
+
+      - name: Package
+        run: zip -r site.zip . -x "site.zip"   # zips the build output in place
+
+      - name: Deploy to Provenode
+        env:
+          PROVENODE_KEY: \${{ secrets.PROVENODE_DEPLOY_KEY }}
+        run: |
+          curl -sf -X POST "${origin}/api/sites/${siteId}/deploy" \\
+            -H "Authorization: Bearer $PROVENODE_KEY" \\
+            -F file=@site.zip \\
+            -o deploy_result.json
+          cat deploy_result.json
+
+      - name: Comment preview URL on PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+        run: |
+          URL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('deploy_result.json')).previewUrl)")
+          gh pr comment "$PR_NUMBER" --body "Shelby preview: ${origin}$URL"
+        # Note: package your build output folder, not repo root.
+        # If your build outputs to dist/, cd dist && zip -r ../site.zip . first.`;
+}
+
 export default function Sites() {
   const toast = useToast();
   const [sites, setSites] = useState<Site[]>([]);
@@ -23,6 +83,40 @@ export default function Sites() {
   const [form, setForm] = useState({ name: '', slug: '', description: '', framework: 'static' });
   const [deployingId, setDeployingId] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ site: Site; deployment: Deployment } | null>(null);
+  const [gitPanel, setGitPanel] = useState<string | null>(null);
+  const [siteKeys, setSiteKeys] = useState<Record<string, SiteKey[]>>({});
+  const [newKey, setNewKey] = useState<string | null>(null);
+  const [origin] = useState(typeof window !== 'undefined' ? window.location.origin : '');
+
+  const loadKeys = async (siteId: string) => {
+    try {
+      const d = await get<any>(`/api/sites/${siteId}/keys`);
+      setSiteKeys(prev => ({ ...prev, [siteId]: d.keys || [] }));
+    } catch { /* dev-open mode may reject; ignore */ }
+  };
+
+  const createKey = async (siteId: string) => {
+    try {
+      const d = await post<any>(`/api/sites/${siteId}/keys`, {});
+      setNewKey(d.token);
+      loadKeys(siteId);
+      toast('Deploy key created — copy it into GitHub secrets now', 'success');
+    } catch (e: any) { toast(e.message, 'error'); }
+  };
+
+  const revokeKey = async (siteId: string, maskedToken: string) => {
+    if (!confirm('Revoke this deploy key? CI deploys using it will fail.')) return;
+    try {
+      await del(`/api/sites/${siteId}/keys/${encodeURIComponent(maskedToken)}`);
+      toast('Key revoked', 'info');
+      loadKeys(siteId);
+    } catch (e: any) { toast(e.message, 'error'); }
+  };
+
+  const copy = async (text: string, what: string) => {
+    try { await navigator.clipboard.writeText(text); toast(`${what} copied`, 'success'); }
+    catch { toast('Copy failed — select manually', 'error'); }
+  };
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -209,6 +303,9 @@ export default function Sites() {
                         <button className="btn btn-sm" onClick={() => setPreview({ site, deployment: last })}><i className="hgi-stroke hgi-view" /> Preview</button>
                       </>
                     )}
+                    <button className="btn btn-sm" onClick={() => { const next = gitPanel === site.id ? null : site.id; setGitPanel(next); if (next) loadKeys(site.id); }} title="Push-to-deploy from GitHub">
+                      <i className="hgi-stroke hgi-github" /> GitHub
+                    </button>
                     <button className="btn btn-sm" onClick={() => removeSite(site.id)} style={{ color: 'var(--red)' }}><i className="hgi-stroke hgi-delete-02" /></button>
                   </div>
                 </div>
@@ -236,6 +333,57 @@ export default function Sites() {
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>ZIP with index.html at root · single HTML also works · served via Shelby blobs with SPA fallback</div>
                   </div>
+
+                  {/* ── Deploy from GitHub panel ─────────────────────── */}
+                  {gitPanel === site.id && (
+                    <div style={{ marginTop: 14, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--bg)', overflow: 'hidden' }}>
+                      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <i className="hgi-stroke hgi-github" style={{ fontSize: 16 }} />
+                        <strong style={{ fontSize: 13 }}>Push-to-deploy</strong>
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>git push → build → Shelby blobs</span>
+                        <a href="/docs/sites" target="_blank" rel="noreferrer" className="btn btn-sm" style={{ marginLeft: 'auto', padding: '3px 8px', fontSize: 11 }}>Guide</a>
+                      </div>
+                      <div style={{ padding: 16 }} className="sites-git-panel">
+                        {/* Step 1 — key */}
+                        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>1 · Deploy key</div>
+                        {newKey ? (
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+                            <code className="mono" style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--coral)', borderRadius: 6, padding: '6px 10px', fontSize: 11, wordBreak: 'break-all' }}>{newKey}</code>
+                            <button className="btn btn-sm btn-primary" onClick={() => copy(newKey, 'Key')}><i className="hgi-stroke hgi-file-01" /> Copy</button>
+                          </div>
+                        ) : (
+                          <button className="btn btn-sm" onClick={() => createKey(site.id)}><i className="hgi-stroke hgi-add-01" /> Create deploy key</button>
+                        )}
+                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 12 }}>Add it as the <code style={{ fontFamily: 'var(--font-mono)' }}>PROVENODE_DEPLOY_KEY</code> secret in your repo (Settings → Secrets → Actions). Site-scoped: it can only deploy this site.</div>
+                        {(siteKeys[site.id] || []).length > 0 && (
+                          <div style={{ display: 'grid', gap: 6, marginBottom: 12 }}>
+                            {siteKeys[site.id].map((k, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, padding: '6px 10px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                                <i className="hgi-stroke hgi-plug-01" style={{ color: 'var(--green)' }} />
+                                <span className="mono">{k.token}</span>
+                                <span style={{ color: 'var(--text-muted)' }}>· {k.label}</span>
+                                <button className="btn btn-sm" style={{ marginLeft: 'auto', color: 'var(--red)', padding: '3px 8px', fontSize: 11 }} onClick={() => revokeKey(site.id, k.token)}>Revoke</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Step 2 — workflow */}
+                        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', margin: '14px 0 8px' }}>2 · GitHub Action workflow</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 8 }}>Save as <code style={{ fontFamily: 'var(--font-mono)' }}>.github/workflows/deploy.yml</code> in your repo:</div>
+                        <div style={{ position: 'relative' }}>
+                          <button className="btn btn-sm" style={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }} onClick={() => copy(workflowYaml({ siteId: site.id, origin, buildCmd: BUILD_CMDS[site.framework] || BUILD_CMDS.other }), 'Workflow')}><i className="hgi-stroke hgi-file-01" /> Copy YAML</button>
+                          <pre className="mono" style={{ margin: 0, padding: 14, background: '#17150F', color: '#D6D2C6', borderRadius: 10, fontSize: 10.5, lineHeight: 1.6, overflowX: 'auto', maxHeight: 260, overflowY: 'auto' }}>
+                            {workflowYaml({ siteId: site.id, origin, buildCmd: BUILD_CMDS[site.framework] || BUILD_CMDS.other })}
+                          </pre>
+                        </div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10, display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                          <i className="hgi-stroke hgi-information-circle" style={{ marginTop: 1, flexShrink: 0 }} />
+                          <span>Adjust the Package step if your build outputs to <code style={{ fontFamily: 'var(--font-mono)' }}>dist/</code>: <code style={{ fontFamily: 'var(--font-mono)' }}>cd dist && zip -r ../site.zip .</code>. Pushes to <b>main</b> go live; PRs get an immutable preview URL comment.</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Deployments */}
                   {deps.length > 0 && (
