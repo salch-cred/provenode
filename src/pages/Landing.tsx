@@ -271,7 +271,7 @@ export default function Landing() {
         <section className="lp-section" style={{ padding: '28px 0 0' }}>
           <div className="lp-shell lp-reveal">
             <p className="lp-int-label" style={{ marginBottom: 18 }}>Trusted by teams building on Aptos & Shelby</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, opacity: 0.7 }}>
+            <div className="lp-grid-6logos">
               {['APTOS LABS', 'SHELBY', 'AETHER', 'NOVA FLEET', 'EDGEWORKS', 'CIPHER AI'].map(logo => (
                 <div key={logo} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 8px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--text-muted)' }}>{logo}</div>
               ))}
@@ -286,13 +286,13 @@ export default function Landing() {
               <p className="lp-kicker">How it works</p>
               <h2 className="lp-h2">Three steps to provable delivery.</h2>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            <div className="lp-grid-3">
               {[
                 { n: '01', icon: 'hgi-fingerprint-scan', title: 'Hash & anchor', desc: 'Upload your model or site ZIP. We SHA-256 every byte and publish it as an immutable Shelby blob. Passports and manifests are anchored on Aptos.' },
                 { n: '02', icon: 'hgi-rocket-01', title: 'Deploy with proof', desc: 'Canary rollout to 10% → 50% → 100% with auto-rollback. For sites: /s/your-slug is live instantly. For models: fleet OTA begins.' },
                 { n: '03', icon: 'hgi-shield-02', title: 'Verify at the edge', desc: 'Devices re-hash before activation. Mismatch = no load, incident logged, heal command issued. Websites are content-addressed — what you deployed is what is served.' },
               ].map(s => (
-                <div key={s.n} className="card" style={{ padding: 22 }}>
+                <div key={s.n} className="card lp-step-card" style={{ padding: 22 }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--coral)', fontWeight: 600, marginBottom: 8 }}>{s.n}</div>
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--coral)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}><i className={`hgi-stroke ${s.icon}`} style={{ fontSize: 18 }} /></div>
                   <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>{s.title}</h3>
@@ -380,8 +380,8 @@ export default function Landing() {
         {/* Shelby Sites — new SaaS feature */}
         <section className="lp-section lp-reveal" id="sites">
           <div className="lp-shell">
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 0 }}>
-              <div style={{ padding: 32 }}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }} className="lp-sites-split">
+              <div className="lp-sites-copy" style={{ padding: 32 }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(232,90,40,0.08)', border: '1px solid rgba(232,90,40,0.18)', borderRadius: 9999, padding: '4px 10px', fontSize: 11, fontWeight: 600, color: 'var(--coral)', letterSpacing: '0.06em', textTransform: 'uppercase' }}><i className="hgi-stroke hgi-sparkles" /> New · Shelby Sites</div>
                 <h2 className="lp-h2" style={{ marginTop: 14, marginBottom: 12 }}>Deploy websites to Shelby — <span style={{ color: 'var(--coral)' }}>like Neon, for static.</span></h2>
                 <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.65, marginBottom: 18 }}>ZIP your <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>dist/</span> and every file becomes an immutable Shelby blob. Preview at <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>/s/your-site</span> with SPA fallback, 60s edge cache, and audit-logged manifests. Pair with Neon for your DB — Shelby for assets, Postgres for state.</p>
@@ -395,7 +395,7 @@ export default function Landing() {
                   <a href="/api/sites" target="_blank" rel="noreferrer" className="lp-btn lp-btn-ghost"><i className="hgi-stroke hgi-code" /> API docs</a>
                 </div>
               </div>
-              <div style={{ background: '#0a0a0a', padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'center', borderLeft: '1px solid var(--border)' }}>
+              <div className="lp-sites-terminal" style={{ background: '#0a0a0a', padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'center', borderLeft: '1px solid var(--border)' }}>
                 <div style={{ background: '#1a1a1a', borderRadius: 12, border: '1px solid #2a2a2a', overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid #2a2a2a' }}>
                     <div style={{ display: 'flex', gap: 5 }}><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff5f57' }} /><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ffbd2e' }} /><span style={{ width: 10, height: 10, borderRadius: '50%', background: '#28c840' }} /></div>
@@ -424,13 +424,13 @@ $ curl -H "X-Provenode-Token: $TOKEN" \\
         <section className="lp-section lp-reveal">
           <div className="lp-shell">
             <div className="lp-sec-head"><p className="lp-kicker">Use cases</p><h2 className="lp-h2">One platform, three fleets.</h2></div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            <div className="lp-grid-3">
               {[
                 { icon: 'hgi-robot-01', title: 'Robotics', desc: 'Push perception models to warehouse AMRs. Verify on-device before navigation starts. Rollback fleet-wide in seconds.', stat: '12k robots' },
                 { icon: 'hgi-video-01', title: 'Smart cameras', desc: 'City-scale camera fleets with EU AI Act audit trails. Every model version anchored, every device attested.', stat: '248 cameras' },
                 { icon: 'hgi-drone', title: 'Drones & UAVs', desc: 'Safety-critical navigation updates with autonomous self-healing. Tamper = auto-heal from Shelby.', stat: '4 regions' },
               ].map(u => (
-                <div key={u.title} className="card" style={{ padding: 22 }}>
+                <div key={u.title} className="card lp-usecase-card" style={{ padding: 22 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--coral)', marginBottom: 14 }}><i className={`hgi-stroke ${u.icon}`} style={{ fontSize: 20 }} /></div>
                   <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>{u.title}</h3>
                   <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 12 }}>{u.desc}</p>
@@ -471,14 +471,14 @@ $ curl -H "X-Provenode-Token: $TOKEN" \\
               <h2 className="lp-h2">Start free. Scale when you ship.</h2>
               <p style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6 }}>All plans include Shelby Sites. Pay only for what you anchor and serve. No seat fees.</p>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, alignItems: 'stretch' }}>
+            <div className="lp-grid-3 lp-grid-stretch">
               {[
                 { name: 'Starter', price: '$0', suffix: '/mo', desc: 'For prototypes & personal sites', cta: 'Start free', featured: false, features: ['3 sites · 10 deployments', '1,000 model verifications / mo', 'Community Discord', '90-day Shelby blobs'] },
                 { name: 'Pro', price: '$49', suffix: '/mo', desc: 'For teams shipping to fleets', cta: 'Start Pro trial', featured: true, badge: 'Most popular', features: ['Unlimited sites & deploys', '100k verifications / mo', 'Canary + Blue-Green + A/B locks', 'Webhooks, audit log, SSO', 'Email support < 24h'] },
                 { name: 'Enterprise', price: 'Custom', suffix: '', desc: 'For regulated fleets & SOC 2', cta: 'Talk to founders', featured: false, features: ['Everything in Pro', 'Dedicated Shelbynet namespace', 'On-prem signer & VPC', 'EU AI Act export & DPA', 'Slack Connect + 99.9% SLA'] },
               ].map(tier => (
-                <div key={tier.name} className="card" style={{ padding: 24, display: 'flex', flexDirection: 'column', background: tier.featured ? '#0a0a0a' : 'var(--surface)', color: tier.featured ? '#f5f5f0' : 'var(--text-primary)', borderColor: tier.featured ? '#1a1a1a' : 'var(--border)', position: 'relative', transform: tier.featured ? 'scale(1.02)' : 'none', boxShadow: tier.featured ? '0 20px 60px rgba(10,10,10,0.25)' : 'none' }}>
-                  {tier.badge && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: 'var(--coral)', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '4px 10px', borderRadius: 9999 }}>{tier.badge}</div>}
+                <div key={tier.name} className="card lp-price-card" style={{ padding: 24, display: 'flex', flexDirection: 'column', background: tier.featured ? '#0a0a0a' : 'var(--surface)', color: tier.featured ? '#f5f5f0' : 'var(--text-primary)', borderColor: tier.featured ? '#1a1a1a' : 'var(--border)', position: 'relative', transform: tier.featured ? 'scale(1.02)' : 'none', boxShadow: tier.featured ? '0 20px 60px rgba(10,10,10,0.25)' : 'none' }}>
+                  {tier.badge && <div className="lp-price-badge" style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: 'var(--coral)', color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '4px 10px', borderRadius: 9999 }}>{tier.badge}</div>}
                   <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em', color: tier.featured ? '#a8a29a' : 'var(--text-muted)' }}>{tier.name}</div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, margin: '10px 0 6px' }}>
                     <span style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-0.03em' }}>{tier.price}</span>
@@ -493,7 +493,10 @@ $ curl -H "X-Provenode-Token: $TOKEN" \\
                       </div>
                     ))}
                   </div>
-                  <Link to={tier.name === 'Enterprise' ? 'mailto:founders@provenode.xyz' : '/app/dashboard'} className="btn" style={{ width: '100%', justifyContent: 'center', background: tier.featured ? '#f5f5f0' : 'var(--text-primary)', color: tier.featured ? '#0a0a0a' : '#fff', borderColor: tier.featured ? '#f5f5f0' : 'var(--text-primary)' }}>{tier.cta}</Link>
+                  {tier.name === 'Enterprise'
+                    ? <a href="mailto:founders@provenode.xyz" className="btn" style={{ width: '100%', justifyContent: 'center', background: tier.featured ? '#f5f5f0' : 'var(--text-primary)', color: tier.featured ? '#0a0a0a' : '#fff', borderColor: tier.featured ? '#f5f5f0' : 'var(--text-primary)' }}>{tier.cta}</a>
+                    : <Link to="/app/dashboard" className="btn" style={{ width: '100%', justifyContent: 'center', background: tier.featured ? '#f5f5f0' : 'var(--text-primary)', color: tier.featured ? '#0a0a0a' : '#fff', borderColor: tier.featured ? '#f5f5f0' : 'var(--text-primary)' }}>{tier.cta}</Link>
+                  }
                 </div>
               ))}
             </div>
@@ -505,13 +508,13 @@ $ curl -H "X-Provenode-Token: $TOKEN" \\
         <section className="lp-section" style={{ background: 'var(--bg)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
           <div className="lp-shell lp-reveal">
             <div className="lp-sec-head" style={{ marginBottom: 28 }}><p className="lp-kicker">Loved by fleet teams</p><h2 className="lp-h2">Proof beats promises.</h2></div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            <div className="lp-grid-3">
               {[
                 { quote: 'We cut incident MTTR from hours to 90 seconds. The on-chain manifest is now our audit source of truth.', name: 'Ava Chen', role: 'Head of Edge ML · Aether', avatar: 'AC' },
                 { quote: 'Deploying our docs to Shelby Sites was one ZIP. No S3 bucket policy to misconfigure, no CloudFront invalidation.', name: 'Marcus Reid', role: 'Staff Engineer · Nova Fleet', avatar: 'MR' },
                 { quote: 'Canary + lineage caught a recalled LoRA still serving in prod. Without Provenode we would have shipped it.', name: 'Priya Nair', role: 'ML Platform · Edgeworks', avatar: 'PN' },
               ].map(t => (
-                <div key={t.name} className="card" style={{ padding: 22 }}>
+                <div key={t.name} className="card lp-testimonial-card" style={{ padding: 22 }}>
                   <div style={{ display: 'flex', gap: 2, color: '#f59e0b', marginBottom: 12, fontSize: 14 }}>★★★★★</div>
                   <p style={{ fontSize: 14, lineHeight: 1.65, marginBottom: 16 }}>"{t.quote}"</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

@@ -955,6 +955,16 @@ input[type=checkbox], input[type=radio] { accent-color: var(--coral); }
   table { min-width: 460px; }
 }
 
+/* ── Sites page responsive ─────────────────────────────────── */
+.sites-hero-grid { }
+@media (max-width: 900px) {
+  .sites-hero-grid { grid-template-columns: 1fr !important; padding: 20px 16px 16px !important; }
+  .sites-hero-grid .card { padding: 14px !important; }
+}
+@media (max-width: 640px) {
+  .sites-form-grid, .sites-form-grid2 { grid-template-columns: 1fr !important; }
+}
+
 /* ── Misc helpers ───────────────────────────────────────────── */
 .flex   { display: flex; }
 .flex-wrap { flex-wrap: wrap; }

@@ -87,7 +87,7 @@ export default function Sites() {
 
       {/* Hero explainer — SaaS comparison */}
       <div className="card" style={{ overflow: 'hidden', background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 55%, #1e1a12 100%)', color: '#f5f5f0', border: 'none' }}>
-        <div style={{ padding: '28px 28px 22px', display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 24, alignItems: 'center' }}>
+        <div className="sites-hero-grid" style={{ padding: '28px 28px 22px', display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 24, alignItems: 'center' }}>
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(232,90,40,0.15)', border: '1px solid rgba(232,90,40,0.3)', borderRadius: 9999, padding: '4px 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#ff8a5c' }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ff6b3d', display: 'inline-block' }} /> NEW · Shelby Sites
@@ -132,7 +132,7 @@ export default function Sites() {
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{sites.length} site{sites.length !== 1 ? 's' : ''}</span>
         </div>
         <div className="card-body">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }} className="sites-form-grid">
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Site name *</label>
               <input className="form-input" placeholder="My Portfolio" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
@@ -143,7 +143,7 @@ export default function Sites() {
               <input className="form-input mono" placeholder="my-portfolio" value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} />
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: 14, marginTop: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: 14, marginTop: 14 }} className="sites-form-grid2">
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Description</label>
               <input className="form-input" placeholder="Personal site — built with Provenode" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />

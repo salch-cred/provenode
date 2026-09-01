@@ -242,7 +242,7 @@
 }
 
 .lp-badge {
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
   font-family: var(--font-mono);
   font-size: 11.5px; font-weight: 500; letter-spacing: .02em;
   background: rgba(255,255,255,.75);
@@ -738,7 +738,63 @@
 .lp-footer-links a:hover { color: var(--text-primary); }
 .lp-footer-links a i { font-size: 14px; }
 
-/* ── Responsive ────────────────────────────────────────────────────── */
+/* ── Responsive SaaS grids ───────────────────────────────────────────
+   Shared by how-it-works / use-cases / pricing / testimonials / logos.
+   3-col desktop → 1-col mobile; pricing keeps its featured scale.
+   ────────────────────────────────────────────────────────────────── */
+.lp-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.lp-grid-3.lp-grid-stretch { align-items: stretch; }
+
+@media (max-width: 900px) {
+  .lp-grid-3 { grid-template-columns: 1fr 1fr; }
+  .lp-grid-3.lp-grid-stretch { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .lp-grid-3 { grid-template-columns: 1fr; }
+  .lp-grid-3.lp-grid-stretch { grid-template-columns: 1fr; }
+}
+
+/* Logo wall — 6 across desktop, 3 tablet, 2 mobile */
+.lp-grid-6logos {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  opacity: 0.7;
+}
+@media (max-width: 900px) { .lp-grid-6logos { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px)  { .lp-grid-6logos { grid-template-columns: repeat(2, 1fr); } }
+
+/* Shelby Sites split — feature + terminal */
+.lp-sites-split {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+}
+@media (max-width: 900px) {
+  .lp-sites-split { grid-template-columns: 1fr; }
+  .lp-sites-terminal { border-left: none !important; border-top: 1px solid var(--border); }
+}
+
+/* Pricing — flatten featured scale on small screens */
+@media (max-width: 900px) {
+  .lp-price-card { transform: none !important; }
+  .lp-price-card .lp-price-badge { top: -10px; }
+}
+@media (max-width: 640px) {
+  .lp-grid-3.lp-grid-stretch { gap: 12px; }
+}
+
+/* Step cards / use-case cards — tighten on mobile */
+@media (max-width: 640px) {
+  .lp-step-card, .lp-usecase-card { padding: 16px !important; }
+  .lp-sites-copy { padding: 20px !important; }
+  .lp-sites-terminal { padding: 14px !important; }
+}
+
+/* ── Responsive SaaS grids end ───────────────────────────────────────
 @media(max-width:900px){
   .lp-board-floats { position: static; flex-direction: row; margin-top: 12px; }
   .lp-float { max-width: none; flex: 1; }
