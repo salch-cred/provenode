@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import KageBackground from '../components/KageBackground';
+import LatticeBackground from '../components/LatticeBackground';
 
 export default function Verify() {
   const [params] = useSearchParams();
@@ -33,7 +33,7 @@ export default function Verify() {
 
   return (
     <div className="verify-page">
-      <KageBackground quiet />
+      <LatticeBackground quiet />
       <div className="verify-topbar">
         <Link to="/" className="verify-logo"><span className="dot" />Provenode</Link>
         <span className="verify-crumb">/ Model Provenance Certificate</span>

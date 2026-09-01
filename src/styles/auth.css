@@ -12,8 +12,8 @@
   overflow: hidden;
 }
 
-/* Kage background sits under the card */
-.auth-page > .kage { z-index: 0; }
+/* Lattice background sits under the card */
+.auth-page > .lattice { z-index: 0; }
 .auth-card { z-index: 1; }
 
 .auth-card {
@@ -148,7 +148,7 @@
   background: var(--bg);
   position: relative;
 }
-.verify-page > .kage { z-index: 0; }
+.verify-page > .lattice { z-index: 0; }
 .verify-topbar, .verify-container { position: relative; z-index: 1; }
 .verify-topbar {
   background: rgba(250,250,248,.86);

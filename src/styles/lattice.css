@@ -1,0 +1,248 @@
+/* ================================================================
+   Lattice — 3D orbital lattice background
+   True 3D wireframe cubes (6 CSS faces) tumbling in perspective,
+   a tilted orbital system with glowing nodes circling a core,
+   flowing aurora ribbons, rising diamond sparks, and depth-layered
+   mouse parallax (near / mid / far move at different rates).
+   ================================================================ */
+
+.lattice {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  --px: 0;
+  --py: 0;
+  --mob: 1;
+}
+
+/* ── Parallax layers — each depth moves at its own rate ────────── */
+.pxa {
+  position: absolute;
+  inset: 0;
+  transform: translate3d(
+    calc(var(--px) * var(--d, 20) * 1px),
+    calc(var(--py) * var(--d, 20) * 1px),
+    0
+  );
+  will-change: transform;
+}
+
+/* ── Cubes — real 3D: six faces, perspective wrapper ───────────── */
+.lcube-wrap {
+  position: absolute;
+  width: calc(var(--s) * var(--mob) * 1px);
+  height: calc(var(--s) * var(--mob) * 1px);
+  perspective: 780px;
+  animation: lfloat 11s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes lfloat {
+  from { transform: translateY(6px); }
+  to   { transform: translateY(-10px); }
+}
+
+.lcube {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  animation: lcube-tumble 40s linear infinite;
+  opacity: var(--o, .5);
+  will-change: transform;
+}
+
+@keyframes lcube-tumble {
+  from { transform: rotateX(-16deg) rotateY(0deg); }
+  to   { transform: rotateX(-16deg) rotateY(360deg); }
+}
+
+.lcube-face {
+  position: absolute;
+  inset: 0;
+  border: 1px solid;
+}
+
+.lcube[data-tint='ink']    .lcube-face { border-color: rgba(23,21,20,.15);   background: rgba(23,21,20,.014); }
+.lcube[data-tint='orange'] .lcube-face { border-color: rgba(232,90,40,.20);  background: rgba(232,90,40,.014); }
+.lcube[data-tint='violet'] .lcube-face { border-color: rgba(109,91,208,.18); background: rgba(109,91,208,.013); }
+
+.lcube-face.f-front  { transform: translateZ(calc(var(--s) * var(--mob) / 2 * 1px)); }
+.lcube-face.f-back   { transform: rotateY(180deg) translateZ(calc(var(--s) * var(--mob) / 2 * 1px)); }
+.lcube-face.f-right  { transform: rotateY(90deg)  translateZ(calc(var(--s) * var(--mob) / 2 * 1px)); }
+.lcube-face.f-left   { transform: rotateY(-90deg) translateZ(calc(var(--s) * var(--mob) / 2 * 1px)); }
+.lcube-face.f-top    { transform: rotateX(90deg)  translateZ(calc(var(--s) * var(--mob) / 2 * 1px)); }
+.lcube-face.f-bottom { transform: rotateX(-90deg) translateZ(calc(var(--s) * var(--mob) / 2 * 1px)); }
+
+/* ── Orbital system — tilted rings with traveling nodes ─────────── */
+.orbit-center {
+  position: absolute;
+  top: 33%;
+  left: 50%;
+  width: 0;
+  height: 0;
+}
+
+.orbit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(var(--sz) * var(--mob) * 1px);
+  height: calc(var(--sz) * var(--mob) * 1px);
+  border-radius: 50%;
+  border: 1px solid;
+  transform: translate(-50%, -50%) rotateX(var(--tilt, 66deg));
+}
+
+.orbit[data-tint='ink']    { border-color: rgba(23,21,20,.12); }
+.orbit[data-tint='orange'] { border-color: rgba(232,90,40,.18); }
+.orbit[data-tint='violet'] { border-color: rgba(109,91,208,.16); }
+
+.orbit-spin {
+  position: absolute;
+  inset: 0;
+  animation: orbit-rot 22s linear infinite;
+  will-change: transform;
+}
+
+@keyframes orbit-rot {
+  to { transform: rotate(360deg); }
+}
+
+.orbit-node {
+  position: absolute;
+  top: -3.5px;
+  left: 50%;
+  margin-left: -3.5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.orbit-node--b { top: auto; bottom: -3.5px; }
+
+.orbit[data-tint='ink'] .orbit-node {
+  background: #171514;
+  box-shadow: 0 0 10px rgba(23,21,20,.4), 0 0 3px rgba(23,21,20,.6);
+}
+.orbit[data-tint='orange'] .orbit-node {
+  background: #E85A28;
+  box-shadow: 0 0 14px rgba(232,90,40,.55), 0 0 4px rgba(232,90,40,.85);
+}
+.orbit[data-tint='violet'] .orbit-node {
+  background: #6D5BD0;
+  box-shadow: 0 0 14px rgba(109,91,208,.5), 0 0 4px rgba(109,91,208,.85);
+}
+
+/* Nucleus — ink core with a warm breathing ring */
+.orbit-core {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #171514;
+  animation: core-pulse 4.5s ease-in-out infinite;
+}
+
+@keyframes core-pulse {
+  0%, 100% { box-shadow: 0 0 0 5px rgba(232,90,40,.10), 0 0 22px rgba(232,90,40,.30); }
+  50%      { box-shadow: 0 0 0 10px rgba(232,90,40,.05), 0 0 30px rgba(232,90,40,.42); }
+}
+
+/* ── Aurora — soft ribbons of light flowing overhead ───────────── */
+.aurora {
+  position: absolute;
+  width: 160%;
+  height: 340px;
+  filter: blur(46px);
+  opacity: .8;
+  will-change: transform;
+}
+
+.aurora--1 {
+  top: -70px;
+  left: -30%;
+  background: linear-gradient(100deg,
+    transparent 12%,
+    rgba(232,90,40,.075) 38%,
+    rgba(255,193,143,.09) 50%,
+    rgba(232,90,40,.06) 62%,
+    transparent 88%);
+  transform: rotate(-8deg);
+  animation: aurora-flow 26s ease-in-out infinite alternate;
+}
+
+.aurora--2 {
+  bottom: -140px;
+  right: -34%;
+  background: linear-gradient(80deg,
+    transparent 12%,
+    rgba(109,91,208,.06) 40%,
+    rgba(178,164,238,.075) 52%,
+    rgba(109,91,208,.05) 64%,
+    transparent 88%);
+  transform: rotate(6deg);
+  animation: aurora-flow 32s ease-in-out infinite alternate;
+  animation-delay: -14s;
+}
+
+@keyframes aurora-flow {
+  from { transform: rotate(-8deg) translateX(-5%); }
+  to   { transform: rotate(-8deg) translateX(7%); }
+}
+
+/* ── Sparks — rotating diamond motes rising through the light ──── */
+.spark {
+  position: absolute;
+  bottom: -12px;
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: rgba(232,90,40,.32);
+  opacity: 0;
+  animation: spark-rise linear infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes spark-rise {
+  0%   { transform: translate3d(0, 0, 0) rotate(45deg); opacity: 0; }
+  10%  { opacity: .55; }
+  85%  { opacity: .18; }
+  100% { transform: translate3d(var(--dx, 0px), -108vh, 0) rotate(405deg); opacity: 0; }
+}
+
+/* ── Vignette — gentle stage falloff ────────────────────────────── */
+.lattice-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 120% 90% at 50% 40%, transparent 55%, rgba(23,21,20,.05) 100%);
+}
+
+/* ── Quiet variant — auth / verify pages ───────────────────────── */
+.lattice--quiet .q-hide,
+.lattice--quiet .aurora--2,
+.lattice--quiet .spark { display: none; }
+
+.lattice--quiet .orbit-core { animation-duration: 7s; }
+
+/* ── Mobile — scale everything down via --mob ───────────────────── */
+@media (max-width: 768px) {
+  .lattice { --mob: .62; }
+  .aurora { height: 240px; filter: blur(34px); }
+}
+
+@media (max-width: 480px) {
+  .lattice { --mob: .5; }
+  .lattice .m-hide { display: none; }
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .lcube, .lcube-wrap, .orbit-spin, .aurora, .orbit-core { animation: none !important; }
+  .spark { display: none; }
+}

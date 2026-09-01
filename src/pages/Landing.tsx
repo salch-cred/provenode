@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import KageBackground from '../components/KageBackground';
+import LatticeBackground from '../components/LatticeBackground';
 
 const CODE_SAMPLE = `from provenode import ProvenodeClient
 
@@ -122,7 +122,7 @@ export default function Landing() {
 
   return (
     <div className="lp" ref={ref}>
-      <KageBackground />
+      <LatticeBackground />
 
       {/* Nav */}
       <header className="lp-nav">
