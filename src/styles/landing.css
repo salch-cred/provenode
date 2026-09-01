@@ -545,7 +545,49 @@
 .lp-check-list > div { display: flex; gap: 9px; font-size: 14px; align-items: flex-start; color: var(--nt-graphite); }
 .lp-check-list i { color: var(--nt-blue); font-size: 15px; margin-top: 1px; flex-shrink: 0; }
 
-/* ── Pricing ───────────────────────────────────────────────────────── */
+/* ── Free-for-now banner ─────────────────────────────────────────── */
+.lp-free-banner {
+  background: var(--nt-white);
+  border: 1px solid var(--nt-border);
+  border-radius: var(--nt-radius-card);
+  padding: 56px 40px 48px;
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.lp-free-banner .lp-h2 { margin-bottom: 12px; }
+.lp-free-banner .lp-sub-intro { max-width: 520px; }
+
+.lp-free-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--nt-sky-tint); color: var(--nt-blue);
+  font-size: 12.5px; font-weight: 600; letter-spacing: .02em;
+  padding: 6px 14px; border-radius: 9999px;
+  margin-bottom: 18px;
+}
+.lp-free-pill i { font-size: 14px; }
+
+.lp-free-row {
+  display: grid; grid-template-columns: repeat(4, auto);
+  justify-content: center; gap: 10px 22px;
+}
+.lp-free-item {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 500; color: var(--nt-graphite);
+  white-space: nowrap;
+}
+.lp-free-item i { font-size: 15px; color: var(--nt-blue); }
+
+@media (max-width: 900px) {
+  .lp-free-row { grid-template-columns: repeat(2, auto); }
+}
+@media (max-width: 640px) {
+  .lp-free-banner { padding: 40px 20px 32px; }
+  .lp-free-row { grid-template-columns: 1fr; justify-items: center; gap: 10px; }
+  .lp-free-banner .lp-btn { width: 100%; justify-content: center; }
+}
+
+/* ── Pricing card styles (kept for future reuse) ─────────────────── */
 .lp-price-card {
   display: flex; flex-direction: column;
   background: var(--nt-white);
@@ -752,20 +794,34 @@
 .lp-cta-card .lp-btn-ghost { background: rgba(255,255,255,0.1); color: #fff; }
 .lp-cta-card .lp-btn-ghost:hover { background: rgba(255,255,255,0.18); }
 
-/* ── Footer ────────────────────────────────────────────────────────── */
-.lp-footer { border-top: 1px solid var(--nt-border); padding: 40px 0 56px; }
-.lp-footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px; }
+/* ── Footer — two-row, no wrap jank ──────────────────────────────── */
+.lp-footer { border-top: 1px solid var(--nt-border); padding: 36px 0 44px; }
+.lp-footer-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 18px; flex-wrap: wrap;
+}
 .lp-footer-brand { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 600; letter-spacing: -0.015em; }
 .lp-footer-logo { width: 22px; height: 22px; }
 .lp-footer-tag { font-size: 12.5px; color: var(--nt-stone); }
-.lp-footer-links { display: flex; flex-wrap: wrap; gap: 16px; }
+.lp-footer-links { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .lp-footer-links a {
   font-size: 13px; color: rgba(0,0,0,0.6); text-decoration: none;
-  display: flex; align-items: center; gap: 5px;
-  transition: color .2s ease;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: color .15s ease;
+  white-space: nowrap;
 }
 .lp-footer-links a:hover { color: var(--nt-ink); }
 .lp-footer-links a i { font-size: 14px; }
+
+.lp-footer-bottom {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  margin-top: 22px; padding-top: 18px;
+  border-top: 1px solid var(--nt-border);
+  font-size: 12px; color: var(--nt-stone);
+}
+.lp-footer-bottom a { color: var(--nt-stone); text-decoration: none; transition: color .15s ease; }
+.lp-footer-bottom a:hover { color: var(--nt-blue); }
 
 /* ── Marquee ────────────────────────────────────────────────────────── */
 .lp-marquee-container {
@@ -870,8 +926,9 @@
 
   .lp-marquee-track span { font-size: 11px; }
 
-  .lp-footer-inner { flex-direction: column; align-items: flex-start; gap: 14px; }
-  .lp-footer-links { gap: 12px; }
+  .lp-footer-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .lp-footer-links { gap: 8px 14px; }
+  .lp-footer-bottom { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
 
 @media (max-width: 400px) {

@@ -135,7 +135,6 @@ export default function Landing() {
           <nav className="lp-nav-links">
             <a href="#features" className="lp-navlink">Features</a>
             <a href="#sites" className="lp-navlink">Sites</a>
-            <a href="#pricing" className="lp-navlink">Pricing</a>
             <a href="#faq" className="lp-navlink">FAQ</a>
             <a href="/docs/" target="_blank" rel="noreferrer" className="lp-navlink">Docs</a>
             <a href="https://x.com/provenode" target="_blank" rel="noreferrer" className="lp-navlink lp-gh" aria-label="X (Twitter)"><i className="hgi-stroke hgi-twitter" /></a>
@@ -154,7 +153,6 @@ export default function Landing() {
       <div className={`lp-mobile-nav${menuOpen ? ' open' : ''}`} aria-hidden={!menuOpen}>
         <a href="#features" onClick={() => setMenuOpen(false)}><i className="hgi-stroke hgi-dashboard-square-01" /> Features</a>
         <a href="#sites" onClick={() => setMenuOpen(false)}><i className="hgi-stroke hgi-globe-02" /> Shelby Sites</a>
-        <a href="#pricing" onClick={() => setMenuOpen(false)}><i className="hgi-stroke hgi-bitcoin-04" /> Pricing</a>
         <a href="#faq" onClick={() => setMenuOpen(false)}><i className="hgi-stroke hgi-information-circle" /> FAQ</a>
         <a href="/docs/" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}><i className="hgi-stroke hgi-book-open-01" /> Docs</a>
         <a href="https://x.com/provenode" target="_blank" rel="noreferrer" onClick={() => setMenuOpen(false)}><i className="hgi-stroke hgi-twitter" /> X @provenode</a>
@@ -451,36 +449,27 @@ ok  manifest anchored on-chain`}</pre>
           </div>
         </section>
 
-        {/* ── Pricing ─────────────────────────────────────────── */}
+        {/* ── Free for now ────────────────────────────────────── */}
         <section className="lp-section lp-reveal" id="pricing">
           <div className="lp-shell">
-            <div className="lp-sec-head" style={{ maxWidth: 560, margin: '0 auto 40px', textAlign: 'center' }}>
-              <p className="lp-kicker" style={{ justifyContent: 'center' }}>Pricing</p>
-              <h2 className="lp-h2">Start free. Scale when you ship.</h2>
-              <p className="lp-sub-intro" style={{ margin: '0 auto' }}>All plans include Shelby Sites. Pay for what you anchor and serve — no seat fees.</p>
-            </div>
-            <div className="lp-grid-3 lp-grid-stretch">
-              {[
-                { name: 'Starter', price: '$0', per: '/mo', desc: 'For prototypes & personal sites', cta: 'Start free', featured: false, features: ['3 sites · 10 deployments', '1,000 model verifications / mo', 'Community Discord', '90-day Shelby blobs'] },
-                { name: 'Pro', price: '$49', per: '/mo', desc: 'For teams shipping to fleets', cta: 'Start Pro trial', featured: true, badge: 'Most popular', features: ['Unlimited sites & deploys', '100k verifications / mo', 'Canary + Blue-Green + A/B locks', 'Webhooks, audit log, SSO', 'Email support < 24h'] },
-                { name: 'Enterprise', price: 'Custom', per: '', desc: 'For regulated fleets & SOC 2', cta: 'Talk to founders', featured: false, features: ['Everything in Pro', 'Dedicated Shelbynet namespace', 'On-prem signer & VPC', 'EU AI Act export & DPA', 'Slack Connect + 99.9% SLA'] },
-              ].map(tier => (
-                <div key={tier.name} className={`lp-price-card${tier.featured ? ' lp-price-featured' : ''}`}>
-                  {tier.badge && <div className="lp-price-badge">{tier.badge}</div>}
-                  <div className="lp-price-name">{tier.name}</div>
-                  <div className="lp-price-row">
-                    <span className="lp-price-amt">{tier.price}</span>
-                    {tier.per && <span className="lp-price-per">{tier.per}</span>}
-                  </div>
-                  <div className="lp-price-desc">{tier.desc}</div>
-                  <div className="lp-price-feats">
-                    {tier.features.map(f => <div className="lp-price-feat" key={f}><i className="hgi-stroke hgi-tick-01" /> {f}</div>)}
-                  </div>
-                  {tier.name === 'Enterprise'
-                    ? <a href="mailto:founders@provenode.xyz" className="lp-btn lp-btn-outline" style={{ width: '100%', justifyContent: 'center' }}>{tier.cta}</a>
-                    : <Link to="/app/dashboard" className={`lp-btn ${tier.featured ? 'lp-btn-primary' : 'lp-btn-outline'}`} style={{ width: '100%', justifyContent: 'center' }}>{tier.cta}</Link>}
-                </div>
-              ))}
+            <div className="lp-free-banner">
+              <div className="lp-free-pill"><i className="hgi-stroke hgi-gift" /> Free while we build</div>
+              <h2 className="lp-h2">Everything is <span className="lp-hl">free</span>, for now.</h2>
+              <p className="lp-sub-intro" style={{ margin: '0 auto 20px' }}>
+                Full platform access — models, fleet deploys, and Shelby Sites hosting — at no cost
+                while we are in open beta. No credit card, no seat limits, no paywalls.
+                Pricing arrives later, and beta users keep a generous free tier.
+              </p>
+              <div className="lp-free-row">
+                <div className="lp-free-item"><i className="hgi-stroke hgi-globe-02" /><span>Unlimited Shelby Sites</span></div>
+                <div className="lp-free-item"><i className="hgi-stroke hgi-upload-01" /><span>Unlimited deploys</span></div>
+                <div className="lp-free-item"><i className="hgi-stroke hgi-fingerprint-scan" /><span>Full verification suite</span></div>
+                <div className="lp-free-item"><i className="hgi-stroke hgi-cancel-circle" /><span>No credit card</span></div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 26 }}>
+                <Link to="/app/dashboard" className="lp-btn lp-btn-primary">Start building free <i className="hgi-stroke hgi-arrow-right-01" /></Link>
+                <a href="mailto:founders@provenode.xyz" className="lp-btn lp-btn-outline"><i className="hgi-stroke hgi-mail-01" /> Talk to founders</a>
+              </div>
             </div>
           </div>
         </section>
@@ -616,15 +605,18 @@ ok  manifest anchored on-chain`}</pre>
       <footer className="lp-footer">
         <div className="lp-shell lp-footer-inner">
           <div className="lp-footer-brand"><img src="/provenode-logo.svg" alt="Provenode" className="lp-footer-logo" /><b>Provenode</b></div>
-          <span className="lp-footer-tag">Verified AI model delivery · Shelbynet + Aptos</span>
+          <span className="lp-footer-tag">Verified AI model delivery on Shelbynet + Aptos</span>
           <div className="lp-footer-links">
-            <a href="/docs/" target="_blank" rel="noreferrer"><i className="hgi-stroke hgi-book-open-01" /> Docs</a>
-            <a href="https://x.com/provenode" target="_blank" rel="noreferrer"><i className="hgi-stroke hgi-twitter" /> X @provenode</a>
-            <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer"><i className="hgi-stroke hgi-github" /> GitHub</a>
-            <Link to="/app/sites">Sites</Link>
             <Link to="/app/dashboard">Console</Link>
-            <a href="https://explorer.aptoslabs.com/account/0x77f8cb3dde7d8347cbaa1043889e79077489af6ed828e273f0283bfeccd39d18?network=custom&customNetworkUrl=https%3A%2F%2Fapi.shelbynet.shelby.xyz%2Fv1" target="_blank" rel="noreferrer">Contract</a>
+            <Link to="/app/sites">Sites</Link>
+            <a href="/docs/" target="_blank" rel="noreferrer"><i className="hgi-stroke hgi-book-open-01" /> Docs</a>
+            <a href="https://x.com/provenode" target="_blank" rel="noreferrer"><i className="hgi-stroke hgi-twitter" /> X</a>
+            <a href="https://github.com/salch-cred/provenode" target="_blank" rel="noreferrer"><i className="hgi-stroke hgi-github" /> GitHub</a>
           </div>
+        </div>
+        <div className="lp-shell lp-footer-bottom">
+          <span>Open beta — free while we build.</span>
+          <a href="https://explorer.aptoslabs.com/account/0x77f8cb3dde7d8347cbaa1043889e79077489af6ed828e273f0283bfeccd39d18?network=custom&customNetworkUrl=https%3A%2F%2Fapi.shelbynet.shelby.xyz%2Fv1" target="_blank" rel="noreferrer">Registry contract on Shelbynet</a>
         </div>
       </footer>
 
