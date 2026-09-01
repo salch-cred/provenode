@@ -57,7 +57,7 @@
   animation: lp-fade-up .8s cubic-bezier(.16,1,.3,1) both;
 }
 
-/* ── Base ──────────────────────────────────────────────────────────── */
+/* Base — kage background layers live in kage.css (see <KageBackground/>) */
 .lp * { box-sizing: border-box; }
 
 .lp {
@@ -70,41 +70,8 @@
   overflow-x: hidden;
 }
 
-/* Warm ambient — two quiet orbs, fixed to the page edge */
-.lp::before,
-.lp::after {
-  content: '';
-  position: fixed;
-  width: 52vw; height: 52vw;
-  border-radius: 50%;
-  z-index: -1;
-  pointer-events: none;
-  filter: blur(90px);
-}
-.lp::before {
-  top: -24vw; right: -18vw;
-  background: radial-gradient(circle, rgba(232,90,40,.13) 0%, rgba(232,90,40,0) 62%);
-}
-.lp::after {
-  bottom: -28vw; left: -20vw;
-  background: radial-gradient(circle, rgba(109,91,208,.10) 0%, rgba(109,91,208,0) 62%);
-}
-
-/* Faint blueprint grid on the hero only */
-.lp-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(23,21,20,.030) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(23,21,20,.030) 1px, transparent 1px);
-  background-size: 44px 44px;
-  z-index: -1;
-  mask-image: radial-gradient(ellipse 90% 80% at 50% 20%, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%);
-  -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 20%, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%);
-}
-
 .lp > * { position: relative; z-index: 10; }
+.lp > .kage { z-index: 0; }
 
 /* ── Nav — floating glass island ──────────────────────────────────── */
 .lp-nav {

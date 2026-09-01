@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePrivy } from '@privy-io/react-auth';
+import KageBackground from '../components/KageBackground';
 
 export default function Login({ noAuth }: { noAuth?: boolean }) {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ export default function Login({ noAuth }: { noAuth?: boolean }) {
   if (!configured) {
     return (
       <div className="auth-page">
+        <KageBackground quiet />
         <div className="auth-card">
           <div className="auth-logo"><div className="dot" />Provenode</div>
           <div className="auth-setup-icon"><i className="hgi-stroke hgi-shield-02" /></div>
@@ -47,6 +49,7 @@ function LoginWithPrivy() {
   if (authenticated) {
     return (
       <div className="auth-page">
+        <KageBackground quiet />
         <div className="auth-card auth-success">
           <div className="auth-logo"><div className="dot" />Provenode</div>
           <div className="auth-success-icon"><i className="hgi-stroke hgi-checkmark-circle-02" /></div>
@@ -59,6 +62,7 @@ function LoginWithPrivy() {
 
   return (
     <div className="auth-page">
+      <KageBackground quiet />
       <div className="auth-card">
         <div className="auth-logo"><div className="dot" />Provenode</div>
         <h1 className="auth-title">Sign in</h1>

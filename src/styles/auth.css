@@ -12,16 +12,9 @@
   overflow: hidden;
 }
 
-/* Quiet ambient orb */
-.auth-page::before {
-  content: '';
-  position: absolute;
-  top: -30%; left: 50%;
-  width: 90%; height: 90%;
-  transform: translateX(-50%);
-  background: radial-gradient(ellipse, rgba(232,90,40,.07) 0%, transparent 60%);
-  pointer-events: none;
-}
+/* Kage background sits under the card */
+.auth-page > .kage { z-index: 0; }
+.auth-card { z-index: 1; }
 
 .auth-card {
   background: var(--surface);
@@ -149,7 +142,14 @@
 .loading-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
 
 /* ── Verify page ──────────────────────────────────────────────────── */
-.verify-page { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
+.verify-page {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  position: relative;
+}
+.verify-page > .kage { z-index: 0; }
+.verify-topbar, .verify-container { position: relative; z-index: 1; }
 .verify-topbar {
   background: rgba(250,250,248,.86);
   backdrop-filter: blur(12px);

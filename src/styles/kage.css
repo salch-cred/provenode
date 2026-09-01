@@ -1,0 +1,233 @@
+/* ================================================================
+   Kage (影) — 3D shadow-theater background
+   Layered hex wireframes in true perspective, drifting kage orbs,
+   a receding floor grid, diagonal light beams, rising dust motes,
+   and a mouse-parallax tilt on the whole stage.
+   ================================================================ */
+
+.kage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  --kage-mx: 0;
+  --kage-my: 0;
+}
+
+/* ── Depth stage — perspective + mouse tilt ───────────────────── */
+.kage-depth {
+  position: absolute;
+  inset: 0;
+  perspective: 1100px;
+  perspective-origin: 50% 34%;
+  transform-style: preserve-3d;
+  transform:
+    rotateX(calc(var(--kage-my) * -2.2deg))
+    rotateY(calc(var(--kage-mx) * 2.8deg));
+  will-change: transform;
+}
+
+/* ── Hex rings — wireframe hexes on tilted 3D planes ──────────── */
+.kage-ring {
+  position: absolute;
+  display: block;
+  color: var(--kage-c, rgba(23,21,20,.45));
+  opacity: var(--kage-o, .4);
+  will-change: transform;
+}
+.kage-ring svg { width: 100%; height: 100%; display: block; }
+
+/* Spin like a coin on a tilted table */
+@keyframes kage-spin {
+  from { transform: rotateX(var(--kage-rx, 62deg)) rotateZ(0deg); }
+  to   { transform: rotateX(var(--kage-rx, 62deg)) rotateZ(360deg); }
+}
+
+/* Turn like a card sweeping through Y */
+@keyframes kage-flip {
+  from { transform: rotateY(0deg) rotateX(14deg); }
+  to   { transform: rotateY(360deg) rotateX(14deg); }
+}
+
+.kage-ring--a {
+  top: 15%; left: 8%;
+  width: 420px; height: 420px;
+  --kage-c: rgba(232,90,40,.55);
+  --kage-o: .34;
+  --kage-rx: 62deg;
+  animation: kage-spin 46s linear infinite;
+}
+
+.kage-ring--b {
+  top: 10%; right: 5%;
+  width: 560px; height: 560px;
+  --kage-c: rgba(109,91,208,.45);
+  --kage-o: .28;
+  --kage-rx: 70deg;
+  animation: kage-spin 72s linear infinite reverse;
+}
+
+.kage-ring--c {
+  bottom: 4%; left: 30%;
+  width: 500px; height: 500px;
+  --kage-c: rgba(23,21,20,.42);
+  --kage-o: .14;
+  --kage-rx: 55deg;
+  animation: kage-spin 58s linear infinite;
+  animation-delay: -20s;
+}
+
+.kage-ring--d {
+  top: 40%; left: 57%;
+  width: 300px; height: 300px;
+  --kage-c: rgba(232,90,40,.6);
+  --kage-o: .2;
+  animation: kage-flip 26s cubic-bezier(.45,.05,.55,.95) infinite;
+}
+
+/* ── Floor — receding grid flowing toward the viewer ───────────── */
+.kage-floor {
+  position: absolute;
+  left: -60%; right: -60%;
+  bottom: -16vh;
+  height: 62vh;
+  transform: perspective(520px) rotateX(60deg);
+  transform-origin: 50% 100%;
+  background-image:
+    linear-gradient(rgba(23,21,20,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23,21,20,.055) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: linear-gradient(to top, rgba(0,0,0,.85) 0%, transparent 78%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,.85) 0%, transparent 78%);
+  animation: kage-floor-flow 2.8s linear infinite;
+}
+
+@keyframes kage-floor-flow {
+  from { background-position: 0 0; }
+  to   { background-position: 0 46px; }
+}
+
+/* ── Light beams — diagonal shafts swaying from above ──────────── */
+.kage-beam {
+  position: absolute;
+  top: -30%;
+  height: 150%;
+  width: 200px;
+  filter: blur(30px);
+  transform-origin: top center;
+  animation: kage-beam-sway 14s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.kage-beam--1 {
+  left: 8%;
+  --kage-rot: 22deg;
+  background: linear-gradient(to bottom, rgba(232,90,40,.07), transparent 72%);
+}
+
+.kage-beam--2 {
+  right: 6%;
+  --kage-rot: -18deg;
+  background: linear-gradient(to bottom, rgba(109,91,208,.06), transparent 72%);
+  animation-delay: -7s;
+}
+
+@keyframes kage-beam-sway {
+  from { transform: rotate(var(--kage-rot, 22deg)) translateX(0); }
+  to   { transform: rotate(var(--kage-rot, 22deg)) translateX(34px); }
+}
+
+/* ── Kage orbs — drifting shadow blobs ─────────────────────────── */
+.kage-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(76px);
+  animation: kage-drift 30s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.kage-orb--1 {
+  top: -18vw; right: -14vw;
+  width: 54vw; height: 54vw;
+  background: radial-gradient(circle, rgba(232,90,40,.12) 0%, transparent 62%);
+}
+
+.kage-orb--2 {
+  bottom: -22vw; left: -16vw;
+  width: 60vw; height: 60vw;
+  background: radial-gradient(circle, rgba(109,91,208,.09) 0%, transparent 62%);
+  animation-delay: -12s;
+}
+
+.kage-orb--3 {
+  top: 34%; left: 30%;
+  width: 34vw; height: 34vw;
+  background: radial-gradient(circle, rgba(23,21,20,.05) 0%, transparent 60%);
+  animation-delay: -6s;
+  animation-duration: 38s;
+}
+
+@keyframes kage-drift {
+  from { transform: translate3d(0,0,0) scale(1); }
+  50%  { transform: translate3d(3.5vw,-2.5vh,0) scale(1.1); }
+  to   { transform: translate3d(-2.5vw,2vh,0) scale(.96); }
+}
+
+/* ── Dust motes — ember specks rising through the light ────────── */
+.kage-mote {
+  position: absolute;
+  bottom: -12px;
+  border-radius: 50%;
+  background: rgba(232,90,40,.4);
+  animation: kage-mote-rise linear infinite;
+  opacity: 0;
+}
+
+@keyframes kage-mote-rise {
+  0%   { transform: translate3d(0, 0, 0); opacity: 0; }
+  8%   { opacity: .55; }
+  85%  { opacity: .25; }
+  100% { transform: translate3d(var(--kage-drift, 0px), -108vh, 0); opacity: 0; }
+}
+
+/* ── Vignette — deepen the shadow-theater mood ─────────────────── */
+.kage-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 120% 90% at 50% 40%, transparent 55%, rgba(23,21,20,.045) 100%);
+}
+
+/* ── Quiet variant — auth / verify pages ───────────────────────── */
+.kage--quiet .kage-floor,
+.kage--quiet .kage-beam,
+.kage--quiet .kage-ring--c,
+.kage--quiet .kage-ring--d,
+.kage--quiet .kage-mote,
+.kage--quiet .kage-orb--3 { display: none; }
+
+.kage--quiet .kage-ring--a { animation-duration: 70s; opacity: .22; }
+.kage--quiet .kage-ring--b { animation-duration: 90s; opacity: .16; }
+.kage--quiet .kage-orb--1,
+.kage--quiet .kage-orb--2 { filter: blur(64px); }
+
+/* ── Landing stacking — kage sits below all content ───────────── */
+.lp > .kage { z-index: 0; }
+
+/* ── Mobile — trim heavy layers ────────────────────────────────── */
+@media (max-width: 768px) {
+  .kage-beam { display: none; }
+  .kage-ring--a { width: 280px; height: 280px; }
+  .kage-ring--b { width: 340px; height: 340px; }
+  .kage-ring--c { width: 300px; height: 300px; }
+  .kage-ring--d { width: 190px; height: 190px; }
+  .kage-depth { perspective: 800px; }
+}
+
+/* ── Reduced motion ────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .kage-ring, .kage-orb, .kage-beam, .kage-mote, .kage-floor {
+    animation: none !important;
+  }
+  .kage-depth { transform: none; }
+}

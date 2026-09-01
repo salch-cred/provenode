@@ -10,6 +10,7 @@ import { walletConnect, injected, coinbaseWallet } from 'wagmi/connectors';
 import { AppProvider } from './contexts/AppContext';
 import App from './App';
 import './styles/app.css';
+import './styles/kage.css';
 import './styles/landing.css';
 import './styles/auth.css';
 
