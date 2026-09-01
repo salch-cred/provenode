@@ -28,7 +28,15 @@ const FAQS = [
   { q: 'Is it really on-chain verifiable?', a: 'Yes. Every deployment manifest is itself a Shelby blob. Fetch it and you get the full file list with SHA-256s and objectIds. Compare the hash of any served file against the manifest — a mismatch means tampering. The manifest blobId is also written to your audit log.' },
 ];
 
-const AVATARS = ['🤖', '📡', '🛰️', '🚁', '🦾', '📷', '🧠'];
+const AVATARS = [
+  { icon: 'hgi-ai-brain-01',  label: 'Vision models' },
+  { icon: 'hgi-drone',        label: 'Drones' },
+  { icon: 'hgi-cpu',          label: 'Edge devices' },
+  { icon: 'hgi-video-01',     label: 'Cameras' },
+  { icon: 'hgi-robot-01',     label: 'Robotics' },
+  { icon: 'hgi-shield-02',    label: 'Verification' },
+  { icon: 'hgi-globe-02',     label: 'Shelby Sites' },
+];
 
 export default function Landing() {
   const ref = useRef<HTMLDivElement>(null);
@@ -77,17 +85,17 @@ export default function Landing() {
     if (terminal) {
       const lines = [
         '$ provenode upload model.onnx --name "ResNet-v2"',
-        '  ✓ SHA-256: 9e4a7c81d2bf…b82f',
-        '  ✓ Shelby object: shelby://shelbynet/models/resnet-v2',
-        '  ✓ Registered on Shelbynet · block 10356365905',
+        '  ok  SHA-256: 9e4a7c81d2bf..b82f',
+        '  ok  Shelby object: shelby://shelbynet/models/resnet-v2',
+        '  ok  Registered on Shelbynet - block 10356365905',
         '',
         '$ provenode deploy --model resnet-v2 --region Global',
-        '  → Pushing to 248 devices…',
-        '  ✓ 248/248 verified',
+        '  ..  pushing to 248 devices',
+        '  ok  248/248 verified',
         '',
         '$ provenode site deploy --site my-portfolio --zip ./dist.zip',
-        '  ✓ 42 files → Shelby blobs',
-        '  ✓ Live at /s/my-portfolio',
+        '  ok  42 files -> Shelby blobs',
+        '  ok  live at /s/my-portfolio',
       ];
       let li = 0, ci = 0;
       terminal.textContent = '';
@@ -164,12 +172,15 @@ export default function Landing() {
         <section className="lp-hero">
           <div className="lp-shell">
             <div className="lp-avatars lp-anim-fade-up">
-              {AVATARS.map((a, i) => <span className="lp-avatar" key={i} style={{ ['--i' as string]: i } as React.CSSProperties}>{a}</span>)}
+              {AVATARS.map((a, i) => (
+                <span className="lp-avatar" key={i} style={{ ['--i' as string]: i } as React.CSSProperties} title={a.label} aria-label={a.label}>
+                  <i className={`hgi-stroke ${a.icon}`} style={{ fontSize: 19 }} />
+                </span>
+              ))}
             </div>
 
             <h1 className="lp-h1 lp-anim-fade-up" style={{ animationDelay: '60ms' }}>
-              Your fleet runs what you <span className="lp-hl">approved</span>.<br />
-              <span className="lp-hl lp-hl--blue">Provably.</span>
+              Your fleet runs what you <span className="lp-hl">approved</span> — <span className="lp-hl lp-hl--blue">provably.</span>
             </h1>
 
             <p className="lp-sub lp-anim-fade-up" style={{ animationDelay: '120ms' }}>
@@ -202,8 +213,8 @@ export default function Landing() {
                   <div className="lp-grid-6">
                     {['#', 'Model', 'Shelby object', 'Region', 'Verification', 'Rollout'].map(h => <div key={h} className="lp-th">{h}</div>)}
                     {[
-                      { n: 1, name: 'Vision Edge v2.4.1', obj: '0x73ab…20f1', region: 'Singapore', icon: 'hgi-ai-brain-01', verified: true, rollout: '64%' },
-                      { n: 2, name: 'Drone Nav v3.2', obj: '0xe871…b019', region: 'Bengaluru', icon: 'hgi-drone', verified: true, rollout: 'Done' },
+                      { n: 1, name: 'Vision Edge v2.4.1', obj: '0x73ab..20f1', region: 'Singapore', icon: 'hgi-ai-brain-01', verified: true, rollout: '64%' },
+                      { n: 2, name: 'Drone Nav v3.2', obj: '0xe871..b019', region: 'Bengaluru', icon: 'hgi-drone', verified: true, rollout: 'Done' },
                       { n: 3, name: 'Safety Adapter v0.9', obj: 'Pending', region: 'Frankfurt', icon: 'hgi-machine-robot', verified: false, rollout: '—' },
                     ].map(row => (
                       <React.Fragment key={row.n}>
@@ -238,6 +249,22 @@ export default function Landing() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* ── Marquee ─────────────────────────────────────────── */}
+        <section className="lp-marquee-container" aria-hidden="true">
+          <div className="lp-marquee-content">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="lp-marquee-track">
+                <span>Powered by Aptos</span>
+                <span>Secured by Shelby Protocol</span>
+                <span>Built for EU AI Act</span>
+                <span>Zero-knowledge verified</span>
+                <span>Autonomous edge healing</span>
+                <span>Shelby Sites static hosting</span>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -320,9 +347,9 @@ export default function Landing() {
 $ curl -F file=@site.zip \\
   api/sites/\$SITE/deploy
 
-✓ 42 files → Shelby blobs
-✓ Live at /s/my-portfolio
-✓ Manifest anchored on-chain`}</pre>
+ok  42 files -> Shelby blobs
+ok  live at /s/my-portfolio
+ok  manifest anchored on-chain`}</pre>
                 </div>
               </div>
             </div>
@@ -367,7 +394,7 @@ $ curl -F file=@site.zip \\
                 <div className="lp-dots lp-dots-dark"><span /><span /><span /></div>
                 <span className="lp-terminal-title">provenode cli</span>
               </div>
-              <pre className="lp-terminal-body"><code className="lp-terminal-text"></code><span className="lp-cursor">▋</span></pre>
+              <pre className="lp-terminal-body"><code className="lp-terminal-text"></code><span className="lp-cursor">_</span></pre>
             </div>
           </div>
         </section>
@@ -472,12 +499,14 @@ $ curl -F file=@site.zip \\
                 { quote: 'Canary and lineage caught a recalled LoRA still serving in production. Without Provenode we would have shipped it.', name: 'Priya Nair', role: 'ML Platform · Edgeworks', av: 'PN', color: 'var(--nt-marigold)' },
               ].map(t => (
                 <div key={t.name} className="lp-card lp-quote-card">
-                  <div className="lp-quote-stars">★★★★★</div>
+                  <div className="lp-quote-stars">
+                    {[...Array(5)].map((_, s) => <i key={s} className="hgi-stroke hgi-star" />)}
+                  </div>
                   <p className="lp-quote-body">"{t.quote}"</p>
                   <div className="lp-quote-who">
                     <span className="lp-quote-av" style={{ background: t.color }}>{t.av}</span>
-                    <span>
-                      <span className="lp-quote-name">{t.name}</span><br />
+                    <span className="lp-quote-meta">
+                      <span className="lp-quote-name">{t.name}</span>
                       <span className="lp-quote-role">{t.role}</span>
                     </span>
                   </div>

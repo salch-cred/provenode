@@ -16,6 +16,11 @@
   60%  { transform: scale(1.12) rotate(4deg); opacity: 1; }
   100% { transform: scale(1) rotate(0); opacity: 1; }
 }
+@keyframes lp-spring-pop {
+  0%   { transform: scale(.85) translateY(6px); opacity: 0; }
+  55%  { transform: scale(1.04) translateY(-2px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
 @keyframes lp-float-y {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-6px); }
@@ -37,17 +42,49 @@
   100% { transform: translateX(-50%); }
 }
 
-/* Scroll reveal — soft rise, no blur (Notion motion is playful, not cinematic) */
+/* Spring entrance — cards pop in with a bouncy settle (Notion playful) */
 .lp-reveal {
   opacity: 0;
-  transform: translateY(20px);
-  transition: opacity .5s ease, transform .5s ease;
+  transform: translateY(22px) scale(.97);
+  transition: opacity .45s ease, transform .55s cubic-bezier(.34,1.4,.5,1);
   will-change: opacity, transform;
 }
 .lp-reveal.in { opacity: 1; transform: none; }
 .lp-d1 { transition-delay: .07s; }
 .lp-d2 { transition-delay: .14s; }
 .lp-d3 { transition-delay: .21s; }
+
+/* Feature icon pop on reveal + hover spring */
+.lp-card .lp-card-icon i { display: block; transition: transform .3s cubic-bezier(.34,1.56,.64,1); }
+.lp-card:hover .lp-card-icon i { transform: scale(1.18) rotate(-6deg); }
+.lp-card { transition: transform .25s cubic-bezier(.34,1.4,.5,1), background .2s ease; }
+
+/* Avatar row — playful hover wiggle + always-on gentle float */
+.lp-avatar { transition: transform .25s cubic-bezier(.34,1.56,.64,1); }
+.lp-avatar:hover {
+  transform: translateY(-4px) scale(1.1);
+  z-index: 2;
+}
+
+/* Mockup — subtle spring lift on hover */
+.lp-mockup-wrap .lp-mockup { transition: transform .35s cubic-bezier(.34,1.4,.5,1); }
+.lp-mockup-wrap:hover .lp-mockup { transform: translateY(-4px); }
+
+/* FAQ sign rotates with a spring */
+.lp-faq-sign { transition: background .2s ease, color .2s ease, transform .3s cubic-bezier(.34,1.56,.64,1); }
+
+/* Buttons — slight spring on hover */
+.lp-btn { transition: background .2s ease, border-color .2s ease, color .2s ease, transform .2s cubic-bezier(.34,1.56,.64,1); }
+.lp-btn:hover { transform: translateY(-1px); }
+.lp-btn:active { transform: translateY(0) scale(.97); }
+
+/* Terminal/floats keep existing float loops */
+.lp-float {
+  animation: lp-float-y 5s ease-in-out infinite;
+  animation-play-state: paused;
+}
+.lp-float.in { animation-play-state: running; }
+.lp-float.in.lp-float-b { animation-delay: 1.2s; }
 
 .lp-anim-fade-up { animation: lp-fade-up .6s ease both; }
 
@@ -265,7 +302,11 @@
   background: var(--nt-peach);
   border-radius: 9999px;
   padding: 0.02em 0.42em 0.06em;
-  white-space: nowrap;
+  /* allow wrap on very narrow screens instead of overflowing */
+  white-space: normal;
+}
+@media (min-width: 641px) {
+  .lp-h1 .lp-hl { white-space: nowrap; }
 }
 .lp-h1 .lp-hl--yellow { background: var(--nt-marigold); }
 .lp-h1 .lp-hl--blue   { background: var(--nt-sky); }
@@ -368,15 +409,11 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   max-width: 190px;
   text-align: left;
-  animation: lp-float-y 5s ease-in-out infinite;
-  animation-play-state: paused;
 }
-.lp-float.in { animation-play-state: running; }
 .lp-float strong { display: block; font-size: 12px; margin-bottom: 2px; }
 .lp-float i { font-size: 13px; margin-right: 3px; }
 .lp-float-a strong i { color: var(--nt-coral); }
 .lp-float-b strong i { color: #1a7f37; }
-.lp-float.in.lp-float-b { animation-delay: 1.2s; }
 
 /* ── Logo wall — greyscale type, not boxes ─────────────────────────── */
 .lp-logos { padding: 44px 0 8px; }
@@ -405,7 +442,14 @@
   margin-bottom: 10px;
   display: flex; align-items: center; gap: 8px;
 }
-.lp-kicker::before { content: '✦'; font-size: 12px; color: var(--nt-marigold); }
+/* CSS square marker — no glyph characters */
+.lp-kicker::before {
+  content: '';
+  width: 8px; height: 8px;
+  border-radius: 2px;
+  background: var(--nt-marigold);
+  flex-shrink: 0;
+}
 
 .lp-h2 {
   font-size: clamp(30px, 4vw, 54px);
@@ -539,7 +583,8 @@
 
 /* ── Testimonials ───────────────────────────────────────────────────── */
 .lp-quote-card { display: flex; flex-direction: column; }
-.lp-quote-stars { color: var(--nt-marigold); font-size: 14px; margin-bottom: 10px; letter-spacing: 2px; }
+.lp-quote-stars { color: var(--nt-marigold); font-size: 15px; margin-bottom: 10px; letter-spacing: 2px; display: flex; gap: 2px; }
+.lp-quote-stars i { font-size: 15px; }
 .lp-quote-body {
   font-family: var(--nt-serif);
   font-size: 16.5px; line-height: 1.56;
@@ -548,6 +593,7 @@
   text-wrap: pretty;
 }
 .lp-quote-who { display: flex; align-items: center; gap: 10px; }
+.lp-quote-meta { display: flex; flex-direction: column; }
 .lp-quote-av {
   width: 36px; height: 36px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -729,15 +775,20 @@
   background: var(--nt-white);
   padding: 12px 0;
   display: flex; white-space: nowrap;
-}
-.lp-marquee-content { display: flex; animation: lp-marquee-scroll 32s linear infinite; }
+}.lp-marquee-content { display: flex; animation: lp-marquee-scroll 32s linear infinite; }
 .lp-marquee-content:hover { animation-play-state: paused; }
 .lp-marquee-track { display: flex; gap: 40px; padding-right: 40px; }
 .lp-marquee-track span {
   font-size: 12.5px; color: var(--nt-stone); letter-spacing: .03em; text-transform: uppercase;
   display: flex; align-items: center; gap: 9px; font-weight: 500;
 }
-.lp-marquee-track span::before { content: '◆'; font-size: 6px; color: var(--nt-blue); }
+.lp-marquee-track span::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--nt-blue);
+  flex-shrink: 0;
+}
 
 /* ── Stats strip ─────────────────────────────────────────────────────── */
 .lp-stats { display: flex; align-items: stretch; gap: 0; }
