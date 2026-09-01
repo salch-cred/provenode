@@ -372,7 +372,7 @@ ok  manifest anchored on-chain`}</pre>
                 { icon: 'hgi-git-branch', title: 'Model lineage', desc: 'Track parent → child. Catch a recalled base model still serving in prod.' },
                 { icon: 'hgi-shield-02', title: 'ZK execution proofs', desc: 'NIZKPoK benchmarks verify execution without exposing proprietary weights.' },
                 { icon: 'hgi-cpu', title: 'Autonomous self-healing', desc: 'Tamper detected → halt, log the breach, request a clean OTA payload.' },
-                { icon: 'hgi-internet', title: 'Federated learning', desc: 'Aggregate device gradients without exposing sensitive end-user data.' },
+                { icon: 'hgi-globe-02', title: 'Shelby Sites hosting', desc: 'Ship static sites to immutable blobs — push to GitHub, every file verifiable.' },
               ].map((f, i) => (
                 <article className={`lp-card lp-reveal lp-d${i % 3}`} key={f.title}>
                   <div className="lp-card-icon lp-card-icon--tint"><i className={`hgi-stroke ${f.icon}`} /></div>

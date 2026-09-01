@@ -18,18 +18,11 @@ import ObjectsPage from './pages/ObjectsPage';
 import Compliance from './pages/Compliance';
 import Webhooks from './pages/Webhooks';
 import Marketplace from './pages/Marketplace';
-import Analytics from './pages/Analytics';
 import Schedule from './pages/Schedule';
 import Groups from './pages/Groups';
-import Bluegreen from './pages/Bluegreen';
 import Audit from './pages/Audit';
 import Integrity from './pages/Integrity';
 import Datasets from './pages/Datasets';
-import Federated from './pages/Federated';
-import Streaming from './pages/Streaming';
-import Distillation from './pages/Distillation';
-import Health from './pages/Health';
-import Governance from './pages/Governance';
 import ZKValidator from './pages/ZKValidator';
 import Earnings from './pages/Earnings';
 import Passports from './pages/Passports';
@@ -83,22 +76,24 @@ export default function App({ noAuth: externalNoAuth }: { noAuth?: boolean }) {
         <Route path="compliance"    element={<Compliance />} />
         <Route path="webhooks"      element={<Webhooks />} />
         <Route path="marketplace"   element={<Marketplace />} />
-        <Route path="analytics"     element={<Analytics />} />
         <Route path="schedule"      element={<Schedule />} />
         <Route path="groups"        element={<Groups />} />
-        <Route path="bluegreen"     element={<Bluegreen />} />
         <Route path="audit"         element={<Audit />} />
         <Route path="integrity"     element={<Integrity />} />
         <Route path="datasets"      element={<Datasets />} />
-        <Route path="federated"     element={<Federated />} />
-        <Route path="streaming"     element={<Streaming />} />
-        <Route path="distillation"  element={<Distillation />} />
-        <Route path="health"        element={<Health />} />
-        <Route path="governance"    element={<Governance />} />
         <Route path="zkvalidator"   element={<ZKValidator />} />
         <Route path="passports"     element={<Passports />} />
         <Route path="earnings"      element={<Earnings />} />
         <Route path="sites"         element={<Sites />} />
+        {/* Retired pages — redirect old bookmarks instead of 404 */}
+        <Route path="bluegreen"     element={<Navigate to="/app/fleet" replace />} />
+        <Route path="analytics"     element={<Navigate to="/app/dashboard" replace />} />
+        <Route path="health"        element={<Navigate to="/app/dashboard" replace />} />
+        <Route path="governance"    element={<Navigate to="/app/compliance" replace />} />
+        <Route path="streaming"     element={<Navigate to="/app/registry" replace />} />
+        <Route path="federated"     element={<Navigate to="/app/registry" replace />} />
+        <Route path="distillation"  element={<Navigate to="/app/registry" replace />} />
+        <Route path="*"             element={<Navigate to="/app/dashboard" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

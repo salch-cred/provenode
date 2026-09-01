@@ -195,10 +195,10 @@ export default function Dashboard() {
         <div className="card-title" style={{ marginBottom: 14 }}>Quick Actions</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <Link to="/app/deploy"      className="btn btn-primary"><i className="hgi-stroke hgi-rocket-01" /> Deploy Model</Link>
+          <Link to="/app/sites"       className="btn"><i className="hgi-stroke hgi-globe-02" /> Deploy Site</Link>
           <Link to="/app/import"      className="btn"><i className="hgi-stroke hgi-cloud-download" /> HF Import</Link>
           <Link to="/app/datasets"    className="btn"><i className="hgi-stroke hgi-workflow-square-01" /> Register Dataset</Link>
-          <Link to="/app/zkproof"     className="btn"><i className="hgi-stroke hgi-shield-01" /> Run ZK Proof</Link>
-          <Link to="/app/federated"   className="btn"><i className="hgi-stroke hgi-share-01" /> Federated Round</Link>
+          <Link to="/app/zkvalidator" className="btn"><i className="hgi-stroke hgi-shield-01" /> Run ZK Proof</Link>
           <Link to="/app/compliance"  className="btn"><i className="hgi-stroke hgi-note-01" /> EU AI Act Report</Link>
         </div>
       </div>

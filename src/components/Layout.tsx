@@ -14,17 +14,13 @@ const NAV = [
     { to: 'datasets',    label: 'Datasets',     icon: 'hgi-folder-library' },
     { to: 'lineage',     label: 'Lineage',      icon: 'hgi-git-branch' },
     { to: 'abtest',      label: 'A/B Tests',    icon: 'hgi-analytics-01' },
-    { to: 'federated',   label: 'Federated',    icon: 'hgi-share-01' },
-    { to: 'distillation',label: 'Distillation', icon: 'hgi-ai-brain-01' },
   ]},
   { section: 'Fleet', items: [
     { to: 'devices',     label: 'Devices',      icon: 'hgi-cpu' },
-    { to: 'fleet',       label: 'OTA + Canary', icon: 'hgi-refresh' },
+    { to: 'fleet',       label: 'OTA · Canary · Blue-Green', icon: 'hgi-refresh' },
     { to: 'groups',      label: 'Groups',       icon: 'hgi-folder-01' },
-    { to: 'streaming',   label: 'Streaming',    icon: 'hgi-wifi-01' },
   ]},
   { section: 'Enterprise', items: [
-    { to: 'governance',  label: 'Governance',   icon: 'hgi-signature' },
     { to: 'zkvalidator', label: 'ZK Validator', icon: 'hgi-shield-02' },
     { to: 'earnings',    label: 'Monetization', icon: 'hgi-bitcoin-04' },
   ]},
@@ -33,12 +29,10 @@ const NAV = [
     { to: 'shelby',      label: 'Shelby Layer',   icon: 'hgi-blockchain-01' },
     { to: 'passports',   label: 'Model Passports', icon: 'hgi-license' },
     { to: 'compliance',  label: 'Compliance',     icon: 'hgi-agreement-01' },
-    { to: 'bluegreen',   label: 'Blue-Green',     icon: 'hgi-exchange-01' },
   ]},
   { section: 'Growth', items: [
     { to: 'sites',       label: 'Sites',        icon: 'hgi-globe-02' },
     { to: 'marketplace', label: 'Marketplace',  icon: 'hgi-store-01' },
-    { to: 'analytics',   label: 'Analytics',    icon: 'hgi-analytics-02' },
     { to: 'schedule',    label: 'Scheduled',    icon: 'hgi-calendar-01' },
   ]},
   { section: 'Resources', items: [
@@ -113,7 +107,6 @@ export default function Layout() {
           </h1>
           <div className="flex gap-2 items-center">
             <NavLink to="/app/dashboard" className="btn btn-sm desktop-only"><i className="hgi-stroke hgi-home-01" /> Home</NavLink>
-            <NavLink to="/app/health" className="btn btn-sm desktop-only"><i className="hgi-stroke hgi-activity-01" /> Health</NavLink>
             <NavLink to="/app/dashboard" className="btn btn-sm mobile-only"><i className="hgi-stroke hgi-home-01" /></NavLink>
           </div>
         </div>
