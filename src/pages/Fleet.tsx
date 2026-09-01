@@ -112,15 +112,15 @@ export default function Fleet() {
             {/* Create config form */}
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 8 }} className="bg-form">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <input className="form-input" value={projectId} onChange={e => setProjectId(e.target.value)} placeholder="Project ID (vision-edge-prod)" />
-                <input className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder="Config name" />
+                <input aria-label="Project ID" className="form-input" value={projectId} onChange={e => setProjectId(e.target.value)} placeholder="Project ID (vision-edge-prod)" />
+                <input aria-label="Config name" className="form-input" value={name} onChange={e => setName(e.target.value)} placeholder="Config name" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <select className="form-input" value={blueId} onChange={e => setBlueId(e.target.value)}>
+                <select aria-label="Blue deployment" className="form-input" value={blueId} onChange={e => setBlueId(e.target.value)}>
                   <option value="">Blue deployment</option>
                   {deps.map(d => <option key={d.id} value={d.id}>{d.model} v{d.version}</option>)}
                 </select>
-                <select className="form-input" value={greenId} onChange={e => setGreenId(e.target.value)}>
+                <select aria-label="Green deployment" className="form-input" value={greenId} onChange={e => setGreenId(e.target.value)}>
                   <option value="">Green deployment</option>
                   {deps.map(d => <option key={d.id} value={d.id}>{d.model} v{d.version}</option>)}
                 </select>

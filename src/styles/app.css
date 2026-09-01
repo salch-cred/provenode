@@ -602,7 +602,19 @@ input[type=checkbox], input[type=radio] { accent-color: var(--coral); }
   to   { transform: translateY(0) scale(1); opacity: 1; }
 }
 
-.toast-close { cursor: pointer; margin-left: 8px; opacity: .5; font-size: 14px; transition: opacity .2s; }
+.toast-close {
+  cursor: pointer;
+  margin-left: 8px;
+  opacity: .5;
+  font-size: 14px;
+  transition: opacity .2s;
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+}
 .toast-close:hover { opacity: 1; }
 
 /* ── Shelby panel — quiet sand wash ──────────────────────────  */

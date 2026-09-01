@@ -63,7 +63,7 @@ export default function Marketplace() {
   return (
     <div className="responsive-grid">
       <div className="card">
-        <div className="card-header"><span className="card-title">Community Model Marketplace</span><button className="btn btn-sm" onClick={load}>↻</button></div>
+        <div className="card-header"><span className="card-title">Community Model Marketplace</span><button className="btn btn-sm" aria-label="Refresh" title="Refresh" onClick={load}><i className="hgi-stroke hgi-refresh" /></button></div>
         <div style={{ padding: 12 }}>
           {!listings.length ? (
             <div className="empty" style={{ padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>

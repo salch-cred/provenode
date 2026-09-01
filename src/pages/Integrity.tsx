@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { get, post } from '../lib/api';
+import { post } from '../lib/api';
 import { useToast } from '../contexts/AppContext';
 
 export default function Integrity() {
@@ -7,14 +7,17 @@ export default function Integrity() {
   const [health, setHealth] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const scan = async () => {
+  // `silent` suppresses the error toast for the background poll — a 10s
+  // interval that toasts on failure produced an endless error stream whenever
+  // DEPLOY_SECRET was configured (the scan route requires auth).
+  const scan = async (silent = false) => {
     setLoading(true);
     try {
       const res = await post('/api/integrity/scan', {});
       setHealth(res.health);
-      toast('Integrity scan complete', 'success');
+      if (!silent) toast('Integrity scan complete', 'success');
     } catch (e: any) {
-      toast(e.message, 'error');
+      if (!silent) toast(e.message, 'error');
     }
     setLoading(false);
   };
@@ -23,16 +26,16 @@ export default function Integrity() {
     try {
       await post(`/api/integrity/heal/${deviceId}`, { modelId });
       toast(`Heal command sent to device ${deviceId}`, 'success');
-      scan();
+      scan(true);
     } catch (e: any) {
       toast(e.message, 'error');
     }
   };
 
   useEffect(() => {
-    scan();
-    // Auto-scan every 10s for demo
-    const interval = setInterval(scan, 10000);
+    scan(true);
+    // Background refresh — silent so a failing poll cannot spam toasts.
+    const interval = setInterval(() => scan(true), 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -43,7 +46,7 @@ export default function Integrity() {
           <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>Live Integrity Monitor</h2>
           <p className="text-muted text-sm" style={{ margin: '4px 0 0 0' }}>Continuous on-chain verification powered by Shelby Protocol</p>
         </div>
-        <button className="btn btn-primary" onClick={scan} disabled={loading}>
+        <button className="btn btn-primary" onClick={() => scan(false)} disabled={loading}>
           {loading ? 'Scanning...' : 'Force Scan'}
         </button>
       </div>

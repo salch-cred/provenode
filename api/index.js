@@ -2,13 +2,13 @@
  * Provenode mega-router — single serverless function for all /api/* routes
  * Hobby plan limit: max 12 functions. This + 2 crons = 3 total.
  */
-import crypto, { createHash, createHmac } from 'node:crypto';
+import crypto, { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import formidable from 'formidable';
 import { getDB } from '../lib/kv.js';
 import { shelbyUpload, shelbyDownloadBlob, makeBlobName } from '../lib/shelby.js';
 import { createPaymentIntent, getPaymentIntent, listPaymentIntents, priceFor, microToShelbyUSD, PRICE_TABLE, shelbyUSDToMicro, findOrCreateIntent, getPaywallIntent } from '../lib/payments.js';
 import { settleMicropayment } from '../lib/settle.js';
-import { dispatch } from '../lib/notify.js';
+import { dispatch, isBlockedWebhookUrl } from '../lib/notify.js';
 import { logAudit, getAuditLog } from '../lib/audit.js';
 import { signModel } from '../lib/sign.js';
 import { buildPassportRecord, verifyPassport, storePassport, findPassportBySha256, anchorOnChain, passportBlobName } from '../lib/passport.js';
@@ -19,7 +19,7 @@ import { createStreamManifest, getChunkUrl } from '../lib/streaming.js';        
 import { fedAvg, weightedFedAvg, createFLRound, generateContributionReceipt } from '../lib/federated.js'; // #2
 import { computeDelta, applyDelta, buildVersionNode } from '../lib/delta.js';     // #3
 import { buildDatasetRecord, shardDataset, computeMerkleRoot, buildDeletionRequest } from '../lib/datasets.js'; // #10
-import { generateModelCommitment, verifyProof } from '../lib/zkproof.js'; // #7
+import { generateModelCommitment, verifyProof, STANDARD_BENCHMARK_VECTORS } from '../lib/zkproof.js'; // #7
 import { detectTamper, buildHealCommand, buildIncidentRecord, evaluateFleetHealth } from '../lib/selfheal.js'; // #6
 import { slugify, validateSlug, contentTypeFor, normalizeSitePath, buildSiteRecord, buildDeploymentRecord, siteBlobName, manifestBlobName, generateDeployKey, normalizeDeployKey } from '../lib/sites.js';
 
@@ -36,22 +36,47 @@ function cors(res) {
 }
 
 // FIX C-1: Central auth guard — applied to ALL mutating (POST/PATCH/DELETE) routes
+/**
+ * True when this process is serving real traffic. Used to decide whether a
+ * missing DEPLOY_SECRET may fall back to open dev mode.
+ * Set ALLOW_OPEN_API=true to force dev behaviour (never do this in production).
+ */
+function isProdRuntime() {
+  if (process.env.ALLOW_OPEN_API === 'true') return false;
+  return process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
+}
+
+/** Constant-time string compare — avoids leaking the secret through timing. */
+function safeEqual(a, b) {
+  const ba = Buffer.from(String(a ?? ''), 'utf8');
+  const bb = Buffer.from(String(b ?? ''), 'utf8');
+  if (ba.length !== bb.length) return false;
+  return timingSafeEqual(ba, bb);
+}
+
 function requireAuth(req, res) {
   const secret = process.env.DEPLOY_SECRET;
-  if (!secret) return false; // No secret configured → open (dev mode)
-  const token = req.headers['x-provenode-token'];
-  if (token !== secret) {
+  if (!secret) {
+    // SECURITY: fail CLOSED in production. An unset secret must never silently
+    // open every mutating route (upload, deploy, delete, email, payments).
+    if (isProdRuntime()) {
+      json(res, 503, { error: 'Server misconfigured: DEPLOY_SECRET is not set, so mutating routes are disabled. Set DEPLOY_SECRET, or ALLOW_OPEN_API=true for local development only.' });
+      return true;
+    }
+    return false; // local development only
+  }
+  if (!safeEqual(req.headers['x-provenode-token'], secret)) {
     json(res, 401, { error: 'Unauthorized. Provide X-Provenode-Token header.' });
     return true; // signals "handled, stop processing"
   }
   return false;
 }
 
-/** True when the request carries the deploy token, or no secret is configured (dev-open mode). */
+/** True when the request carries the deploy token. Fails closed in production. */
 function isAdminRequest(req) {
   const secret = process.env.DEPLOY_SECRET;
-  if (!secret) return true;
-  return req.headers['x-provenode-token'] === secret;
+  if (!secret) return !isProdRuntime();
+  return safeEqual(req.headers['x-provenode-token'], secret);
 }
 
 /**
@@ -120,7 +145,49 @@ export const config = {
  * (Move tx when MOVE_CONTRACT_ADDRESS + SHELBY_PRIVATE_KEY are set) or as an
  * immutable Shelby blob. Best-effort — never throws into the caller's path.
  */
-async function issuePassport(db, model, { tryOnChain = false } = {}) {
+/** Org Ed25519 public key (hex) used to verify model signatures + attestations. */
+async function getOrgPublicKey() {
+  const privKey = process.env.SIGN_KEY || process.env.SHELBY_PRIVATE_KEY;
+  if (!privKey) return null;
+  try {
+    const { Account, Ed25519PrivateKey } = await import('@aptos-labs/ts-sdk');
+    const account = Account.fromPrivateKey({ privateKey: new Ed25519PrivateKey(privKey) });
+    return account.publicKey.toString();
+  } catch { return null; }
+}
+
+/**
+ * Security headers for user-uploaded site content.
+ *
+ * CRITICAL: this content is served from the console's own origin, so without a
+ * sandbox an uploaded index.html could read localStorage (which holds the
+ * deploy token) and exfiltrate it. The CSP below blocks all script execution,
+ * all form submissions, and any same-origin credential access from the served
+ * document, while still allowing HTML/CSS/images/fonts to render.
+ *
+ * `sandbox allow-same-origin` is deliberately NOT set — the document is treated
+ * as a unique opaque origin, which is what severs access to console storage.
+ */
+function applySiteContentHeaders(res, { entry, siteSlug }) {
+  res.setHeader('Content-Type', entry.contentType || contentTypeFor(entry.path));
+  res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
+  res.setHeader('X-Shelby-Object', entry.objectId);
+  if (siteSlug) res.setHeader('X-Site-Slug', siteSlug);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Security-Policy', [
+    "sandbox allow-popups allow-popups-to-escape-sandbox",
+    "default-src 'self' data: blob:",
+    "script-src 'none'",
+    "object-src 'none'",
+    "form-action 'none'",
+    "frame-ancestors 'self'",
+    "base-uri 'none'",
+  ].join('; '));
+  // Allow the console's own preview iframe, nothing else.
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+}
+
+async function issuePassport(db, model, { tryOnChain = false, tenantId = '' } = {}) {
   const orgAddress = await getOrgAddress();
   const passport = buildPassportRecord({
     modelId: model.id,
@@ -168,7 +235,7 @@ async function issuePassport(db, model, { tryOnChain = false } = {}) {
   await storePassport(db, passport);
   model.passportIssued = true;
   await db.put(`model:${model.id}`, JSON.stringify(model));
-  await logAudit('passport.issued', { target: model.id, details: { sha256: passport.sha256.slice(0, 12), signed: passport.signed, anchored: passport.anchored } });
+  await logAudit('passport.issued', { target: model.id, details: { sha256: passport.sha256.slice(0, 12), signed: passport.signed, anchored: passport.anchored }, tenantId });
   return { passport, note };
 }
 
@@ -225,7 +292,12 @@ export default async function handler(req, res) {
   const path = pathOf(req);
   const q = queryOf(req);
   const method = req.method || 'GET';
-  const db = getDB(req.headers['x-tenant-id']);
+  const tenantId = req.headers['x-tenant-id'] || '';
+  const db = getDB(tenantId);
+  // Tenant-scoped helpers: audit records and webhook dispatch must stay inside
+  // the caller's namespace, otherwise one tenant can read another's history.
+  const audit = (action, meta = {}) => logAudit(action, { ...meta, tenantId });
+  const notify = (event, payload) => dispatch(event, payload, tenantId);
 
   try {
     // Normalize: strip /api prefix if present
@@ -346,7 +418,9 @@ export default async function handler(req, res) {
 
     // ── models ──────────────────────────────────────────────
     if (root === 'models' && method === 'GET') {
-      const PUBLIC = ['id','model','objectId','blobName','sha256','size','mode','address','expiresAt','parentId','tags','createdAt','signature','passportIssued','onChainTx','onChainExplorerUrl','onChainAnchor'];
+      // `name`, `version` and `zkVerified` were missing, so the console rendered
+      // blank model dropdowns and could never show the verified badge.
+      const PUBLIC = ['id','model','name','version','objectId','blobName','sha256','size','mode','address','expiresAt','parentId','tags','createdAt','signature','passportIssued','zkVerified','onChainTx','onChainExplorerUrl','onChainAnchor'];
       const { keys } = await db.list({ prefix: 'model:' });
       const models = (await Promise.all(keys.map(async ({ name }) => {
         const d = await db.get(name); if (!d) return null;
@@ -402,30 +476,41 @@ export default async function handler(req, res) {
         if (!testVectors || testVectors.some(v => v.output === undefined && v.expectedOutput === undefined)) {
           return json(res, 400, { error: 'Real ZK proof requires testVectors with actual model outputs (v.output or v.expectedOutput).' });
         }
-        const { proof } = generateModelCommitment({ 
-          modelSha256: record.sha256, 
-          testVectors, 
-          privateKey: process.env.SHELBY_PRIVATE_KEY 
-        });
-        
+        const orgPublicKey = await getOrgPublicKey();
+        if (!orgPublicKey) {
+          return json(res, 503, { error: 'Signing key not configured (SIGN_KEY or SHELBY_PRIVATE_KEY). Attestations must be signed by the org key to be verifiable.' });
+        }
+        let proof;
+        try {
+          ({ proof } = generateModelCommitment({
+            modelSha256: record.sha256,
+            testVectors,
+            publicKeyHex: orgPublicKey,
+          }));
+        } catch (e) {
+          return json(res, 400, { error: e.message });
+        }
+
         // Store proof in KV
         await db.put(`zkproof:${id}`, JSON.stringify(proof));
-        
+
         // Mark model as verified
         record.zkVerified = true;
         await db.put(`model:${id}`, JSON.stringify(record));
-        
+
         return json(res, 200, { success: true, proof });
       }
-      
+
       if (action === 'verify' && method === 'GET') {
         const proofStr = await db.get(`zkproof:${id}`);
         if (!proofStr) return json(res, 404, { error: 'ZK proof not found for this model' });
-        
+
         const { verifyProof } = await import('../lib/zkproof.js');
         const proof = JSON.parse(proofStr);
-        const result = verifyProof(proof);
-        
+        // Verify against the ORG key from our own identity — never the key
+        // embedded in the proof (that would make forgery trivial).
+        const result = verifyProof(proof, await getOrgPublicKey());
+
         return json(res, 200, { success: true, verified: result.valid, result, proof });
       }
     }
@@ -496,8 +581,16 @@ export default async function handler(req, res) {
           if (!raw) return json(res, 404, { error: 'Dataset not found.' });
           const record = JSON.parse(raw);
           if (q.stream === '1') {
-            const intent = q.paymentIntentId ? await getPaymentIntent(q.paymentIntentId) : null;
-            if (!intent || intent.status !== 'paid' || intent.itemId !== q.id) {
+            const intent = q.paymentIntentId ? await getPaymentIntent(q.paymentIntentId, tenantId) : null;
+            // SECURITY: bind to item type + amount, same reasoning as the
+            // marketplace import path. Stream access is not single-use (the
+            // buyer may re-read shard metadata), but it must be the right item.
+            const intentValid = intent
+              && intent.status === 'paid'
+              && intent.itemId === q.id
+              && intent.item === 'dataset_stream'
+              && Number(intent.amountMicro) >= shelbyUSDToMicro(PRICE_TABLE.dataset_stream);
+            if (!intentValid) {
               return json(res, 402, {
                 error: 'Paid stream access required. Create and settle a ShelbyUSD dataset_stream intent first.',
                 priceShelbyUSD: PRICE_TABLE.dataset_stream,
@@ -562,7 +655,7 @@ export default async function handler(req, res) {
           shards,
         });
         await db.put(`dataset:${record.id}`, JSON.stringify(record));
-        await logAudit('dataset.registered', { target: record.id, details: { name: record.name, merkleRoot: record.merkleRoot, shardCount: shards.length } });
+        await audit('dataset.registered', { target: record.id, details: { name: record.name, merkleRoot: record.merkleRoot, shardCount: shards.length } });
         return json(res, 200, { success: true, record });
       }
       
@@ -606,8 +699,13 @@ export default async function handler(req, res) {
         const { weightedFedAvg } = await import('../lib/federated.js');
         const gradients = round.rawContributions.map(c => {
           const buf = Buffer.from(Array.isArray(c.gradientBuffer) ? c.gradientBuffer : c.gradientBuffer);
+          // Buffer.from() allocates out of Node's shared pool, so byteOffset is
+          // usually NOT 4-byte aligned and `new Float32Array(buf.buffer, off)`
+          // throws RangeError. Copy into a fresh aligned buffer instead.
           const n = Math.floor(buf.byteLength / 4);
-          return new Float32Array(buf.buffer, buf.byteOffset, n);
+          const out = new Float32Array(n);
+          for (let i = 0; i < n; i++) out[i] = buf.readFloatLE(i * 4);
+          return out;
         });
         const sampleCounts = round.rawContributions.map(c => c.sampleCount || 100);
         const aggregated = weightedFedAvg(gradients, sampleCounts);
@@ -616,7 +714,7 @@ export default async function handler(req, res) {
         round.aggregatedObjectId = objectId;
         round.aggregatedAt = new Date().toISOString();
         await db.put(roundKey, JSON.stringify(round));
-        await logAudit('fl.aggregated', { target: modelId, details: { roundNumber, participants: round.participantCount, objectId } });
+        await audit('fl.aggregated', { target: modelId, details: { roundNumber, participants: round.participantCount, objectId } });
         return json(res, 200, { success: true, message: 'Merged globally', newHash: `0x${createHash('sha256').update(aggregated).digest('hex')}`, objectId });
       }
     }
@@ -697,7 +795,7 @@ export default async function handler(req, res) {
             catch (e) { return { error: `Registry unavailable: ${e.message}` }; }
           }
           case 'get_earnings': {
-            const settled = (await listPaymentIntents()).filter(p => p.status === 'paid');
+            const settled = (await listPaymentIntents(tenantId)).filter(p => p.status === 'paid');
             const totalMicro = settled.reduce((a, p) => a + (p.amountMicro || 0), 0);
             return { totalShelbyUSD: microToShelbyUSD(totalMicro).toFixed(6), settlements: settled.length, earnings: settled.map(p => ({ id: p.id, item: p.item, amountShelbyUSD: microToShelbyUSD(p.amountMicro).toFixed(6), txHash: p.txHash || null, paidAt: p.paidAt || null })) };
           }
@@ -711,7 +809,7 @@ export default async function handler(req, res) {
             return { count: listings.length, listings };
           }
           case 'list_payment_intents': {
-            const intents = await listPaymentIntents();
+            const intents = await listPaymentIntents(tenantId);
             return { count: intents.length, intents: intents.map(p => ({ id: p.id, item: p.item, itemId: p.itemId, amountShelbyUSD: p.amountShelbyUSD, status: p.status, createdAt: p.createdAt, paidAt: p.paidAt, txHash: p.txHash })) };
           }
           default:
@@ -802,10 +900,10 @@ export default async function handler(req, res) {
       };
       await db.put(`model:${id}`, JSON.stringify(record));
       if (parentId) await db.put(`lineage:${id}`, JSON.stringify({ parentId, childId: id }));
-      await logAudit('model.registered', { target: id, details: { model: modelName, mode } });
-      await dispatch('model.registered', { id, model: modelName, mode, sha256: sha256.slice(0, 12) });
+      await audit('model.registered', { target: id, details: { model: modelName, mode } });
+      await notify('model.registered', { id, model: modelName, mode, sha256: sha256.slice(0, 12) });
       // Auto-issue the Model Passport (best-effort — never blocks the upload).
-      try { await issuePassport(db, record, { tryOnChain: false }); } catch { /* best-effort */ }
+      try { await issuePassport(db, record, { tryOnChain: false, tenantId }); } catch { /* best-effort */ }
       return json(res, 200, { success: true, id, objectId, hash: sha256, size: bytes.length, mode, expiresAt, passportIssued: true, ...(warning && { warning }) });
     }
 
@@ -844,8 +942,8 @@ export default async function handler(req, res) {
       manifest.manifestObjectId = mResult.objectId;
       await db.put(`deployment:${id}`, JSON.stringify(manifest));
       await db.put(`devices:${id}`, JSON.stringify({ verified: 0, target: 248 }));
-      await logAudit('deployment.started', { target: id, details: { model: resolvedName } });
-      await dispatch('deployment.started', { id, model: resolvedName, version: resolvedVersion, mode: deployMode });
+      await audit('deployment.started', { target: id, details: { model: resolvedName } });
+      await notify('deployment.started', { id, model: resolvedName, version: resolvedVersion, mode: deployMode });
       return json(res, 200, { success: true, manifest });
     }
 
@@ -865,10 +963,13 @@ export default async function handler(req, res) {
         const manifest = JSON.parse(md);
         const devices = dd ? JSON.parse(dd) : { verified: 0, target: 248 };
         manifest.progress = Math.min(100, Math.round((devices.verified / devices.target) * 100));
-        if (manifest.progress >= 100 && manifest.status !== 'verified') {
+        // SECURITY: a GET must not mutate state, send email, or fire webhooks.
+        // Only an authenticated caller may flip a deployment to 'verified';
+        // anonymous readers see the computed progress without side effects.
+        if (manifest.progress >= 100 && manifest.status !== 'verified' && isAdminRequest(req)) {
           manifest.status = 'verified';
           await db.put(`deployment:${id}`, JSON.stringify(manifest));
-          await dispatch('deployment.verified', { id, model: manifest.model });
+          await notify('deployment.verified', { id, model: manifest.model });
           if (process.env.ALERT_EMAIL) {
             await sendEmail({ to: process.env.ALERT_EMAIL, ...deploymentVerifiedEmail(manifest) });
           }
@@ -877,10 +978,9 @@ export default async function handler(req, res) {
       }
       if (method === 'POST') {
         const body = await readBody(req);
-        const token = req.headers['x-provenode-token'];
-        if (process.env.DEPLOY_SECRET && token !== process.env.DEPLOY_SECRET) {
-          return json(res, 401, { error: 'Unauthorized. Set X-Provenode-Token header.' });
-        }
+        // Use the shared guard so this route inherits fail-closed behaviour and
+        // constant-time comparison instead of hand-rolling both.
+        if (requireAuth(req, res)) return;
         const { id, status, count } = body;
         if (!id) return json(res, 400, { error: 'id required.' });
         if (status === 'verified') {
@@ -951,6 +1051,10 @@ export default async function handler(req, res) {
 
         let receipt = null;
         if (paywallOn && !isAdminRequest(req)) {
+          // x402 keeps quotes anonymous on purpose, so 'anon' stays the default
+          // identity here. The security boundary is enforced at settlement:
+          // a paid intent may only be replayed by a caller presenting the same
+          // micropayment proof (see the status === 'paid' branch below).
           const payer = req.headers['x-payer'] || 'anon';
           const paymentBcs = req.headers['x-payment'];
           if (!paymentBcs) {
@@ -962,6 +1066,7 @@ export default async function handler(req, res) {
               payer,
               receiver: await getOrgAddress(),
               description: `Blob download: ${m.model || id}`,
+              tenantId,
             });
             const { SHELBYUSD_TOKEN_ADDRESS, SHELBYUSD_TOKEN_MODULE, SHELBYUSD_FA_METADATA_ADDRESS } = await import('@shelby-protocol/sdk/node');
             return json(res, 402, {
@@ -980,8 +1085,8 @@ export default async function handler(req, res) {
           }
 
           // ── Step 2: settle the micropayment, then stream the blob. ──
-          const intent = (req.headers['x-payment-intent'] ? await getPaymentIntent(req.headers['x-payment-intent']) : null)
-            || await getPaywallIntent(id, payer);
+          const intent = (req.headers['x-payment-intent'] ? await getPaymentIntent(req.headers['x-payment-intent'], tenantId) : null)
+            || await getPaywallIntent(id, payer, tenantId);
           if (!intent) {
             return json(res, 404, { error: 'No payment intent for this object. Request a quote first (GET without X-Payment).' });
           }
@@ -989,14 +1094,23 @@ export default async function handler(req, res) {
             return json(res, 402, { error: 'Payment intent expired. Request a fresh quote (GET without X-Payment).', intentId: intent.id });
           }
           if (intent.status === 'paid') {
-            // Idempotent retry after settlement (client may have missed the 200).
+            // Idempotent retry after settlement. SECURITY: the replay must
+            // present the SAME micropayment proof that settled the intent —
+            // otherwise a paid 'anon' intent would make the blob free for
+            // every subsequent caller.
+            if (!intent.micropaymentBcs || intent.micropaymentBcs !== paymentBcs) {
+              return json(res, 402, {
+                error: 'This object was already paid for by another payment. Request a fresh quote with your own X-Payer identity.',
+                intentId: intent.id,
+              });
+            }
             receipt = { intentId: intent.id, txHash: intent.txHash, receiptHash: intent.receiptHash, amountMicro: intent.amountMicro };
           } else {
-            const result = await settleMicropayment({ intent, micropaymentBcs: paymentBcs, sender: payer });
+            const result = await settleMicropayment({ intent, micropaymentBcs: paymentBcs, sender: payer, tenantId });
             if (result.status !== 200) return json(res, result.status, result.body);
             receipt = { intentId: intent.id, txHash: result.body.txHash, receiptHash: result.body.receiptHash, amountMicro: intent.amountMicro };
           }
-          await logAudit('object.paid', { actor: payer, target: id, details: { intentId: receipt.intentId, amountMicro: receipt.amountMicro } });
+          await audit('object.paid', { actor: payer, target: id, details: { intentId: receipt.intentId, amountMicro: receipt.amountMicro } });
         }
 
         const apiKey = process.env.SHELBY_API_KEY;
@@ -1018,7 +1132,7 @@ export default async function handler(req, res) {
           res.setHeader('X-Content-Type-Options', 'nosniff');
           res.setHeader('X-Provenode-Sha256', m.sha256);
           if (receipt) res.setHeader('X-Payment-Response', Buffer.from(JSON.stringify(receipt)).toString('base64'));
-          await logAudit('object.downloaded', { target: id, details: { size: buffer.length, verified: true, paid: !!receipt, intentId: receipt ? receipt.intentId : null } });
+          await audit('object.downloaded', { target: id, details: { size: buffer.length, verified: true, paid: !!receipt, intentId: receipt ? receipt.intentId : null } });
           return res.status(200).end(buffer);
         } catch (err) {
           console.error('[objects] blob download failed:', err.message);
@@ -1054,8 +1168,8 @@ export default async function handler(req, res) {
           m.blobName = up.blobName || blobName;
           m.lastRenewedAt = new Date().toISOString();
           await db.put(`model:${id}`, JSON.stringify(m));
-          await logAudit('object.renewed', { target: id, details: { blobName, expiresAt } });
-          await dispatch('object.renewed', { id, model: m.model, objectId: m.objectId, expiresAt });
+          await audit('object.renewed', { target: id, details: { blobName, expiresAt } });
+          await notify('object.renewed', { id, model: m.model, objectId: m.objectId, expiresAt });
           return json(res, 200, { success: true, id, expiresAt, objectId: m.objectId });
         } catch (err) {
           console.error('[objects] renew failed:', err.message);
@@ -1181,7 +1295,7 @@ export default async function handler(req, res) {
           }
         }
         if (!sha256Match) {
-          await dispatch('integrity.mismatch', { deviceId, deploymentId, error });
+          await notify('integrity.mismatch', { deviceId, deploymentId, error });
           if (process.env.ALERT_EMAIL) {
             await sendEmail({ to: process.env.ALERT_EMAIL, ...integrityMismatchEmail({ deviceId, deploymentId, model: '' }) });
           }
@@ -1199,7 +1313,7 @@ export default async function handler(req, res) {
         if (next >= stages.length) { manifest.canary.currentStage = stages.length - 1; manifest.status = 'verified'; }
         else manifest.canary.currentStage = next;
         await db.put(`deployment:${id}`, JSON.stringify(manifest));
-        await dispatch('canary.advanced', { id, stage: stages[manifest.canary.currentStage] });
+        await notify('canary.advanced', { id, stage: stages[manifest.canary.currentStage] });
         return json(res, 200, { success: true, manifest });
       }
       if (method === 'POST' && parts[1] === 'canary' && parts[3] === 'rollback') {
@@ -1209,7 +1323,7 @@ export default async function handler(req, res) {
         const manifest = JSON.parse(raw);
         manifest.status = 'rolled_back'; manifest.rolledBackAt = new Date().toISOString();
         await db.put(`deployment:${id}`, JSON.stringify(manifest));
-        await dispatch('deployment.rolled_back', { id, model: manifest.model });
+        await notify('deployment.rolled_back', { id, model: manifest.model });
         return json(res, 200, { success: true, manifest });
       }
       return json(res, 404, { error: 'Unknown fleet endpoint.' });
@@ -1272,7 +1386,7 @@ export default async function handler(req, res) {
                   test.status = 'rolled_back';
                   await db.put(`abtest:${id}`, JSON.stringify(test));
                   // In a real system, this dispatches an Aptos Move smart contract transaction
-                  await dispatch('fleet.auto_rollback', { testId: id, modelId, reason: 'Error threshold exceeded during A/B evaluation. Cryptographic rollback triggered.' });
+                  await notify('fleet.auto_rollback', { testId: id, modelId, reason: 'Error threshold exceeded during A/B evaluation. Cryptographic rollback triggered.' });
                }
              }
           }
@@ -1369,14 +1483,15 @@ export default async function handler(req, res) {
       if (method === 'POST') {
         const body = await readBody(req);
         if (body.action === 'test') {
-          await dispatch('test', { message: 'Provenode webhook test' });
+          await notify('test', { message: 'Provenode webhook test' });
           return json(res, 200, { success: true });
         }
         const { url, events, secret, name } = body;
         if (!url) return json(res, 400, { error: 'url required.' });
-        let _pu; try { _pu = new URL(url); } catch { return json(res, 400, { error: 'Invalid URL.' }); }
-        const _blk=['localhost','127.','0.0.0.0','::1','169.254.','10.0.','192.168.','172.16.'];
-        if(_blk.some(b=>_pu.hostname===b||_pu.hostname.startsWith(b))||!['http:','https:'].includes(_pu.protocol)){return json(res,400,{error:'Private or non-HTTP URLs are not allowed.'});}
+        // SSRF guard — covers loopback, all RFC1918 ranges, link-local, IPv6
+        // local, IPv4-mapped IPv6, integer IP literals and metadata endpoints.
+        const blocked = isBlockedWebhookUrl(url);
+        if (blocked) return json(res, 400, { error: blocked });
         const id = crypto.randomUUID();
         const hook = { id, name: name || url, url, events: events || ['*'], secret: secret || null, enabled: true, createdAt: new Date().toISOString() };
         await db.put(`webhook:${id}`, JSON.stringify(hook));
@@ -1417,14 +1532,28 @@ export default async function handler(req, res) {
           // Real mode: marketplace imports are paid with ShelbyUSD. No demo bypass.
           // The due amount is the publisher's listing price, or the fixed platform fee for free listings.
           const dueShelbyUSD = listing.price > 0 ? listing.price : PRICE_TABLE.marketplace_import;
-          const intent = body.paymentIntentId ? await getPaymentIntent(body.paymentIntentId) : null;
-          if (!intent || intent.status !== 'paid' || intent.itemId !== body.listingId) {
+          const intent = body.paymentIntentId ? await getPaymentIntent(body.paymentIntentId, tenantId) : null;
+          // SECURITY: bind the intent to this item type AND the amount actually
+          // due, and consume it. Previously only `itemId` was checked, so a
+          // 0.0001 'download' intent could unlock any priced listing, forever.
+          const intentValid = intent
+            && intent.status === 'paid'
+            && intent.itemId === body.listingId
+            && intent.item === 'marketplace_import'
+            && !intent.consumedAt
+            && Number(intent.amountMicro) >= shelbyUSDToMicro(dueShelbyUSD);
+          if (!intentValid) {
             return json(res, 402, {
-              error: 'Payment required to import this listing. Create and settle a ShelbyUSD payment intent first.',
+              error: intent && intent.consumedAt
+                ? 'This payment intent was already used. Create and settle a new one.'
+                : 'Payment required to import this listing. Create and settle a ShelbyUSD payment intent for item "marketplace_import".',
               priceShelbyUSD: dueShelbyUSD,
               amountMicro: shelbyUSDToMicro(dueShelbyUSD),
             });
           }
+          // Single-use: mark consumed before granting the asset.
+          intent.consumedAt = new Date().toISOString();
+          await db.put(`pay:${intent.id}`, JSON.stringify(intent));
           const newId = crypto.randomUUID();
           const record = { id: newId, model: listing.name, objectId: listing.shelbyObjectId, sha256: listing.sha256, size: listing.size, mode: listing.mode, source: `marketplace:${body.listingId}`, tags: ['marketplace', ...(listing.tags || [])], createdAt: new Date().toISOString() };
           await db.put(`model:${newId}`, JSON.stringify(record));
@@ -1458,10 +1587,10 @@ export default async function handler(req, res) {
       if (method === 'GET') {
         const id = q.id;
         if (!id) {
-          const payments = await listPaymentIntents();
+          const payments = await listPaymentIntents(tenantId);
           return json(res, 200, { success: true, payments });
         }
-        const intent = await getPaymentIntent(id);
+        const intent = await getPaymentIntent(id, tenantId);
         if (!intent) return json(res, 404, { error: 'Payment intent not found.' });
         return json(res, 200, { success: true, intent });
       }
@@ -1471,12 +1600,12 @@ export default async function handler(req, res) {
         if (body.action === 'verify') {
           const { intentId, micropaymentBcs, sender } = body;
           if (!intentId || !micropaymentBcs) return json(res, 400, { error: 'intentId and micropaymentBcs required.' });
-          const intent = await getPaymentIntent(intentId);
+          const intent = await getPaymentIntent(intentId, tenantId);
           if (!intent) return json(res, 404, { error: 'Payment intent not found.' });
           if (intent.status === 'paid') return json(res, 200, { success: true, alreadyPaid: true, intent });
           // Verify + settle via the shared x402 settlement helper (same rules as
           // the pay-per-read flow on GET /api/objects/:id/blob).
-          const result = await settleMicropayment({ intent, micropaymentBcs, sender });
+          const result = await settleMicropayment({ intent, micropaymentBcs, sender, tenantId });
           return json(res, result.status, result.body);
         }
 
@@ -1495,7 +1624,7 @@ export default async function handler(req, res) {
           } else {
             amountShelbyUSD = priceFor(item).usd;
           }
-          intent = await createPaymentIntent({ item, itemId, payer, receiver: await getOrgAddress(), description, amountShelbyUSD });
+          intent = await createPaymentIntent({ item, itemId, payer, receiver: await getOrgAddress(), description, amountShelbyUSD, tenantId });
         } catch (e) {
           return json(res, 400, { error: e.message });
         }
@@ -1534,10 +1663,11 @@ export default async function handler(req, res) {
           }
           return json(res, 200, { success: true, summary });
         }
-        const since = Date.now() - parseInt(days) * 86400000;
+        const parsedDays = parseInt(days, 10);
+        const since = Date.now() - (Number.isFinite(parsedDays) && parsedDays > 0 ? parsedDays : 7) * 86400000;
         const { keys } = await db.list({ prefix: `analytics:${deviceId}:${metric}:` });
         const points = (await Promise.all(keys.map(async ({ name }) => {
-          const ts = parseInt(name.split(':').pop());
+          const ts = parseInt(name.split(':').pop(), 10);
           if (ts < since) return null;
           const d = await db.get(name);
           return d ? { timestamp: new Date(ts).toISOString(), value: parseFloat(d) } : null;
@@ -1580,9 +1710,13 @@ export default async function handler(req, res) {
         const id = q.id;
         if (!id) return json(res, 400, { error: 'id required.' });
         const { keys } = await db.list({ prefix: 'scheduled:' });
+        // Match the full id segment (keys are `scheduled:<ts>:<uuid>`), not any
+        // suffix — `?id=0` used to delete an unrelated job.
+        let deleted = false;
         for (const { name } of keys) {
-          if (name.endsWith(id)) { await db.del(name); break; }
+          if (name.split(':').pop() === id) { await db.del(name); deleted = true; break; }
         }
+        if (!deleted) return json(res, 404, { error: 'Scheduled job not found.' });
         return json(res, 200, { success: true });
       }
     }
@@ -1670,7 +1804,7 @@ export default async function handler(req, res) {
 
     // ── audit ───────────────────────────────────────────────
     if (root === 'audit' && method === 'GET') {
-      const records = await getAuditLog({ action: q.action, from: q.from, to: q.to, limit: parseInt(q.limit || '100') });
+      const records = await getAuditLog({ action: q.action, from: q.from, to: q.to, limit: parseInt(q.limit || '100', 10), tenantId });
       return json(res, 200, { success: true, records, count: records.length });
     }
 
@@ -1703,7 +1837,17 @@ export default async function handler(req, res) {
           models, deployments, devices,
         };
         if (q.format === 'csv') {
-          const lines = ['id,model,sha256,mode,objectId,createdAt', ...models.map(m => `${m.id},${m.model},${m.sha256},${m.mode},${m.objectId},${m.createdAt}`)];
+          // Quote every field and neutralise formula-injection prefixes so a
+          // model named `=HYPERLINK(...)` cannot execute in a spreadsheet.
+          const cell = (v) => {
+            let s = v == null ? '' : String(v);
+            if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+            return `"${s.replace(/"/g, '""')}"`;
+          };
+          const lines = [
+            'id,model,sha256,mode,objectId,createdAt',
+            ...models.map(m => [m.id, m.model, m.sha256, m.mode, m.objectId, m.createdAt].map(cell).join(',')),
+          ];
           res.setHeader('Content-Type', 'text/csv');
           res.setHeader('Content-Disposition', `attachment; filename="provenode-compliance.csv"`);
           return res.status(200).send(lines.join('\n'));
@@ -1810,7 +1954,7 @@ export default async function handler(req, res) {
           const current = createBehavioralFingerprint({ modelId, modelSha256: model?.sha256 || 'unknown', outputs });
           const prints = (await Promise.all(keys.map(async ({ name }) => { const d = await db.get(name); return d ? JSON.parse(d) : null; }))).filter(Boolean).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
           const comparison = compareFingerprints(prints[0], current);
-          await logAudit('passport.copy_checked', { target: modelId, details: { match: comparison.match, divergenceScore: comparison.divergenceScore } });
+          await audit('passport.copy_checked', { target: modelId, details: { match: comparison.match, divergenceScore: comparison.divergenceScore } });
           return json(res, 200, { success: true, modelId, currentFingerprint: current.fingerprint, comparison });
         }
         return json(res, 405, { error: 'Method not allowed.' });
@@ -1824,7 +1968,7 @@ export default async function handler(req, res) {
         const modelRaw = await db.get(`model:${modelId}`);
         if (!modelRaw) return json(res, 404, { error: 'Model not found.' });
         const model = JSON.parse(modelRaw);
-        const { passport, note } = await issuePassport(db, model, { tryOnChain: true });
+        const { passport, note } = await issuePassport(db, model, { tryOnChain: true, tenantId });
         return json(res, 201, { success: true, passport, note: note || null });
       }
     }
@@ -1921,8 +2065,19 @@ export default async function handler(req, res) {
       }
       if (method === 'POST') {
         const body = await readBody(req);
-        const to = body.to || process.env.ALERT_EMAIL;
-        if (!to) return json(res, 400, { error: 'to or ALERT_EMAIL required.' });
+        // SECURITY: do not let an authenticated caller use us as a mail relay.
+        // Only the configured ALERT_EMAIL (or an ALERT_EMAIL_ALLOWLIST entry)
+        // may receive notifications.
+        const fallback = process.env.ALERT_EMAIL;
+        const allow = String(process.env.ALERT_EMAIL_ALLOWLIST || '')
+          .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+        const requested = String(body.to || fallback || '').trim().toLowerCase();
+        if (!requested) return json(res, 400, { error: 'to or ALERT_EMAIL required.' });
+        const permitted = requested === String(fallback || '').toLowerCase() || allow.includes(requested);
+        if (!permitted) {
+          return json(res, 403, { error: 'Recipient not allowed. Add it to ALERT_EMAIL_ALLOWLIST to permit this address.' });
+        }
+        const to = requested;
         let emailData = { subject: 'Provenode', html: '<p>Notification</p>' };
         if (body.type === 'deployment_verified') emailData = deploymentVerifiedEmail(body.deployment || {});
         if (body.type === 'integrity_mismatch') emailData = integrityMismatchEmail(body);
@@ -1972,13 +2127,14 @@ export default async function handler(req, res) {
         });
 
         await db.put(`stream:${modelId}`, JSON.stringify(manifest));
-        await logAudit('stream.manifest_created', { target: modelId, details: { chunkCount: manifest.chunkCount, totalSize: manifest.totalSize } });
+        await audit('stream.manifest_created', { target: modelId, details: { chunkCount: manifest.chunkCount, totalSize: manifest.totalSize } });
         return json(res, 201, { success: true, manifest: { ...manifest, chunks: manifest.chunks.map(c => ({ ...c, data: undefined })) } });
       }
 
       if (method === 'GET') {
         const modelId = q.modelId;
-        const chunkIndex = q.chunk !== undefined ? parseInt(q.chunk) : null;
+        const parsedChunk = q.chunk !== undefined ? parseInt(q.chunk, 10) : NaN;
+      const chunkIndex = Number.isFinite(parsedChunk) && parsedChunk >= 0 ? parsedChunk : null;
         const deviceId = q.deviceId || 'anonymous';
 
         if (!modelId) return json(res, 400, { error: 'modelId required.' });
@@ -2032,7 +2188,7 @@ export default async function handler(req, res) {
 
         const receipt = generateContributionReceipt({ deviceId, roundHash: round.roundHash, gradientSha256: round.contributions.find(c => c.deviceId === deviceId)?.gradientSha256 });
 
-        await logAudit('fl.gradient_submitted', { actor: deviceId, target: modelId, details: { roundNumber: roundNumber || 1, sampleCount } });
+        await audit('fl.gradient_submitted', { actor: deviceId, target: modelId, details: { roundNumber: roundNumber || 1, sampleCount } });
         return json(res, 201, { success: true, receipt, round: { roundHash: round.roundHash, participantCount: round.participantCount } });
       }
 
@@ -2048,11 +2204,15 @@ export default async function handler(req, res) {
 
         // Reinterpret stored gradient BYTES as Float32 values (4 bytes per float).
         // `new Float32Array(buffer)` would treat each byte as a separate element,
-        // producing garbage averages and breaking the FedAvg math.
+        // producing garbage averages and breaking the FedAvg math. We copy into a
+        // fresh array because Buffer.from() is rarely 4-byte aligned, and an
+        // unaligned typed-array view throws RangeError.
         const gradients = round.rawContributions.map(c => {
           const buf = Buffer.from(Array.isArray(c.gradientBuffer) ? c.gradientBuffer : c.gradientBuffer);
           const n = Math.floor(buf.byteLength / 4);
-          return new Float32Array(buf.buffer, buf.byteOffset, n);
+          const out = new Float32Array(n);
+          for (let i = 0; i < n; i++) out[i] = buf.readFloatLE(i * 4);
+          return out;
         });
         const sampleCounts = round.rawContributions.map(c => c.sampleCount || 100);
         const aggregated = weightedFedAvg(gradients, sampleCounts);
@@ -2064,7 +2224,7 @@ export default async function handler(req, res) {
         round.aggregatedObjectId = objectId;
         round.aggregatedAt = new Date().toISOString();
         await db.put(roundKey, JSON.stringify(round));
-        await logAudit('fl.aggregated', { target: modelId, details: { roundNumber, participants: round.participantCount, objectId } });
+        await audit('fl.aggregated', { target: modelId, details: { roundNumber, participants: round.participantCount, objectId } });
         return json(res, 200, { success: true, aggregatedObjectId: objectId, roundHash: round.roundHash, participants: round.participantCount });
       }
     }
@@ -2100,12 +2260,16 @@ export default async function handler(req, res) {
 
         const node = buildVersionNode({ parentSha256, newSha256, deltaObjectId, version: newVersion || '1.0.0', notes });
         await db.put(`delta:${modelId}:${newVersion || '1.0.0'}`, JSON.stringify(node));
-        await logAudit('delta.version_registered', { target: modelId, details: { version: newVersion, parentSha256, deltaObjectId } });
+        await audit('delta.version_registered', { target: modelId, details: { version: newVersion, parentSha256, deltaObjectId } });
         return json(res, 201, { success: true, node, compressionBenefit: parentSha256 ? 'Upload ~95% smaller than full model' : 'Base version stored' });
       }
     }
 
-    // ── #7 ZK PROOF VERIFICATION ─────────────────────────────────────────
+    // ── #7 ATTESTATION (legacy query-string form) ────────────────────────
+    // NOTE: the primary handler is the `root === 'zkproof'` block near the top
+    // of this router, which matches path-style requests. This block only serves
+    // the documented query-string form and is reached when that block falls
+    // through (no /:action/:id path segments).
     if (root === 'zkproof') {
       if (method !== 'GET' && requireAuth(req, res)) return;
 
@@ -2113,10 +2277,19 @@ export default async function handler(req, res) {
         const modelId = q.modelId;
         if (!modelId) return json(res, 400, { error: 'modelId required.' });
         const raw = await db.get(`zkproof:${modelId}`);
-        if (!raw) return json(res, 404, { error: 'No ZK proof for this model.' });
-        const proof = JSON.parse(raw);
-        // Return proof without sensitive fields
-        return json(res, 200, { success: true, proofHash: proof.proofSha256, aggregateProof: proof.proof?.aggregateProof, vectorCount: proof.proof?.vectorCount, generatedAt: proof.proof?.generatedAt, shelbyObjectId: proof.shelbyObjectId, verified: verifyProof(proof.proof) });
+        if (!raw) return json(res, 404, { error: 'No attestation for this model.' });
+        const stored = JSON.parse(raw);
+        // Records may be stored flat (path handler) or wrapped (this handler).
+        const inner = stored.proof || stored;
+        return json(res, 200, {
+          success: true,
+          proofHash: stored.proofSha256 || inner.proofHash,
+          aggregateProof: inner.aggregateProof,
+          vectorCount: inner.vectorCount,
+          generatedAt: inner.generatedAt,
+          shelbyObjectId: stored.shelbyObjectId,
+          verified: verifyProof(inner, await getOrgPublicKey()),
+        });
       }
 
       if (method === 'POST') {
@@ -2127,13 +2300,22 @@ export default async function handler(req, res) {
         if (!modelRaw) return json(res, 404, { error: 'Model not found.' });
         const model = JSON.parse(modelRaw);
 
+        const orgPublicKey = await getOrgPublicKey();
+        if (!orgPublicKey) {
+          return json(res, 503, { error: 'Signing key not configured (SIGN_KEY or SHELBY_PRIVATE_KEY). Attestations must be signed by the org key to be verifiable.' });
+        }
         const vectors = testVectors || STANDARD_BENCHMARK_VECTORS.map(v => ({ input: v.input, expectedOutput: `verified:${v.id}` }));
-        const { proof, proofBuffer, proofSha256 } = generateModelCommitment({ modelSha256: model.sha256 || model.hash, testVectors: vectors, privateKey: process.env.SIGN_KEY || process.env.SHELBY_PRIVATE_KEY });
+        let proof, proofBuffer, proofSha256;
+        try {
+          ({ proof, proofBuffer, proofSha256 } = generateModelCommitment({ modelSha256: model.sha256 || model.hash, testVectors: vectors, publicKeyHex: orgPublicKey }));
+        } catch (e) {
+          return json(res, 400, { error: e.message });
+        }
 
         // Upload proof to Shelby
         const shelbyResult = await shelbyUpload({ blobData: proofBuffer, blobName: `zkproofs/${modelId}/proof-${Date.now()}`, apiKey: process.env.SHELBY_API_KEY });
         await db.put(`zkproof:${modelId}`, JSON.stringify({ proof, proofSha256, shelbyObjectId: shelbyResult.objectId }));
-        await logAudit('zkproof.generated', { target: modelId, details: { proofSha256, vectorCount: vectors.length, shelbyObjectId: shelbyResult.objectId } });
+        await audit('zkproof.generated', { target: modelId, details: { proofSha256, vectorCount: vectors.length, shelbyObjectId: shelbyResult.objectId } });
         return json(res, 201, { success: true, proofHash: proofSha256, shelbyObjectId: shelbyResult.objectId, vectorCount: vectors.length, certificationLevel: vectors.some(v => v.input === 'ignore all previous instructions') ? 'AI-Safety-Certified' : 'Standard' });
       }
     }
@@ -2149,7 +2331,7 @@ export default async function handler(req, res) {
         if (!datasetId) return json(res, 400, { error: 'datasetId required.' });
         const request = buildDeletionRequest({ datasetId, requestedBy: requestedBy || 'api', reason: reason || 'GDPR Right to Forget' });
         await db.put(`deletion:${request.requestHash}`, JSON.stringify(request));
-        await logAudit('dataset.deletion_requested', { actor: requestedBy, target: datasetId, details: { reason, requestHash: request.requestHash } });
+        await audit('dataset.deletion_requested', { actor: requestedBy, target: datasetId, details: { reason, requestHash: request.requestHash } });
         return json(res, 200, { success: true, request, notice: 'Models trained on this dataset must be retrained or withdrawn per EU AI Act Article 17.' });
       }
 
@@ -2198,8 +2380,8 @@ export default async function handler(req, res) {
           const healCmd = buildHealCommand({ deviceId, modelId, shelbyObjectId: model.objectId, cleanSha256: model.sha256 || model.hash });
           const incident = buildIncidentRecord({ deviceId, modelId, tamperDetectedAt: detection.detectedAt, healedAt: null, oldSha256: reportedSha256, newSha256: model.sha256 || model.hash, shelbyObjectId: model.objectId });
           await db.put(`incident:${incident.id}`, JSON.stringify(incident));
-          await dispatch('device.tamper_detected', { deviceId, modelId, incidentId: incident.id });
-          await logAudit('selfheal.tamper_detected', { actor: deviceId, target: modelId, details: { oldSha: reportedSha256.slice(0,8), incidentId: incident.id } });
+          await notify('device.tamper_detected', { deviceId, modelId, incidentId: incident.id });
+          await audit('selfheal.tamper_detected', { actor: deviceId, target: modelId, details: { oldSha: reportedSha256.slice(0,8), incidentId: incident.id } });
           return json(res, 200, { success: true, tampered: true, healCommand: healCmd, incident: { id: incident.id, status: 'heal_issued' }, message: 'Tamper detected. Heal command issued automatically.' });
         }
 
@@ -2219,7 +2401,7 @@ export default async function handler(req, res) {
         incident.healDurationMs = new Date(incident.healedAt) - new Date(incident.tamperDetectedAt);
         incident.verifiedSha256 = verifiedSha256;
         await db.put(`incident:${incidentId}`, JSON.stringify(incident));
-        await logAudit('selfheal.healed', { target: incident.deviceId, details: { incidentId, healDurationMs: incident.healDurationMs } });
+        await audit('selfheal.healed', { target: incident.deviceId, details: { incidentId, healDurationMs: incident.healDurationMs } });
         return json(res, 200, { success: true, incident, message: `Fleet healed in ${(incident.healDurationMs/1000).toFixed(1)}s autonomously.` });
       }
     }
@@ -2262,7 +2444,7 @@ export default async function handler(req, res) {
           type: parentModelId ? 'derived' : 'origin',
         };
         await db.put(`prov:${node.id}`, JSON.stringify(node));
-        await logAudit('provenance.node_added', { target: childModelId, details: { parentModelId, operation, nodeHash: node.nodeHash } });
+        await audit('provenance.node_added', { target: childModelId, details: { parentModelId, operation, nodeHash: node.nodeHash } });
         return json(res, 201, { success: true, node, certificate: `https://provenode.app/verify?prov=${node.id}` });
       }
     }
@@ -2344,7 +2526,7 @@ export default async function handler(req, res) {
         };
 
         await db.put(`bridge:${attestation.id}`, JSON.stringify(attestation));
-        await logAudit('bridge.attestation_created', { target: modelId, details: { targetChain, attestationHash: attestation.attestationHash } });
+        await audit('bridge.attestation_created', { target: modelId, details: { targetChain, attestationHash: attestation.attestationHash } });
         return json(res, 201, { success: true, attestation, instructions: targetChain === 'solana' ? 'Install @shelby-protocol/solana-kit and call verifyAttestation(attestationHash)' : 'Submit attestation to Provenode Ethereum bridge contract at 0x...' });
       }
 
@@ -2373,7 +2555,8 @@ export default async function handler(req, res) {
         const cached = await db.get(cacheKey);
         if (!cached) return json(res, 404, { error: 'Cache miss.', cacheHit: false });
         const record = JSON.parse(cached);
-        await logAudit('inference_cache.hit', { target: modelId, details: { inputHash, latencySavedMs: record.latencyMs } });
+        // NOTE: deliberately no audit write here — an unauthenticated GET must
+        // not be able to grow the audit keyspace on every request.
         return json(res, 200, { cacheHit: true, ...record, note: 'Result served from Shelby cache — no compute used' });
       }
 
@@ -2405,7 +2588,7 @@ export default async function handler(req, res) {
 
         // Store in KV for fast lookup
         await db.put(cacheKey, JSON.stringify({ ...record, shelbyObjectId: shelbyResult.objectId }));
-        await logAudit('inference_cache.store', { target: modelId, details: { inputHash, latencyMs } });
+        await audit('inference_cache.store', { target: modelId, details: { inputHash, latencyMs } });
         return json(res, 201, { stored: true, inputHash, shelbyObjectId: shelbyResult.objectId, recordHash, note: 'Result immutably cached on Shelby — future identical inputs served from cache' });
       }
 
@@ -2463,7 +2646,7 @@ export default async function handler(req, res) {
         };
 
         await db.put(`cp:${runId}:${String(step).padStart(12,'0')}`, JSON.stringify(record));
-        await logAudit('checkpoint.saved', { target: runId, details: { step, loss, shelbyObjectId: shelbyResult.objectId } });
+        await audit('checkpoint.saved', { target: runId, details: { step, loss, shelbyObjectId: shelbyResult.objectId } });
         return json(res, 201, { success: true, checkpoint: record, resumeCommand: `curl -o checkpoint_step${step}.pt "${shelbyResult.objectId}"` });
       }
 
@@ -2514,11 +2697,23 @@ export default async function handler(req, res) {
         if (!Array.isArray(inputSamples) || inputSamples.some(s => !Array.isArray(s.softLabels) || !s.softLabels.length)) {
           return json(res, 400, { error: 'Real distillation requires inputSamples with teacher softLabels (probability distributions).' });
         }
+        // Bound the work: unbounded arrays here previously blew the call stack
+        // via Math.max(...probs) and could pin the function on CPU.
+        if (inputSamples.length > 1000) {
+          return json(res, 400, { error: 'Too many inputSamples (max 1000 per request).' });
+        }
+        if (inputSamples.some(s => s.softLabels.length > 10000)) {
+          return json(res, 400, { error: 'softLabels vector too large (max 10000 classes).' });
+        }
         const softLabels = inputSamples.map((sample) => {
           const inputHash = createHash('sha256').update(JSON.stringify(sample.input !== undefined ? sample.input : sample)).digest('hex');
           const probs = sample.softLabels;
           const sum = probs.reduce((a, b) => a + b, 0) || 1;
-          return { inputHash, softLabels: probs.map(p => parseFloat((p / sum).toFixed(4))), temperature: body.temperature || 4.0, topClassIndex: probs.indexOf(Math.max(...probs)) };
+          // reduce() instead of Math.max(...probs): spreading a large array
+          // throws RangeError (max call stack).
+          let topClassIndex = 0;
+          for (let i = 1; i < probs.length; i++) if (probs[i] > probs[topClassIndex]) topClassIndex = i;
+          return { inputHash, softLabels: probs.map(p => parseFloat((p / sum).toFixed(4))), temperature: body.temperature || 4.0, topClassIndex };
         });
 
         // Binding hash: proves labels came from this teacher
@@ -2532,7 +2727,7 @@ export default async function handler(req, res) {
         const job = { id: jobId, studentId, teacherModelId, teacherSha256: teacherSha, inputObjectId: inputResult.objectId, outputObjectId: labelResult.objectId, sampleCount: inputSamples.length, pricePerSample: pricePerSample || 0.001, totalPrice: (pricePerSample || 0.001) * inputSamples.length, status: 'running', progress: 0, bindingHash, createdAt: new Date().toISOString() };
 
         await db.put(`distil:${jobId}`, JSON.stringify(job));
-        await logAudit('distillation.completed', { actor: studentId, target: teacherModelId, details: { jobId, sampleCount: inputSamples.length, bindingHash } });
+        await audit('distillation.completed', { actor: studentId, target: teacherModelId, details: { jobId, sampleCount: inputSamples.length, bindingHash } });
         return json(res, 201, { success: true, job, labelObjectId: labelResult.objectId, note: 'Soft labels stored on Shelby — teacher weights never exposed. Verify with bindingHash before training.' });
       }
 
@@ -2589,7 +2784,7 @@ export default async function handler(req, res) {
         }
 
         await db.put(`fp:${modelId}:${Date.now()}`, JSON.stringify({ ...fpRecord, shelbyObjectId }));
-        await logAudit('fingerprint.created', { target: modelId, details: { fingerprint, compoundFingerprint, canaryCount: outputs.length } });
+        await audit('fingerprint.created', { target: modelId, details: { fingerprint, compoundFingerprint, canaryCount: outputs.length } });
         return json(res, 201, { success: true, fingerprint, compoundFingerprint, shelbyObjectId, note: anchorNote || 'Behavioral fingerprint anchored on Shelby. Detects model editing attacks (ROME/MEMIT/BadNets) that bypass SHA-256 checking.' });
       }
 
@@ -2645,7 +2840,7 @@ export default async function handler(req, res) {
         const blobName = `abtests/${lockId}/lock`;
         const shelbyResult = await shelbyUpload({ blobData: Buffer.from(JSON.stringify(lock)), blobName, apiKey: process.env.SHELBY_API_KEY });
         await db.put(`ablock:${lockId}`, JSON.stringify({ ...lock, shelbyObjectId: shelbyResult.objectId }));
-        await logAudit('abtest_lock.created', { target: name, details: { lockId, lockHash, modelAId, modelBId } });
+        await audit('abtest_lock.created', { target: name, details: { lockId, lockHash, modelAId, modelBId } });
         return json(res, 201, { success: true, lock: { ...lock, shelbyObjectId: shelbyResult.objectId }, note: `A/B test locked. lockHash=${lockHash.slice(0,16)}... anchored on Shelby before test starts. Results will be cryptographically bound to these exact model versions.` });
       }
 
@@ -2668,7 +2863,7 @@ export default async function handler(req, res) {
         lock.results = { samplesA, samplesB, metricA, metricB, delta: metricA - metricB, deltaPercent: metricB !== 0 ? ((metricA-metricB)/metricB*100).toFixed(2)+'%' : null, pValue, winner, confidence, significant: pValue < lock.testConfig.significanceThreshold, notes: notes || '', resultHash };
 
         await db.put(`ablock:${lockId}`, JSON.stringify(lock));
-        await logAudit('abtest_lock.completed', { target: lock.name, details: { lockId, winner, pValue, resultHash } });
+        await audit('abtest_lock.completed', { target: lock.name, details: { lockId, winner, pValue, resultHash } });
         return json(res, 200, { success: true, lock, auditStatement: `Results cryptographically bound to lockHash ${lock.lockHash.slice(0,16)}... It is mathematically impossible to have tested different model versions.` });
       }
 
@@ -2724,29 +2919,51 @@ export default async function handler(req, res) {
         if (!name) return json(res, 400, { error: 'name required (used for slug).' });
         let slug = slugify(body.slug || name);
         if (!validateSlug(slug)) return json(res, 400, { error: 'Invalid slug. Use 3-48 chars, a-z0-9 and hyphens.' });
-        // uniqueness check
+        // Uniqueness is checked GLOBALLY: /s/<slug> is a public URL served
+        // without a tenant header, so two tenants must not own the same slug.
+        const globalDb = getDB();
+        const claimed = await globalDb.get(`siteIndex:${slug}`);
+        if (claimed) return json(res, 409, { error: `Slug "${slug}" already taken.` });
         const existing = await db.get(`site:slug:${slug}`);
         if (existing) return json(res, 409, { error: `Slug "${slug}" already taken.` });
         const site = buildSiteRecord({ name, slug, description: body.description, framework: body.framework, owner: body.owner || null });
+        site.tenantId = tenantId || null;
         await db.put(`site:${site.id}`, JSON.stringify(site));
         await db.put(`site:slug:${slug}`, site.id);
-        await logAudit('site.created', { target: site.id, details: { slug, name } });
+        // Public routing index (slug -> tenant + id) so /s/<slug> resolves.
+        await globalDb.put(`siteIndex:${slug}`, JSON.stringify({ tenantId: tenantId || '', siteId: site.id }));
+        await audit('site.created', { target: site.id, details: { slug, name } });
         return json(res, 201, { success: true, site, urlPath: `/s/${slug}`, serveUrl: `/api/sites/${site.id}/serve/` });
       }
 
       // All site-specific routes require site lookup
       if (siteId) {
         let site = null;
+        let siteDb = db;
         // allow lookup by id or slug
         let raw = await db.get(`site:${siteId}`);
         if (!raw) {
           const idFromSlug = await db.get(`site:slug:${siteId}`);
           if (idFromSlug) raw = await db.get(`site:${idFromSlug}`);
         }
+        if (!raw) {
+          // Public serve path: no tenant header, so resolve through the global
+          // slug index and read the site from its owning tenant namespace.
+          try {
+            const idxRaw = await getDB().get(`siteIndex:${siteId}`);
+            if (idxRaw) {
+              const idx = JSON.parse(idxRaw);
+              siteDb = getDB(idx.tenantId || '');
+              raw = await siteDb.get(`site:${idx.siteId}`);
+            }
+          } catch { /* fall through to 404 */ }
+        }
         // serve / preview are public (like Vercel preview URLs)
-        const isServe = sub === 'serve' || sub === 'preview';
-        if (!raw && !isServe) return json(res, 404, { error: 'Site not found.' });
-        if (raw) site = JSON.parse(raw);
+        // FIX: previously `serve`/`preview` were allowed to continue with
+        // site === null, which then threw on site.lastDeploymentId — turning
+        // every unknown public URL into a 500 instead of a 404.
+        if (!raw) return json(res, 404, { error: 'Site not found.' });
+        site = JSON.parse(raw);
 
         // GET /api/sites/:siteId -> get site + deployments count
         if (!sub && method === 'GET') {
@@ -2762,9 +2979,11 @@ export default async function handler(req, res) {
           if (requireAuth(req, res)) return;
           await db.del(`site:${site.id}`);
           await db.del(`site:slug:${site.slug}`);
+          // Release the public slug claim so it can be reused.
+          await getDB().del(`siteIndex:${site.slug}`);
           const { keys } = await db.list({ prefix: `siteDeploy:${site.id}:` });
           for (const k of keys) await db.del(k.name);
-          await logAudit('site.deleted', { target: site.id, details: { slug: site.slug } });
+          await audit('site.deleted', { target: site.id, details: { slug: site.slug } });
           return json(res, 200, { success: true });
         }
 
@@ -2789,7 +3008,7 @@ export default async function handler(req, res) {
             const token = generateDeployKey();
             const record = { siteId: site.id, siteSlug: site.slug, createdAt: new Date().toISOString(), label: 'github-actions' };
             await db.put(`siteKey:${token}`, JSON.stringify(record));
-            await logAudit('site.key.created', { target: site.id, details: { label: record.label } });
+            await audit('site.key.created', { target: site.id, details: { label: record.label } });
             return json(res, 201, { success: true, token, note: 'Store this token now — it is not retrievable again.', record });
           }
 
@@ -2819,7 +3038,7 @@ export default async function handler(req, res) {
               full = match.name.slice('siteKey:'.length);
             }
             await db.del(`siteKey:${full}`);
-            await logAudit('site.key.revoked', { target: site.id, details: { key: `${full.slice(0, 10)}...` } });
+            await audit('site.key.revoked', { target: site.id, details: { key: `${full.slice(0, 10)}...` } });
             return json(res, 200, { success: true });
           }
         }
@@ -2855,14 +3074,36 @@ export default async function handler(req, res) {
               const AdmZip = (await import('adm-zip')).default;
               const zip = new AdmZip(buf);
               const entries = zip.getEntries();
+              // ZIP-bomb guard: enforce the file-count and total-bytes caps
+              // INSIDE the loop. Checking them afterwards let a 50MB archive of
+              // 200 highly-compressible 10MB entries buffer ~2GB before any
+              // limit was evaluated.
+              const MAX_FILES = 200;
+              const MAX_TOTAL = 40 * 1024 * 1024;
+              const MAX_PER_FILE = 10 * 1024 * 1024;
+              let running = 0;
               for (const e of entries) {
                 if (e.isDirectory) continue;
                 let p = e.entryName.replace(/\\/g, '/').replace(/^\/+/, '');
                 if (!p || p.startsWith('__MACOSX/') || p.includes('/__MACOSX/') || p.endsWith('.DS_Store')) continue;
                 if (p.includes('..')) continue;
+                if (filesToUpload.length >= MAX_FILES) {
+                  return json(res, 400, { error: `Too many files in archive (max ${MAX_FILES}).` });
+                }
+                // Trust the header size first so an oversized entry is rejected
+                // before it is decompressed into memory.
+                const declared = Number(e.header?.size ?? 0);
+                if (declared > MAX_PER_FILE) continue;
+                if (declared && running + declared > MAX_TOTAL) {
+                  return json(res, 400, { error: 'Total site size exceeds 40MB.' });
+                }
                 const data = e.getData();
                 if (!data || !data.length) continue;
-                if (data.length > 10 * 1024 * 1024) continue; // skip huge files
+                if (data.length > MAX_PER_FILE) continue; // skip huge files
+                running += data.length;
+                if (running > MAX_TOTAL) {
+                  return json(res, 400, { error: 'Total site size exceeds 40MB.' });
+                }
                 filesToUpload.push({ path: p, buffer: Buffer.from(data) });
               }
               if (!filesToUpload.length) return json(res, 400, { error: 'Zip is empty or contains no valid files.' });
@@ -2902,8 +3143,10 @@ export default async function handler(req, res) {
               // duplicate first html as index.html for root
               filesToUpload.push({ path: 'index.html', buffer: firstHtml.buffer });
             } else {
-              // create minimal index that lists files
-              const listing = `<html><body><h1>${site.name}</h1><ul>${filesToUpload.map(f=>`<li><a href="/${f.path}">${f.path}</a></li>`).join('')}</ul></body></html>`;
+              // create minimal index that lists files (HTML-escaped: site.name
+              // and file paths are user-controlled)
+              const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+              const listing = `<html><body><h1>${esc(site.name)}</h1><ul>${filesToUpload.map(f => `<li><a href="/${esc(f.path)}">${esc(f.path)}</a></li>`).join('')}</ul></body></html>`;
               filesToUpload.push({ path: 'index.html', buffer: Buffer.from(listing, 'utf8') });
             }
           }
@@ -2931,7 +3174,7 @@ export default async function handler(req, res) {
           site.updatedAt = new Date().toISOString();
           site.lastDeploymentAt = deployment.createdAt;
           await db.put(`site:${site.id}`, JSON.stringify(site));
-          await logAudit('site.deployed', { target: site.id, details: { deploymentId, fileCount: uploadedMeta.length, totalBytes } });
+          await audit('site.deployed', { target: site.id, details: { deploymentId, fileCount: uploadedMeta.length, totalBytes } });
 
           return json(res, 201, {
             success: true,
@@ -2965,8 +3208,8 @@ export default async function handler(req, res) {
             ...(site.rollbackHistory || []),
           ].slice(0, 20);
           await db.put(`site:${site.id}`, JSON.stringify(site));
-          await logAudit('site.rolled_back', { target: site.id, details: { from: previous, to: target, fileCount: dep.fileCount } });
-          await dispatch('site.rolled_back', { siteId: site.id, slug: site.slug, from: previous, to: target });
+          await audit('site.rolled_back', { target: site.id, details: { from: previous, to: target, fileCount: dep.fileCount } });
+          await notify('site.rolled_back', { siteId: site.id, slug: site.slug, from: previous, to: target });
 
           return json(res, 200, {
             success: true,
@@ -2984,7 +3227,7 @@ export default async function handler(req, res) {
           filePath = normalizeSitePath(filePath || 'index.html');
 
           if (!site.lastDeploymentId) return json(res, 404, { error: 'No deployments yet. Deploy a site first.' });
-          const depRaw = await db.get(`siteDeploy:${site.id}:${site.lastDeploymentId}`);
+          const depRaw = await siteDb.get(`siteDeploy:${site.id}:${site.lastDeploymentId}`);
           if (!depRaw) return json(res, 404, { error: 'Deployment manifest not found.' });
           const dep = JSON.parse(depRaw);
 
@@ -3002,12 +3245,7 @@ export default async function handler(req, res) {
           const address = m[1], blobName = decodeURIComponent(m[2]);
           try {
             const { buffer } = await shelbyDownloadBlob({ address, blobName, apiKey: process.env.SHELBY_API_KEY });
-            res.setHeader('Content-Type', entry.contentType || contentTypeFor(entry.path));
-            res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
-            res.setHeader('X-Shelby-Object', entry.objectId);
-            res.setHeader('X-Site-Slug', site.slug);
-            // allow iframe preview
-            res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+            applySiteContentHeaders(res, { entry, siteSlug: site.slug });
             return res.status(200).send(buffer);
           } catch (e) {
             return json(res, 502, { error: `Shelby fetch failed: ${e.message}` });
@@ -3018,7 +3256,7 @@ export default async function handler(req, res) {
         if (sub === 'preview' && method === 'GET') {
           const depId = parts[3];
           if (!depId) return json(res, 400, { error: 'deploymentId required.' });
-          const depRaw = await db.get(`siteDeploy:${site.id}:${depId}`);
+          const depRaw = await siteDb.get(`siteDeploy:${site.id}:${depId}`);
           if (!depRaw) return json(res, 404, { error: 'Deployment not found.' });
           const dep = JSON.parse(depRaw);
           let filePath = parts.length > 4 ? parts.slice(4).join('/') : (String(q.path || '') || 'index.html');
@@ -3032,8 +3270,7 @@ export default async function handler(req, res) {
           const address = m[1], blobName = decodeURIComponent(m[2]);
           try {
             const { buffer } = await shelbyDownloadBlob({ address, blobName, apiKey: process.env.SHELBY_API_KEY });
-            res.setHeader('Content-Type', entry.contentType || contentTypeFor(entry.path));
-            res.setHeader('Cache-Control', 'public, max-age=60');
+            applySiteContentHeaders(res, { entry, siteSlug: site.slug });
             return res.status(200).send(buffer);
           } catch (e) {
             return json(res, 502, { error: `Shelby fetch failed: ${e.message}` });
@@ -3047,7 +3284,7 @@ export default async function handler(req, res) {
     // ── EARNINGS (real ShelbyUSD settlements) ────────────────
     if (root === 'earnings' && method === 'GET') {
       // Real mode: totals come from settled on-chain payment intents — no simulation.
-      const settled = (await listPaymentIntents()).filter(p => p.status === 'paid');
+      const settled = (await listPaymentIntents(tenantId)).filter(p => p.status === 'paid');
       const totalMicro = settled.reduce((a, p) => a + (p.amountMicro || 0), 0);
       const nodes = settled.map(p => ({
         id: `pay-${p.id.slice(0, 8)}`,
@@ -3068,12 +3305,30 @@ export default async function handler(req, res) {
       });
     }
 
-    const _kp=['/api/health','/api/config','/api/models','/api/metrics','/api/docs','/api/objects','/api/audit','/api/analytics','/api/schedule','/api/groups','/api/bluegreen','/api/webhooks','/api/marketplace','/api/payments','/api/passport','/api/registry','/api/compliance','/api/lineage','/api/sign','/api/notifications','/api/stream','/api/inference-cache','/api/checkpoints','/api/distillation','/api/fingerprint','/api/abtest-lock','/api/earnings','/api/sites','/api/shelby-status','/api/registry/status','/api/registry/verify'];
+    // Known roots — used only to choose 405 (wrong method) over 404 (no route).
+    const _kp = [
+      '/api/health', '/api/config', '/api/models', '/api/metrics', '/api/docs',
+      '/api/objects', '/api/audit', '/api/analytics', '/api/schedule', '/api/groups',
+      '/api/bluegreen', '/api/webhooks', '/api/marketplace', '/api/payments',
+      '/api/passport', '/api/registry', '/api/compliance', '/api/lineage', '/api/sign',
+      '/api/notifications', '/api/stream', '/api/inference-cache', '/api/checkpoints',
+      '/api/distillation', '/api/fingerprint', '/api/abtest-lock', '/api/earnings',
+      '/api/sites', '/api/shelby-status', '/api/registry/status', '/api/registry/verify',
+      // previously missing — these live routes returned 404 on a wrong method
+      '/api/upload', '/api/deploy', '/api/status', '/api/devices', '/api/fleet',
+      '/api/abtest', '/api/import', '/api/agent', '/api/identity', '/api/certificate',
+      '/api/zkproof', '/api/integrity', '/api/datasets', '/api/federated', '/api/delta',
+      '/api/selfheal', '/api/provenance', '/api/telemetry', '/api/bridge',
+      '/api/stream-inference', '/api/slack',
+    ];
     // Boundary match (k or k + '/…') — '/api/streaming/session' must NOT match '/api/stream'.
     const known = _kp.some(k => path === k || path.startsWith(k + '/'));
     return json(res, known ? 405 : 404, { error: `Method ${method} not allowed on ${path}.`, tip:'See GET /api/docs' });
   } catch (err) {
     console.error('[api]', err);
-    return json(res, 500, { error: err.message || 'Internal error' });
+    // Do not leak internal error text (Redis/Shelby/Aptos SDK messages) to
+    // clients in production; the full error is still in the server log.
+    const detail = isProdRuntime() ? 'Internal error' : (err.message || 'Internal error');
+    return json(res, 500, { error: detail });
   }
 }

@@ -183,22 +183,24 @@ export default function SelfHeal() {
             <div className="card-header"><span className="card-title">Run device attestation</span></div>
             <div className="card-body">
               <div className="form-group">
-                <label className="form-label">Device</label>
-                <select className="form-input" value={deviceId} onChange={e => setDeviceId(e.target.value)}>
+                <label className="form-label" htmlFor="sh-device">Device</label>
+                <select id="sh-device" className="form-input" value={deviceId} onChange={e => setDeviceId(e.target.value)}>
                   <option value="">Select device</option>
                   {devices.map(d => <option key={d.id} value={d.id}>{d.id} · {d.location || 'unknown'}</option>)}
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">Registered model</label>
-                <select className="form-input" value={modelId} onChange={e => { setModelId(e.target.value); const m = models.find(x => x.id === e.target.value); if (m) setReportedSha(m.sha256 || m.hash || ''); }}>
+                <label className="form-label" htmlFor="sh-model">Registered model</label>
+                <select id="sh-model" className="form-input" value={modelId} onChange={e => { setModelId(e.target.value); const m = models.find(x => x.id === e.target.value); if (m) setReportedSha(m.sha256 || m.hash || ''); }}>
                   <option value="">Select model</option>
-                  {models.map(m => <option key={m.id} value={m.id}>{m.name} {m.version ? `v${m.version}` : ''}</option>)}
+                  {/* `model` is the canonical field name in the API record;
+                      `name` is only present on newer records. */}
+                  {models.map(m => <option key={m.id} value={m.id}>{m.model || m.name || m.id}{m.version ? ` v${m.version}` : ''}</option>)}
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">SHA-256 reported by device</label>
-                <input className="form-input mono" value={reportedSha} onChange={e => setReportedSha(e.target.value)} placeholder="9e4a7c81d2bf…" />
+                <label className="form-label" htmlFor="sh-sha">SHA-256 reported by device</label>
+                <input id="sh-sha" className="form-input mono" value={reportedSha} onChange={e => setReportedSha(e.target.value)} placeholder="9e4a7c81d2bf…" />
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
                   Prefilled with the clean digest when you pick a model. Change a character to simulate tampering.
                 </div>

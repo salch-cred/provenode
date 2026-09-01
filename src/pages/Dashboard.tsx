@@ -37,6 +37,19 @@ export default function Dashboard() {
   const inflight  = deps.filter(d => d.status === 'deploying').length;
   const shelbyLive = shelby.connected || Boolean(shelby.mode === 'production');
 
+  // `loading` was tracked but never rendered, so the first paint showed a
+  // fully-populated zero state while six requests were still in flight.
+  if (loading) {
+    return (
+      <div className="page">
+        <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+          <div className="spin" style={{ margin: '0 auto 12px' }} />
+          Loading fleet status…
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 

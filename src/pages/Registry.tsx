@@ -18,7 +18,7 @@ export default function Registry() {
   return (
     <div className="card">
       <div className="card-header"><span className="card-title">Model registry</span>
-        <div className="flex gap-2"><button className="btn btn-sm" onClick={load}>↻</button></div></div>
+        <div className="flex gap-2"><button className="btn btn-sm" aria-label="Refresh" title="Refresh" onClick={load}><i className="hgi-stroke hgi-refresh" /></button></div></div>
       <div className="table-wrap"><table><thead><tr><th>Model (Provenance QR)</th><th>Mode</th><th>SHA-256</th><th>Size</th><th>Object ID</th><th>Actions</th></tr></thead>
       <tbody>{!models.length ? <tr><td colSpan={6}>
         <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
@@ -32,7 +32,7 @@ export default function Registry() {
             <td>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ background: 'var(--surface)', padding: '4px', borderRadius: '6px', display: 'flex', border: '1px solid var(--border)' }}>
-                  <QRCodeSVG value={`https://www.provenodes.xyz/verify?id=${m.id}`} size={40} />
+                  <QRCodeSVG value={`${window.location.origin}/verify?id=${m.id}`} size={40} />
                 </div>
                 <div>
                   <strong>{m.model}</strong><br/>

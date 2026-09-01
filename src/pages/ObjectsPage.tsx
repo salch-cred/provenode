@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { get, post } from '../lib/api';
-import { fmt, ago } from '../lib/utils';
+import { fmt } from '../lib/utils';
 import { useToast } from '../contexts/AppContext';
 
 export default function ObjectsPage() {
@@ -17,7 +17,14 @@ export default function ObjectsPage() {
   const download = async (o: any) => {
     setBusy(o.id);
     try {
-      const res = await fetch(`/api/objects/${o.id}/blob`, { headers: { 'X-Provenode-Token': localStorage.getItem('token') || '' } });
+      // Binary response, so this cannot use apiFetch (which parses JSON), but it
+      // must still send the same headers apiFetch would.
+      const headers: Record<string, string> = {};
+      const token = localStorage.getItem('token');
+      const tenant = localStorage.getItem('tenant');
+      if (token) headers['X-Provenode-Token'] = token;
+      if (tenant) headers['X-Tenant-Id'] = tenant;
+      const res = await fetch(`/api/objects/${o.id}/blob`, { headers });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
         throw new Error(d.error || `HTTP ${res.status}`);
@@ -45,13 +52,6 @@ export default function ObjectsPage() {
     finally { setBusy(null); }
   };
 
-  const shards = [
-    { id: 'node-us-east', status: 'online', type: 'Primary' },
-    { id: 'node-eu-west', status: 'online', type: 'Primary' },
-    { id: 'node-ap-south', status: 'offline', type: 'Parity' },
-    { id: 'node-sa-east', status: 'online', type: 'Parity' }
-  ];
-
   return (
     <div>
       <div className="stat-grid mb-4">
@@ -63,7 +63,7 @@ export default function ObjectsPage() {
       <div className="card">
         <div className="card-header">
           <span className="card-title">Shelby object registry</span>
-          <button className="btn btn-sm" onClick={load}>↻</button>
+          <button className="btn btn-sm" aria-label="Refresh" title="Refresh" onClick={load}><i className="hgi-stroke hgi-refresh" /></button>
         </div>
         <div className="table-wrap">
           <table>
@@ -95,7 +95,7 @@ export default function ObjectsPage() {
                       <td><strong>{o.model}</strong></td>
                       <td className="mono text-sm">{(o.objectId||'').slice(0,30)}…</td>
                       <td>{fmt(o.size)}</td>
-                      <td><span className="badge badge-shelby">RAID-5 Sharded</span></td>
+                      <td><span className="badge badge-shelby">Erasure-coded</span></td>
                       <td><span className={`badge ${o.status==='healthy'?'badge-green':o.status==='expiring_soon'?'badge-amber':'badge-red'}`}>{o.daysLeft!=null?`${o.daysLeft}d left`:'unknown'}</span></td>
                       <td>
                         <div className="flex gap-1" style={{ flexWrap: 'wrap' }}>
@@ -106,7 +106,7 @@ export default function ObjectsPage() {
                             <i className="hgi-stroke hgi-refresh" /> Renew
                           </button>
                           <button className="btn btn-sm" onClick={() => setExpanded(expanded === o.id ? null : o.id)}>
-                            <i className="hgi-stroke hgi-chart-bubble-01" /> {expanded === o.id ? 'Close Map' : 'Shard Map'}
+                            <i className="hgi-stroke hgi-information-circle" /> {expanded === o.id ? 'Hide details' : 'Details'}
                           </button>
                         </div>
                       </td>
@@ -114,18 +114,24 @@ export default function ObjectsPage() {
                     {expanded === o.id && (
                       <tr style={{ background: 'var(--surface)' }}>
                         <td colSpan={6} style={{ padding: '24px 32px' }}>
-                          <h4 style={{ margin: '0 0 16px 0', fontSize: 14 }}>Encrypted Shard Distribution</h4>
-                          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
-                            This object is erasure-coded across the global Shelby network. If 30% of nodes go offline, the model remains 100% available.
+                          <h4 style={{ margin: '0 0 8px 0', fontSize: 14 }}>Shelby object details</h4>
+                          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+                            Shelby erasure-codes and disperses this blob across storage providers.
+                            Per-provider placement is internal to the protocol and not exposed by
+                            the API, so the fields below are what we can verify.
                           </p>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-                            {shards.map((s, i) => (
-                              <div key={i} style={{ border: '1px solid var(--border)', padding: 12, borderRadius: 8, background: 'var(--bg)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                  <strong className="mono" style={{ fontSize: 12 }}>{s.id}</strong>
-                                  <span style={{ fontSize: 11, color: s.status === 'online' ? 'var(--green)' : 'var(--red)' }}>● {s.status}</span>
-                                </div>
-                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Type: {s.type} chunk</div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+                            {[
+                              ['Object ID', o.objectId || '—'],
+                              ['SHA-256', o.sha256 || '—'],
+                              ['Size', fmt(o.size)],
+                              ['Owner address', o.address || '—'],
+                              ['Expires', o.expiresAt ? new Date(o.expiresAt).toLocaleString() : '—'],
+                              ['Mode', o.mode || '—'],
+                            ].map(([k, v]) => (
+                              <div key={k as string} style={{ border: '1px solid var(--border)', padding: 12, borderRadius: 8, background: 'var(--bg)' }}>
+                                <div className="form-label" style={{ marginBottom: 4 }}>{k}</div>
+                                <div className="mono" style={{ fontSize: 11.5, wordBreak: 'break-all' }}>{v}</div>
                               </div>
                             ))}
                           </div>

@@ -23,7 +23,7 @@ export default function Schedule() {
 
   return (
     <div style={{display:'grid',gridTemplateColumns:'1fr 340px',gap:20}}>
-      <div className="card"><div className="card-header"><span className="card-title">Scheduled deployments</span><button className="btn btn-sm" onClick={load}>↻</button></div>
+      <div className="card"><div className="card-header"><span className="card-title">Scheduled deployments</span><button className="btn btn-sm" aria-label="Refresh" title="Refresh" onClick={load}><i className="hgi-stroke hgi-refresh" /></button></div>
         <div style={{padding:12}}>
           {!jobs.length ? (
             <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>

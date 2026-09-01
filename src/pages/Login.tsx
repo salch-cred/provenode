@@ -4,7 +4,6 @@ import { usePrivy } from '@privy-io/react-auth';
 import LatticeBackground from '../components/LatticeBackground';
 
 export default function Login({ noAuth }: { noAuth?: boolean }) {
-  const navigate = useNavigate();
   const configured = Boolean(import.meta.env.VITE_PRIVY_APP_ID) && !noAuth;
 
   if (!configured) {
@@ -28,7 +27,7 @@ export default function Login({ noAuth }: { noAuth?: boolean }) {
 
 function LoginWithPrivy() {
   const navigate = useNavigate();
-  const { login, authenticated, user, ready } = usePrivy();
+  const { login, authenticated, ready } = usePrivy();
   const [mode, setMode] = useState<string | null>(null);
   const [error, setError] = useState('');
 

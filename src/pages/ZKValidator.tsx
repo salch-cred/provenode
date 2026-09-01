@@ -50,7 +50,7 @@ export default function ZKValidator() {
     }
     setGenerating(true);
     try {
-      const res = await post<any>(`/api/zkproof/generate/${encodeURIComponent(modelId)}`, { testVectors });
+      await post<any>(`/api/zkproof/generate/${encodeURIComponent(modelId)}`, { testVectors });
       toast('Proof generated from real model outputs', 'success');
       verify(modelId);
     } catch (e: any) {

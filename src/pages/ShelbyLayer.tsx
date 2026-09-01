@@ -78,7 +78,7 @@ export default function ShelbyLayer() {
               <div>
                 <div className="text-sm text-muted">Verify a Weights SHA-256 On-Chain</div>
                 <div className="flex gap-2 mt-1">
-                  <input className="input mono" style={{ flex: 1, minWidth: 160 }} placeholder="64-char sha256" value={checkSha} onChange={(e) => setCheckSha(e.target.value)} />
+                  <input aria-label="Model SHA-256 to verify" className="input mono" style={{ flex: 1, minWidth: 160 }} placeholder="64-char sha256" value={checkSha} onChange={(e) => setCheckSha(e.target.value)} />
                   <button className="btn btn-primary" onClick={runVerify} disabled={checking || !/^[0-9a-f]{64}$/.test(checkSha.trim())}>{checking ? '…' : 'Verify'}</button>
                 </div>
                 {checkResult && (

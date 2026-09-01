@@ -225,6 +225,7 @@ export default function NetworkAgent() {
           {/* Input */}
           <div style={{ padding: 12, borderTop: '1px solid var(--border-color)', display: 'flex', gap: 8, flexShrink: 0 }}>
             <input
+              aria-label="Message the network agent"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && send()}

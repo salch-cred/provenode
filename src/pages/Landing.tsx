@@ -336,7 +336,7 @@ export default function Landing() {
                 </div>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <Link to="/app/sites" className="lp-btn lp-btn-primary"><i className="hgi-stroke hgi-globe-02" /> Deploy a site</Link>
-                  <a href="/api/docs" target="_blank" rel="noreferrer" className="lp-btn lp-btn-outline">API docs</a>
+                  <a href="/docs/sites" target="_blank" rel="noreferrer" className="lp-btn lp-btn-outline">Read the guide</a>
                 </div>
               </div>
               <div className="lp-sites-terminal">

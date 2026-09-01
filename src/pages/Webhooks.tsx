@@ -21,7 +21,7 @@ export default function Webhooks() {
   return (
     <div style={{display:'grid',gridTemplateColumns:'1fr 360px',gap:20}}>
       <div className="card"><div className="card-header"><span className="card-title">Registered webhooks</span>
-        <div className="flex gap-2"><button className="btn btn-sm" onClick={test}>Send test</button><button className="btn btn-sm" onClick={load}>↻</button></div></div>
+        <div className="flex gap-2"><button className="btn btn-sm" onClick={test}>Send test</button><button className="btn btn-sm" aria-label="Refresh" title="Refresh" onClick={load}><i className="hgi-stroke hgi-refresh" /></button></div></div>
         <div style={{padding:12}}>
           {!hooks.length ? (
             <div className="empty" style={{padding:'40px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>

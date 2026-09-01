@@ -79,8 +79,12 @@ export default function Deploy() {
             </div>
 
             <div
+              role="button"
+              tabIndex={0}
+              aria-label="Choose a model file to upload"
               className={`drop-zone ${dragOver ? 'drag-over' : ''}`}
               onClick={() => inputRef.current?.click()}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputRef.current?.click(); } }}
               onDragOver={e => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
               onDrop={e => { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); }}

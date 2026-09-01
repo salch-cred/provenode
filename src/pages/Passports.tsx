@@ -140,7 +140,7 @@ export default function Passports() {
       </div>
 
       <div className="card" style={{ marginBottom: 20 }}>
-        <div className="card-header"><span className="card-title">Registered Models</span><button className="btn btn-sm" onClick={load}>↻</button></div>
+        <div className="card-header"><span className="card-title">Registered Models</span><button className="btn btn-sm" aria-label="Refresh" title="Refresh" onClick={load}><i className="hgi-stroke hgi-refresh" /></button></div>
         <div className="table-wrap">
           <table>
             <thead>

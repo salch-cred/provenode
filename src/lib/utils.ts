@@ -1,6 +1,3 @@
-export const esc = (s: unknown): string =>
-  String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-
 export const fmt = (n?: number | null): string => {
   if (!n) return '0 B';
   if (n < 1024) return `${n} B`;

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { get } from '../lib/api';
 
 export default function Earnings() {
   const [data, setData] = useState<{ nodes: any[], totalEarned: string, tokenVelocity: string } | null>(null);
@@ -6,8 +7,9 @@ export default function Earnings() {
   useEffect(() => {
     const fetchEarnings = async () => {
       try {
-        const res = await fetch('/api/earnings');
-        const json = await res.json();
+        // Use apiFetch so the tenant + auth headers are attached; a raw fetch()
+        // read the wrong (global) KV namespace.
+        const json = await get<any>('/api/earnings');
         if (json.success) setData(json);
       } catch (err) {
         console.error('Failed to fetch earnings', err);

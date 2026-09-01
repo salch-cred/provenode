@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import { get } from '../lib/api';
 import LatticeBackground from '../components/LatticeBackground';
 
 export default function Verify() {
@@ -14,8 +15,8 @@ export default function Verify() {
     (async () => {
       if (!modelId) { setStatus(modelHash ? 'ok' : 'error'); return; }
       try {
-        const res = await fetch(`/api/certificate/${modelId}`);
-        const data = await res.json();
+        // Route through apiFetch so tenant scoping applies.
+        const data = await get<any>(`/api/certificate/${modelId}`);
         if (data.certificate) {
           setRecord(data.certificate);
           setStatus('ok');
@@ -78,7 +79,7 @@ export default function Verify() {
             </div>
             <div style={{display:'flex',gap:10,marginTop:4}}>
               <Link to="/app/dashboard" className="btn">← Console</Link>
-              <button className="btn" onClick={() => window.location.reload()}>↻ Verify Again</button>
+              <button className="btn" onClick={() => window.location.reload()}><i className="hgi-stroke hgi-refresh" /> Verify Again</button>
             </div>
           </>
         )}

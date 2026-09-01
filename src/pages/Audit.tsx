@@ -15,13 +15,13 @@ export default function Audit() {
     <div className="card">
       <div className="card-header"><span className="card-title">Immutable audit log</span>
         <div className="flex gap-2">
-          <select className="form-input" value={action} onChange={e=>setAction(e.target.value)} style={{width:220}}>
+          <select aria-label="Filter by event type" className="form-input" value={action} onChange={e=>setAction(e.target.value)} style={{width:220}}>
             <option value="">All events</option>
             <option>model.registered</option><option>deployment.started</option><option>deployment.verified</option>
             <option>deployment.rolled_back</option><option>canary.advanced</option><option>bluegreen.switched</option>
             <option>marketplace.published</option><option>schedule.created</option><option>integrity.mismatch</option>
           </select>
-          <input className="form-input" type="number" value={limit} onChange={e=>setLimit(+e.target.value)} style={{width:70}} />
+          <input aria-label="Maximum records" className="form-input" type="number" value={limit} onChange={e=>setLimit(+e.target.value)} style={{width:70}} />
           <button className="btn btn-sm btn-primary" onClick={load}>Load</button>
         </div></div>
       <div className="table-wrap"><table><thead><tr><th>Timestamp</th><th>Event</th><th>Actor</th><th>Target</th></tr></thead>

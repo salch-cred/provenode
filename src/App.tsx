@@ -29,21 +29,19 @@ import Earnings from './pages/Earnings';
 import Passports from './pages/Passports';
 import Sites from './pages/Sites';
 
-// Only mounted when PrivyProvider is guaranteed present in the tree (noAuth=false)
-function PrivyGuard({ children }: { children: React.ReactNode }) {
+// AuthGuard redirects unauthenticated users to /login.
+// It also persists the Privy user id as the tenant so every API call is scoped
+// to that namespace. This used to live in a `PrivyGuard` component that was
+// never mounted, so `tenant` was never written and EVERY user shared one
+// global KV namespace.
+function AuthGuard({ children, noAuth }: { children: React.ReactNode; noAuth?: boolean }) {
   const { ready, authenticated, user } = usePrivy();
   React.useEffect(() => {
+    if (noAuth) return;
     if (ready && authenticated && user) {
       localStorage.setItem('tenant', user.id);
     }
-  }, [ready, authenticated, user]);
-  if (!ready) return null;
-  return <>{children}</>;
-}
-
-// AuthGuard redirects unauthenticated users to /login
-function AuthGuard({ children, noAuth }: { children: React.ReactNode; noAuth?: boolean }) {
-  const { ready, authenticated } = usePrivy();
+  }, [ready, authenticated, user, noAuth]);
   if (noAuth) return <>{children}</>;
   if (!ready) return <div className="page fade-in" style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh'}}><div className="spin" /></div>;
   if (!authenticated) return <Navigate to="/login" replace />;

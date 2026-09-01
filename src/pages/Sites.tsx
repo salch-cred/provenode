@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { get, post, del, upload } from '../lib/api';
 import { useToast } from '../contexts/AppContext';
 
@@ -68,6 +68,7 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: \${{ github.event.pull_request.number }}
         run: |
           URL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('deploy_result.json')).previewUrl)")
           gh pr comment "$PR_NUMBER" --body "Shelby preview: ${origin}$URL"
@@ -86,7 +87,9 @@ export default function Sites() {
   const [preview, setPreview] = useState<{ site: Site; deployment: Deployment } | null>(null);
   const [gitPanel, setGitPanel] = useState<string | null>(null);
   const [siteKeys, setSiteKeys] = useState<Record<string, SiteKey[]>>({});
-  const [newKey, setNewKey] = useState<string | null>(null);
+  // Keyed per site: a single shared value leaked site A's secret token into
+  // site B's panel and hid B's 'Create deploy key' button.
+  const [newKeys, setNewKeys] = useState<Record<string, string>>({});
   const [rollingBack, setRollingBack] = useState<string | null>(null);
   const [origin] = useState(typeof window !== 'undefined' ? window.location.origin : '');
 
@@ -100,7 +103,7 @@ export default function Sites() {
   const createKey = async (siteId: string) => {
     try {
       const d = await post<any>(`/api/sites/${siteId}/keys`, {});
-      setNewKey(d.token);
+      setNewKeys(prev => ({ ...prev, [siteId]: d.token }));
       loadKeys(siteId);
       toast('Deploy key created — copy it into GitHub secrets now', 'success');
     } catch (e: any) { toast(e.message, 'error'); }
@@ -130,8 +133,8 @@ export default function Sites() {
     } catch (e: any) { toast(e.message, 'error'); }
     setRollingBack(null);
   };
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [dragOver, setDragOver] = useState(false);
+  // Keyed per site: one boolean highlighted EVERY drop zone at once.
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -181,8 +184,12 @@ export default function Sites() {
       load();
       setPreview({ site: updated.site, deployment: res.deployment });
     } catch (e: any) { toast(e.message, 'error'); }
+    // Clear the input BEFORE dropping deployingId — the ref is only attached
+    // while this site is deploying, so resetting afterwards was a no-op and
+    // re-selecting the same file would not fire onChange.
+    const input = document.getElementById(`file-${siteId}`) as HTMLInputElement | null;
+    if (input) input.value = '';
     setDeployingId(null);
-    if (fileRef.current) fileRef.current.value = '';
   };
 
   const onFile = (siteId: string, f: File | null) => { if (f) doDeploy(siteId, f); };
@@ -319,28 +326,37 @@ export default function Sites() {
                     <button className="btn btn-sm" onClick={() => { const next = gitPanel === site.id ? null : site.id; setGitPanel(next); if (next) loadKeys(site.id); }} title="Push-to-deploy from GitHub">
                       <i className="hgi-stroke hgi-github" /> GitHub
                     </button>
-                    <button className="btn btn-sm" onClick={() => removeSite(site.id)} style={{ color: 'var(--red)' }}><i className="hgi-stroke hgi-delete-02" /></button>
+                    <button className="btn btn-sm" aria-label={`Delete site ${site.name}`} title="Delete site" onClick={() => removeSite(site.id)} style={{ color: 'var(--red)' }}><i className="hgi-stroke hgi-delete-02" /></button>
                   </div>
                 </div>
                 <div className="card-body" style={{ paddingTop: 14 }}>
-                  {/* Drop zone */}
+                  {/* Drop zone — keyboard accessible (role=button + Enter/Space) */}
                   <div
-                    onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-                    onDragLeave={() => setDragOver(false)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Deploy files to ${site.name}`}
+                    onDragOver={e => { e.preventDefault(); setDragOverId(site.id); }}
+                    onDragLeave={() => setDragOverId(null)}
                     onDrop={e => {
-                      e.preventDefault(); setDragOver(false);
+                      e.preventDefault(); setDragOverId(null);
                       const f = e.dataTransfer.files[0];
                       if (f) onFile(site.id, f);
                     }}
                     onClick={() => document.getElementById(`file-${site.id}`)?.click()}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        document.getElementById(`file-${site.id}`)?.click();
+                      }
+                    }}
                     style={{
-                      border: `1.5px dashed ${dragOver ? 'var(--coral)' : 'var(--border)'}`,
-                      background: dragOver ? 'rgba(232,90,40,0.04)' : 'var(--bg)',
+                      border: `1.5px dashed ${dragOverId === site.id ? 'var(--coral)' : 'var(--border)'}`,
+                      background: dragOverId === site.id ? 'var(--coral-wash)' : 'var(--bg)',
                       borderRadius: 12, padding: '18px 14px', textAlign: 'center', cursor: 'pointer',
                       transition: 'border-color .15s, background .15s',
                     }}
                   >
-                    <input id={`file-${site.id}`} ref={site.id === deployingId ? fileRef : undefined} type="file" accept=".zip,.html,.htm" style={{ display: 'none' }} onChange={e => onFile(site.id, e.target.files?.[0] || null)} />
+                    <input id={`file-${site.id}`} type="file" accept=".zip,.html,.htm" style={{ display: 'none' }} onChange={e => onFile(site.id, e.target.files?.[0] || null)} />
                     <div style={{ fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                       {isDeploying ? <><span className="spin" /> Uploading to Shelby…</> : <><i className="hgi-stroke hgi-upload-01" /> Drop ZIP or HTML here or click to browse</>}
                     </div>
@@ -359,10 +375,10 @@ export default function Sites() {
                       <div style={{ padding: 16 }} className="sites-git-panel">
                         {/* Step 1 — key */}
                         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>1 · Deploy key</div>
-                        {newKey ? (
+                        {newKeys[site.id] ? (
                           <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-                            <code className="mono" style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--coral)', borderRadius: 6, padding: '6px 10px', fontSize: 11, wordBreak: 'break-all' }}>{newKey}</code>
-                            <button className="btn btn-sm btn-primary" onClick={() => copy(newKey, 'Key')}><i className="hgi-stroke hgi-file-01" /> Copy</button>
+                            <code className="mono" style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--coral)', borderRadius: 6, padding: '6px 10px', fontSize: 11, wordBreak: 'break-all' }}>{newKeys[site.id]}</code>
+                            <button className="btn btn-sm btn-primary" onClick={() => copy(newKeys[site.id], 'Key')}><i className="hgi-stroke hgi-file-01" /> Copy</button>
                           </div>
                         ) : (
                           <button className="btn btn-sm" onClick={() => createKey(site.id)}><i className="hgi-stroke hgi-add-01" /> Create deploy key</button>

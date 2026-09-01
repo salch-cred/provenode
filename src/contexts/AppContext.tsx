@@ -16,12 +16,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{ toast }}>
       {children}
-      <div id="toast-container">
+      <div id="toast-container" role="status" aria-live="polite">
         {toasts.map(t => (
           <div key={t.id} className={`toast toast-${t.type}`}>
             <i className={`hgi-stroke ${t.type === 'success' ? 'hgi-checkmark-circle-02' : t.type === 'error' ? 'hgi-cancel-circle' : t.type === 'warning' ? 'hgi-alert-02' : 'hgi-information-circle'}`} />
             <span>{t.msg}</span>
-            <span className="toast-close" onClick={() => setToasts(ts => ts.filter(x => x.id !== t.id))}>×</span>
+            <button
+              type="button"
+              className="toast-close"
+              aria-label="Dismiss notification"
+              onClick={() => setToasts(ts => ts.filter(x => x.id !== t.id))}
+            >
+              <i className="hgi-stroke hgi-cancel-01" />
+            </button>
           </div>
         ))}
       </div>
