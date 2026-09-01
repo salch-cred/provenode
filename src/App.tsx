@@ -22,6 +22,7 @@ import Schedule from './pages/Schedule';
 import Groups from './pages/Groups';
 import Audit from './pages/Audit';
 import Integrity from './pages/Integrity';
+import SelfHeal from './pages/SelfHeal';
 import Datasets from './pages/Datasets';
 import ZKValidator from './pages/ZKValidator';
 import Earnings from './pages/Earnings';
@@ -80,6 +81,7 @@ export default function App({ noAuth: externalNoAuth }: { noAuth?: boolean }) {
         <Route path="groups"        element={<Groups />} />
         <Route path="audit"         element={<Audit />} />
         <Route path="integrity"     element={<Integrity />} />
+        <Route path="selfheal"      element={<SelfHeal />} />
         <Route path="datasets"      element={<Datasets />} />
         <Route path="zkvalidator"   element={<ZKValidator />} />
         <Route path="passports"     element={<Passports />} />

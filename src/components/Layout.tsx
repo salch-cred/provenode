@@ -18,6 +18,7 @@ const NAV = [
   { section: 'Fleet', items: [
     { to: 'devices',     label: 'Devices',      icon: 'hgi-cpu' },
     { to: 'fleet',       label: 'OTA · Canary · Blue-Green', icon: 'hgi-refresh' },
+    { to: 'selfheal',    label: 'Self-Healing', icon: 'hgi-shield-energy' },
     { to: 'groups',      label: 'Groups',       icon: 'hgi-folder-01' },
   ]},
   { section: 'Enterprise', items: [

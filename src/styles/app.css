@@ -960,9 +960,13 @@ input[type=checkbox], input[type=radio] { accent-color: var(--coral); }
 @media (max-width: 900px) {
   .sites-hero-grid { grid-template-columns: 1fr !important; padding: 20px 16px 16px !important; }
   .sites-hero-grid .card { padding: 14px !important; }
+  .selfheal-cols { grid-template-columns: 1fr !important; }
+  .fleet-two-col { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 640px) {
   .sites-form-grid, .sites-form-grid2 { grid-template-columns: 1fr !important; }
+  .incident-hashes { grid-template-columns: 1fr !important; }
+  .bg-form > div { grid-template-columns: 1fr !important; }
 }
 
 /* ── Misc helpers ───────────────────────────────────────────── */

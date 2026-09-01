@@ -54,6 +54,7 @@ Each deployment is an **immutable snapshot** — like a Vercel preview. Redeploy
 | `GET` | `/api/sites/:idOrSlug` | Get site + deployment history |
 | `DELETE` | `/api/sites/:idOrSlug` | Delete site + all deployments |
 | `POST` | `/api/sites/:id/deploy` | Deploy ZIP / HTML / JSON files |
+| `POST` | `/api/sites/:id/rollback` | Promote an existing deployment to production |
 | `GET` | `/api/sites/:id/deployments` | List deployments |
 | `GET` | `/api/sites/:id/serve/<path>` | Serve latest deployment file |
 | `GET` | `/api/sites/:id/preview/:depId/<path>` | Preview a specific deployment |
@@ -86,6 +87,21 @@ or
   ]
 }
 ```
+
+## Instant Rollback
+
+Every deployment is an immutable snapshot whose blobs stay on Shelby. Rolling back therefore does **not** re-upload anything — it only moves the production pointer, so it completes in milliseconds and is itself reversible.
+
+In the console: **Sites → your site → Deployments → Rollback to this**. The live deployment is marked `LIVE`.
+
+```bash
+curl -X POST https://your-app.vercel.app/api/sites/$SITE_ID/rollback \
+  -H "Content-Type: application/json" \
+  -H "X-Provenode-Token: $TOKEN" \
+  -d '{"deploymentId": "dep_abc123"}'
+```
+
+Response includes the promoted deployment and the public URL. Each rollback is written to the audit log (`site.rolled_back`), dispatched to webhooks, and appended to the site's `rollbackHistory` (last 20 entries).
 
 ## Limits
 

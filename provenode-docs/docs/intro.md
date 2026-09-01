@@ -19,7 +19,7 @@ slug: /
 
 - **Shelby Sites**: Deploy entire static websites to immutable Shelby blobs with a Vercel-like ZIP flow or GitHub push-to-deploy — every file content-addressed and publicly verifiable at `/s/<slug>`.
 - **Model Passports & Registry**: Every model gets a SHA-256 identity, a signed passport, and an on-chain registry entry on Shelbynet.
-- **Integrity Enforcement**: Edge devices re-hash payloads against the signed manifest before activation — a mismatch halts the load, logs the incident, and requests a clean payload.
+- **Integrity Enforcement**: Edge devices re-hash payloads against the signed manifest before activation — a mismatch halts the load, logs the incident, and requests a clean payload. See [Autonomous Self-Healing](/self-healing).
 - **Zero-Knowledge Verification**: NIZKPoK proofs verify that a model executed correctly without exposing proprietary weights.
 - **Fleet Rollouts**: Canary staging (10% → 50% → 100%) with automatic rollback, plus blue-green atomic cutover for zero-downtime swaps.
 - **EU AI Act Compliance**: Exportable audit trails, lineage graphs, and provenance records built for Article 13 transparency requirements.

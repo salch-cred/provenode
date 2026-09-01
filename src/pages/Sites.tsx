@@ -6,6 +6,7 @@ type Site = {
   id: string; slug: string; name: string; description: string;
   framework: string; createdAt: string; updatedAt: string;
   deploymentCount: number; lastDeploymentId: string | null;
+  rollbackHistory?: { from: string | null; to: string; at: string }[];
 };
 
 type Deployment = {
@@ -86,6 +87,7 @@ export default function Sites() {
   const [gitPanel, setGitPanel] = useState<string | null>(null);
   const [siteKeys, setSiteKeys] = useState<Record<string, SiteKey[]>>({});
   const [newKey, setNewKey] = useState<string | null>(null);
+  const [rollingBack, setRollingBack] = useState<string | null>(null);
   const [origin] = useState(typeof window !== 'undefined' ? window.location.origin : '');
 
   const loadKeys = async (siteId: string) => {
@@ -116,6 +118,17 @@ export default function Sites() {
   const copy = async (text: string, what: string) => {
     try { await navigator.clipboard.writeText(text); toast(`${what} copied`, 'success'); }
     catch { toast('Copy failed — select manually', 'error'); }
+  };
+
+  const rollback = async (siteId: string, deploymentId: string) => {
+    if (!confirm('Promote this deployment to production? The blobs are already on Shelby — this only moves the production pointer, so it is instant and reversible.')) return;
+    setRollingBack(deploymentId);
+    try {
+      const r = await post<any>(`/api/sites/${siteId}/rollback`, { deploymentId });
+      toast(r.message || 'Rolled back', 'success');
+      await load();
+    } catch (e: any) { toast(e.message, 'error'); }
+    setRollingBack(null);
   };
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -385,20 +398,46 @@ export default function Sites() {
                     </div>
                   )}
 
-                  {/* Deployments */}
+                  {/* Deployments — with instant rollback */}
                   {deps.length > 0 && (
                     <div style={{ marginTop: 14 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>Deployments</div>
-                      <div style={{ display: 'grid', gap: 8 }}>
-                        {deps.slice(0, 5).map(d => (
-                          <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12 }}>
-                            <span className="badge badge-demo mono" style={{ fontSize: 10 }}>{d.id.slice(0, 10)}</span>
-                            <span style={{ color: 'var(--text-muted)' }}>{d.fileCount} files · {(d.totalBytes / 1024).toFixed(1)} KB</span>
-                            <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>{new Date(d.createdAt).toLocaleString()}</span>
-                            <a href={`/api/sites/${site.id}/preview/${d.id}/`} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ padding: '4px 8px', fontSize: 11 }}>Preview</a>
-                          </div>
-                        ))}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Deployments</div>
+                        <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>· every deploy is an immutable snapshot — promote any of them instantly</span>
                       </div>
+                      <div style={{ display: 'grid', gap: 8 }}>
+                        {deps.slice(0, 8).map(d => {
+                          const isLive = site.lastDeploymentId === d.id;
+                          const busy = rollingBack === d.id;
+                          return (
+                            <div key={d.id} style={{
+                              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                              background: isLive ? 'var(--green-wash)' : 'var(--bg)',
+                              border: `1px solid ${isLive ? 'rgba(30,127,78,.3)' : 'var(--border)'}`,
+                              borderRadius: 10, fontSize: 12, flexWrap: 'wrap',
+                            }}>
+                              {isLive
+                                ? <span className="badge badge-green" style={{ fontSize: 10 }}><i className="hgi-stroke hgi-tick-01" /> LIVE</span>
+                                : <span className="badge badge-demo mono" style={{ fontSize: 10 }}>{d.id.slice(0, 10)}</span>}
+                              <span style={{ color: 'var(--text-muted)' }}>{d.fileCount} files · {(d.totalBytes / 1024).toFixed(1)} KB</span>
+                              <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>{new Date(d.createdAt).toLocaleString()}</span>
+                              <a href={`/api/sites/${site.id}/preview/${d.id}/`} target="_blank" rel="noreferrer" className="btn btn-sm" style={{ padding: '4px 8px', fontSize: 11 }}>
+                                <i className="hgi-stroke hgi-view" /> Preview
+                              </a>
+                              {!isLive && (
+                                <button className="btn btn-sm btn-primary" style={{ padding: '4px 8px', fontSize: 11 }} disabled={busy} onClick={() => rollback(site.id, d.id)}>
+                                  {busy ? <><span className="spin" /> Promoting</> : <><i className="hgi-stroke hgi-refresh" /> Rollback to this</>}
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {site.rollbackHistory && site.rollbackHistory.length > 0 && (
+                        <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-faint)' }}>
+                          Last rollback: {new Date(site.rollbackHistory[0].at).toLocaleString()} — {site.rollbackHistory[0].from?.slice(0, 10)} → {site.rollbackHistory[0].to?.slice(0, 10)}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

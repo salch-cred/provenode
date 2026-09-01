@@ -2161,13 +2161,25 @@ export default async function handler(req, res) {
       if (method !== 'GET' && requireAuth(req, res)) return;
 
       if (method === 'GET') {
-        // Fleet health overview
+        // Fleet health overview + tamper incident history
         const { keys: dk } = await db.list({ prefix: 'device:' });
         const { keys: mk } = await db.list({ prefix: 'model:' });
+        const { keys: ik } = await db.list({ prefix: 'incident:' });
         const devices = (await Promise.all(dk.map(async ({ name }) => { const d = await db.get(name); return d ? JSON.parse(d) : null; }))).filter(Boolean);
         const models = (await Promise.all(mk.map(async ({ name }) => { const d = await db.get(name); return d ? JSON.parse(d) : null; }))).filter(Boolean);
+        const incidents = (await Promise.all(ik.map(async ({ name }) => { const d = await db.get(name); return d ? JSON.parse(d) : null; }))).filter(Boolean)
+          .sort((a, b) => new Date(b.tamperDetectedAt || 0) - new Date(a.tamperDetectedAt || 0));
         const health = evaluateFleetHealth(devices, models);
-        return json(res, 200, { success: true, health });
+        const healed = incidents.filter(i => i.status === 'healed');
+        const stats = {
+          incidents: incidents.length,
+          healed: healed.length,
+          open: incidents.length - healed.length,
+          avgHealMs: healed.length
+            ? Math.round(healed.reduce((a, i) => a + (i.healDurationMs || 0), 0) / healed.length)
+            : null,
+        };
+        return json(res, 200, { success: true, health, incidents, stats });
       }
 
       if (method === 'POST') {
@@ -2188,10 +2200,10 @@ export default async function handler(req, res) {
           await db.put(`incident:${incident.id}`, JSON.stringify(incident));
           await dispatch('device.tamper_detected', { deviceId, modelId, incidentId: incident.id });
           await logAudit('selfheal.tamper_detected', { actor: deviceId, target: modelId, details: { oldSha: reportedSha256.slice(0,8), incidentId: incident.id } });
-          return json(res, 200, { success: true, tampered: true, healCommand: healCmd, incident: { id: incident.id, status: 'heal_issued' }, message: '🚨 Tamper detected. Heal command issued automatically.' });
+          return json(res, 200, { success: true, tampered: true, healCommand: healCmd, incident: { id: incident.id, status: 'heal_issued' }, message: 'Tamper detected. Heal command issued automatically.' });
         }
 
-        return json(res, 200, { success: true, tampered: false, message: '✅ Device integrity verified.' });
+        return json(res, 200, { success: true, tampered: false, message: 'Device integrity verified.' });
       }
 
       if (method === 'PATCH') {
@@ -2208,7 +2220,7 @@ export default async function handler(req, res) {
         incident.verifiedSha256 = verifiedSha256;
         await db.put(`incident:${incidentId}`, JSON.stringify(incident));
         await logAudit('selfheal.healed', { target: incident.deviceId, details: { incidentId, healDurationMs: incident.healDurationMs } });
-        return json(res, 200, { success: true, incident, message: `✅ Fleet healed in ${(incident.healDurationMs/1000).toFixed(1)}s autonomously.` });
+        return json(res, 200, { success: true, incident, message: `Fleet healed in ${(incident.healDurationMs/1000).toFixed(1)}s autonomously.` });
       }
     }
 
@@ -2926,6 +2938,41 @@ export default async function handler(req, res) {
             deployment,
             serveUrl: `/api/sites/${site.id}/serve/`,
             previewUrl: `/api/sites/${site.id}/serve/${deployment.entryPath}`,
+            publicUrl: `/s/${site.slug}`,
+          });
+        }
+
+        // POST /api/sites/:siteId/rollback { deploymentId } -> instant rollback
+        // Promotes an existing immutable snapshot back to production. No re-upload:
+        // the blobs already live on Shelby, we only move the production pointer.
+        if (sub === 'rollback' && method === 'POST') {
+          if (requireAuth(req, res)) return;
+          const body = await readBody(req);
+          const target = String(body.deploymentId || '').trim();
+          if (!target) return json(res, 400, { error: 'deploymentId required.' });
+          if (target === site.lastDeploymentId) return json(res, 400, { error: 'That deployment is already live in production.' });
+
+          const depRaw = await db.get(`siteDeploy:${site.id}:${target}`);
+          if (!depRaw) return json(res, 404, { error: 'Deployment not found for this site.' });
+          const dep = JSON.parse(depRaw);
+
+          const previous = site.lastDeploymentId;
+          site.lastDeploymentId = target;
+          site.updatedAt = new Date().toISOString();
+          site.rolledBackAt = site.updatedAt;
+          site.rollbackHistory = [
+            { from: previous, to: target, at: site.updatedAt },
+            ...(site.rollbackHistory || []),
+          ].slice(0, 20);
+          await db.put(`site:${site.id}`, JSON.stringify(site));
+          await logAudit('site.rolled_back', { target: site.id, details: { from: previous, to: target, fileCount: dep.fileCount } });
+          await dispatch('site.rolled_back', { siteId: site.id, slug: site.slug, from: previous, to: target });
+
+          return json(res, 200, {
+            success: true,
+            site,
+            deployment: dep,
+            message: `Production now serving ${target} (${dep.fileCount} files).`,
             publicUrl: `/s/${site.slug}`,
           });
         }
